@@ -8,7 +8,7 @@
 //
 // https://github.com/gobanos/aoc-runner-derive/blob/master/src/lib.rs if attr is useful.
 
-use chrono::{DateTime, Datelike, Local, NaiveDate};
+use chrono::{DateTime, Datelike, FixedOffset, NaiveDate, Utc};
 use clap::{Parser, Subcommand};
 use std::path::{Path, PathBuf};
 
@@ -80,8 +80,14 @@ fn do_download(year: Option<Year>, wait: bool) -> anyhow::Result<()> {
     Ok(())
 }
 
+fn aoc_now() -> DateTime<FixedOffset> {
+    const HOUR: i32 = 3600;
+    let aoc_tz = FixedOffset::west_opt(5 * HOUR).unwrap();
+    Utc::now().with_timezone(&aoc_tz)
+}
+
 fn dates(year: Option<Year>, wait: bool) -> DateIter {
-    let now = Local::now();
+    let now = aoc_now();
     match (year, wait, now.year(), now.month(), now.day()) {
         (None, true, y, 11, 30) => DateIter {
             year: y,
@@ -137,7 +143,7 @@ fn dates(year: Option<Year>, wait: bool) -> DateIter {
 struct DateIter {
     year: Year,
     stop_after: Day,
-    now: DateTime<Local>,
+    now: DateTime<FixedOffset>,
     next_day: Day,
 }
 
