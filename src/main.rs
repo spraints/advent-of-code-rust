@@ -3,169 +3,56 @@
 // - framework for testing with example inputs.
 //
 // - 'cargo test' - runs all unit tests
-// - 'cargo run [--year Y] [--day D] [--part 1|2]' - run the current day, downloading the input if needed.
+// - 'cargo run [--year Y] [--day D] [--part 1|2]' - run the current day, downloading the input if
+//    needed.
+// - 'cargo run --all [--year Y] [--day D] [--part 1|2]' - run everything, maybe filtered down a
+//    bit.
+// - 'cargo run --set-token TOKEN' - stash my auth token.
 //
 // https://github.com/gobanos/aoc-runner-derive/blob/master/src/lib.rs if attr is useful.
 
 mod curday;
 mod download;
+mod token;
 
-use std::path::PathBuf;
-
-use chrono::{DateTime, Datelike, FixedOffset, NaiveDate};
-use clap::{Parser, Subcommand};
-use curday::aoc_now;
-use download::download;
+use clap::Parser;
+use token::set_token;
 
 fn main() {
     let cli = Cli::parse();
-    match cli.cmd {
-        Some(Command::Download { wait, year }) => do_download(year, wait).unwrap(),
-        Some(Command::SetToken { token }) => do_set_token(token).unwrap(),
-        None => todo!(),
-    };
+    match cli.set_token {
+        Some(token) => set_token(token).unwrap(),
+        None => do_run(cli).unwrap(),
+    }
 }
 
-// Alias the types that chrono uses for parts of the date.
-type Year = i32;
-type Day = u32;
+fn do_run(cli: Cli) -> anyhow::Result<()> {
+    //let runner = Runner::new();
+    // todo register solvers
+    //runner.run(cli)
+    Ok(())
+}
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
-    #[command(subcommand)]
-    cmd: Option<Command>,
-}
+    /// Set your token instead of solving any puzzles. This is the value of the session cookie on adventofcode.com.
+    #[arg(long)]
+    set_token: Option<String>,
 
-#[derive(Subcommand)]
-enum Command {
-    Download {
-        #[arg(short, long)]
-        wait: bool,
+    /// Run all solvers.
+    #[arg(long)]
+    all: bool,
 
-        #[arg(short, long)]
-        year: Option<Year>,
-        //day: Option<Day>,
-        //part: Option<Part>,
-    },
+    /// Run all of the given year's solvers, unless --day is set.
+    #[arg(short, long)]
+    year: Option<i32>,
 
-    SetToken {
-        token: String,
-    },
-}
+    /// Run the given day's solvers.
+    #[arg(short, long)]
+    day: Option<i32>,
 
-fn do_download(year: Option<Year>, wait: bool) -> anyhow::Result<()> {
-    let token = match read_token() {
-        Ok(token) => token,
-        Err(err) => {
-            eprint!(
-                "error: {}\nUse 'cargo run set-token TOKEN' to set your token.\n",
-                err
-            );
-            std::process::exit(1);
-        }
-    };
-    let client = reqwest::blocking::Client::new();
-    for date in dates(year, wait) {
-        download(&date, &token, &client)?;
-    }
-    Ok(())
-}
-
-fn dates(year: Option<Year>, wait: bool) -> DateIter {
-    let now = aoc_now();
-    match (year, wait, now.year(), now.month(), now.day()) {
-        (None, true, y, 11, 30) => DateIter {
-            year: y,
-            stop_after: 1,
-            now,
-            next_day: 1,
-        },
-        (Some(y), true, cy, 11, 30) if y == cy => DateIter {
-            year: y,
-            stop_after: 1,
-            now,
-            next_day: 1,
-        },
-        (None, true, y, 12, d) => DateIter {
-            year: y,
-            stop_after: d + 1,
-            now,
-            next_day: 1,
-        },
-        (Some(y), true, cy, 12, d) if cy == y => DateIter {
-            year: y,
-            stop_after: d + 1,
-            now,
-            next_day: 1,
-        },
-        (None, false, y, 12, d) => DateIter {
-            year: y,
-            stop_after: d,
-            now,
-            next_day: 1,
-        },
-        (Some(y), false, cy, 12, d) if cy == y => DateIter {
-            year: y,
-            stop_after: d,
-            now,
-            next_day: 1,
-        },
-        (None, _, y, _, _) => DateIter {
-            year: y - 1,
-            stop_after: 25,
-            now,
-            next_day: 1,
-        },
-        (Some(y), _, _, _, _) => DateIter {
-            year: y,
-            stop_after: 25,
-            now,
-            next_day: 1,
-        },
-    }
-}
-
-struct DateIter {
-    year: Year,
-    stop_after: Day,
-    now: DateTime<FixedOffset>,
-    next_day: Day,
-}
-
-impl Iterator for DateIter {
-    type Item = NaiveDate;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.next_day > self.stop_after {
-            return None;
-        }
-        if self.next_day == self.stop_after
-            && self.year == self.now.year()
-            && self.next_day > self.now.day()
-        {
-            panic!("need to sleep for a bit");
-        }
-        let this_day = self.next_day;
-        self.next_day = self.next_day + 1;
-        NaiveDate::from_ymd_opt(self.year, 12, this_day)
-    }
-}
-
-fn do_set_token(token: String) -> anyhow::Result<()> {
-    let cfg_file = token_path()?;
-    std::fs::write(&cfg_file, token)?;
-    println!("wrote token to {:?}", cfg_file);
-    Ok(())
-}
-
-fn read_token() -> anyhow::Result<String> {
-    Ok(std::fs::read_to_string(token_path()?)?)
-}
-
-fn token_path() -> anyhow::Result<PathBuf> {
-    let app_dirs = platform_dirs::AppDirs::new(Some("advent-of-code"), false).unwrap();
-    let mut cfg_file = app_dirs.config_dir;
-    cfg_file.push("token");
-    Ok(cfg_file)
+    /// Run either part 1 or 2.
+    #[arg(short, long)]
+    part: Option<u8>,
 }
