@@ -9,11 +9,14 @@
 // https://github.com/gobanos/aoc-runner-derive/blob/master/src/lib.rs if attr is useful.
 
 mod curday;
+mod download;
+
+use std::path::PathBuf;
 
 use chrono::{DateTime, Datelike, FixedOffset, NaiveDate};
 use clap::{Parser, Subcommand};
 use curday::aoc_now;
-use std::path::{Path, PathBuf};
+use download::download;
 
 fn main() {
     let cli = Cli::parse();
@@ -65,20 +68,7 @@ fn do_download(year: Option<Year>, wait: bool) -> anyhow::Result<()> {
     };
     let client = reqwest::blocking::Client::new();
     for date in dates(year, wait) {
-        let dest_file = file_for(&date);
-        if matches!(Path::new(&dest_file).try_exists(), Ok(true)) {
-            continue;
-        }
-        // sleep_if_needed(date);
-        println!("download {} ...", date);
-        let url = url_for(&date);
-        let resp = client
-            .get(&url)
-            .header("Cookie", format!("session={}", token))
-            .send()?;
-        anyhow::ensure!(resp.status().is_success(), "{}: {}", url, resp.status());
-        std::fs::create_dir_all(year_dir(&date))?;
-        std::fs::write(dest_file, resp.text()?)?;
+        download(&date, &token, &client)?;
     }
     Ok(())
 }
@@ -161,21 +151,6 @@ impl Iterator for DateIter {
         self.next_day = self.next_day + 1;
         NaiveDate::from_ymd_opt(self.year, 12, this_day)
     }
-}
-
-fn url_for<D: Datelike>(date: &D) -> String {
-    format!(
-        "https://adventofcode.com/{}/day/{}/input",
-        date.year(),
-        date.day()
-    )
-}
-
-fn year_dir<D: Datelike>(date: &D) -> String {
-    format!("inputs/{}", date.year())
-}
-fn file_for<D: Datelike>(date: &D) -> String {
-    format!("{}/{}", year_dir(date), date.day())
 }
 
 fn do_set_token(token: String) -> anyhow::Result<()> {
