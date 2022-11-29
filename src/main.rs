@@ -1,10 +1,9 @@
 // TODO
-// - lay out generator, part 1, part 2, similar to cargo-aoc, but without macros (maybe?)
-// - 'cargo run generate YEAR' - generate a whole year's worth of sources.
-// - 'cargo run' - runs just today's code, catches todo! panics.
-// - 'cargo run all' - run everything
-// - 'cargo run download' - download all the inputs for this year so far. Look for token in
-// ~/.config/aoc-token or use https://crates.io/crates/platform-dirs.
+// - framework for adding days, parts.
+// - framework for testing with example inputs.
+//
+// - 'cargo test' - runs all unit tests
+// - 'cargo run [--year Y] [--day D] [--part 1|2]' - run the current day, downloading the input if needed.
 //
 // https://github.com/gobanos/aoc-runner-derive/blob/master/src/lib.rs if attr is useful.
 
