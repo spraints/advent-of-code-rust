@@ -3,17 +3,20 @@
 // - framework for testing with example inputs.
 //
 // - 'cargo test' - runs all unit tests
-// - 'cargo run [--year Y] [--day D] [--part 1|2]' - run the current day, downloading the input if
+// - 'cargo run' - run the current day
+// - 'cargo run --day 1 --part 1' - run just day 1, part 1, from this year.
+// - 'cargo run --year Y [--day D] [--part 1|2]' - run all or part of a year.
 //    needed.
-// - 'cargo run --all [--year Y] [--day D] [--part 1|2]' - run everything, maybe filtered down a
-//    bit.
+// - 'cargo run --all' - run everything.
 // - 'cargo run --set-token TOKEN' - stash my auth token.
 //
 // https://github.com/gobanos/aoc-runner-derive/blob/master/src/lib.rs if attr is useful.
 
 mod curday;
 mod download;
+mod solutionset;
 mod token;
+mod years;
 
 use clap::Parser;
 use token::set_token;
@@ -27,7 +30,8 @@ fn main() {
 }
 
 fn do_run(cli: Cli) -> anyhow::Result<()> {
-    //let runner = Runner::new();
+    //let mut runner = Runner::new();
+    //y2021::register(&mut runner);
     // todo register solvers
     //runner.run(cli)
     Ok(())
