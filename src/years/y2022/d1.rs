@@ -75,14 +75,4 @@ mod test {
             part2,
         );
     }
-
-    #[test]
-    fn part1_input() {
-        dotestinput(64929, 2022, 1, part1);
-    }
-
-    #[test]
-    fn part2_input() {
-        dotestinput(193697, 2022, 1, part2);
-    }
 }
