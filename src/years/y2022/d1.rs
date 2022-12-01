@@ -1,13 +1,11 @@
+use std::collections::BinaryHeap;
+
 pub fn part1(input: String) -> anyhow::Result<String> {
-    Ok(format!(
-        "{}",
-        input.split("\n\n").map(sum_group).max().unwrap()
-    ))
-    //    let values: Vec<u32> = input.lines().map(|l| l.trim().parse().unwrap()).collect();
-    //    Ok(format!(
-    //        "{}",
-    //        values.windows(2).filter(|x| x[0] < x[1]).count()
-    //    ))
+    Ok(format!("{}", sum_first_n(groups(input), 1)))
+}
+
+fn groups(input: String) -> BinaryHeap<u32> {
+    input.split("\n\n").map(sum_group).collect()
 }
 
 fn sum_group(group: &str) -> u32 {
@@ -17,23 +15,22 @@ fn sum_group(group: &str) -> u32 {
         .sum()
 }
 
+fn sum_first_n(mut groups: BinaryHeap<u32>, n: usize) -> u32 {
+    let mut res = 0;
+    for _ in 0..n {
+        res += groups.pop().unwrap();
+    }
+    res
+}
+
 pub fn part2(input: String) -> anyhow::Result<String> {
-    let mut groups: Vec<u32> = input.split("\n\n").map(sum_group).collect();
-    groups.sort();
-    groups.reverse();
-    Ok(format!("{}", groups.into_iter().take(3).sum::<u32>()))
-    //    let values: Vec<u32> = input.lines().map(|l| l.trim().parse().unwrap()).collect();
-    //    let sums: Vec<u32> = values.windows(3).map(|x| x[0] + x[1] + x[2]).collect();
-    //    Ok(format!(
-    //        "{}",
-    //        sums.windows(2).filter(|x| x[0] < x[1]).count()
-    //    ))
+    Ok(format!("{}", sum_first_n(groups(input), 3)))
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test::dotest;
+    use crate::test::*;
 
     #[test]
     fn part1_example() {
@@ -77,5 +74,15 @@ mod test {
 10000",
             part2,
         );
+    }
+
+    #[test]
+    fn part1_input() {
+        dotestinput(64929, 2022, 1, part1);
+    }
+
+    #[test]
+    fn part2_input() {
+        dotestinput(193697, 2022, 1, part2);
     }
 }

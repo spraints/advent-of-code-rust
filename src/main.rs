@@ -65,7 +65,7 @@ impl Runner {
                     solver.year,
                     solver.day,
                     solver.part,
-                    (solver.f)(get_input(solver.year, solver.day, &token)?)?
+                    (solver.f)(get_input(solver.year, solver.day, Some(&token))?)?
                 );
             }
         }
