@@ -39,7 +39,7 @@ fn main() {
 fn do_run(cli: Cli) -> anyhow::Result<()> {
     let mut runner = Runner::new();
     years::y2021::register(&mut runner);
-    // todo register solvers
+    years::y2022::register(&mut runner);
     runner.run(cli)
 }
 
@@ -56,8 +56,10 @@ impl Runner {
     fn run(self, mut cli: Cli) -> anyhow::Result<()> {
         let token = get_token()?;
         cli.set_today(aoc_now());
+        let mut any = false;
         for solver in self.solvers {
             if cli.matches(solver.year, solver.day, solver.part) {
+                any = true;
                 println!(
                     "{}/{}/{}: {}",
                     solver.year,
@@ -66,6 +68,9 @@ impl Runner {
                     (solver.f)(get_input(solver.year, solver.day, &token)?)?
                 );
             }
+        }
+        if !any {
+            println!("No matches found! {:?}", cli);
         }
         Ok(())
     }
@@ -92,7 +97,7 @@ struct Solver {
     f: Box<dyn Fn(String) -> anyhow::Result<String>>,
 }
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
     /// Set your token instead of solving any puzzles. This is the value of the session cookie on adventofcode.com.
@@ -129,6 +134,7 @@ impl Cli {
             return true;
         }
         match (self.year, self.day, self.part) {
+            (None, None, None) => false,
             (Some(y), _, _) if y != year => false,
             (_, Some(d), _) if d != day => false,
             (_, _, Some(p)) if p != part => false,
