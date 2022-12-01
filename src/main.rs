@@ -15,9 +15,11 @@
 mod curday;
 mod input;
 mod solutionset;
-mod test;
 mod token;
 mod years;
+
+#[cfg(test)]
+mod test;
 
 use chrono::Datelike;
 use clap::Parser;
@@ -69,8 +71,8 @@ impl Runner {
     }
 }
 
-impl SolutionSet for &mut Runner {
-    fn add<F>(self, year: i32, day: u32, part: u8, f: F)
+impl SolutionSet for Runner {
+    fn add<F>(&mut self, year: i32, day: u32, part: u8, f: F)
     where
         F: Fn(String) -> anyhow::Result<String> + 'static,
     {
