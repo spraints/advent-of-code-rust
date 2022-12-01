@@ -60,12 +60,13 @@ impl Runner {
         for solver in self.solvers {
             if cli.matches(solver.year, solver.day, solver.part) {
                 any = true;
+                let input = get_input(solver.year, solver.day, &token)?;
+                let now = std::time::Instant::now();
+                let result = (solver.f)(input)?;
+                let elapsed = now.elapsed();
                 println!(
-                    "{}/{}/{}: {}",
-                    solver.year,
-                    solver.day,
-                    solver.part,
-                    (solver.f)(get_input(solver.year, solver.day, Some(&token))?)?
+                    "{}/{}/{}: {} ({:.2?})",
+                    solver.year, solver.day, solver.part, result, elapsed,
                 );
             }
         }
