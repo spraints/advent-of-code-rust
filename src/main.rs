@@ -13,13 +13,18 @@
 // https://github.com/gobanos/aoc-runner-derive/blob/master/src/lib.rs if attr is useful.
 
 mod curday;
-mod download;
+mod input;
 mod solutionset;
+mod test;
 mod token;
 mod years;
 
+use chrono::Datelike;
 use clap::Parser;
-use token::set_token;
+use curday::aoc_now;
+use input::get_input;
+use solutionset::SolutionSet;
+use token::{get_token, set_token};
 
 fn main() {
     let cli = Cli::parse();
@@ -30,11 +35,59 @@ fn main() {
 }
 
 fn do_run(cli: Cli) -> anyhow::Result<()> {
-    //let mut runner = Runner::new();
-    //y2021::register(&mut runner);
+    let mut runner = Runner::new();
+    years::y2021::register(&mut runner);
     // todo register solvers
-    //runner.run(cli)
-    Ok(())
+    runner.run(cli)
+}
+
+#[derive(Default)]
+struct Runner {
+    solvers: Vec<Solver>,
+}
+
+impl Runner {
+    fn new() -> Self {
+        Default::default()
+    }
+
+    fn run(self, mut cli: Cli) -> anyhow::Result<()> {
+        let token = get_token()?;
+        cli.set_today(aoc_now());
+        for solver in self.solvers {
+            if cli.matches(solver.year, solver.day, solver.part) {
+                println!(
+                    "{}/{}/{}: {}",
+                    solver.year,
+                    solver.day,
+                    solver.part,
+                    (solver.f)(get_input(solver.year, solver.day, &token)?)?
+                );
+            }
+        }
+        Ok(())
+    }
+}
+
+impl SolutionSet for &mut Runner {
+    fn add<F>(self, year: i32, day: u32, part: u8, f: F)
+    where
+        F: Fn(String) -> anyhow::Result<String> + 'static,
+    {
+        self.solvers.push(Solver {
+            year,
+            day,
+            part,
+            f: Box::new(f),
+        });
+    }
+}
+
+struct Solver {
+    year: i32,
+    day: u32,
+    part: u8,
+    f: Box<dyn Fn(String) -> anyhow::Result<String>>,
 }
 
 #[derive(Parser)]
@@ -54,9 +107,30 @@ struct Cli {
 
     /// Run the given day's solvers.
     #[arg(short, long)]
-    day: Option<i32>,
+    day: Option<u32>,
 
     /// Run either part 1 or 2.
     #[arg(short, long)]
     part: Option<u8>,
+}
+
+impl Cli {
+    fn set_today<D: Datelike>(&mut self, today: D) {
+        if self.year.is_none() && self.day.is_none() && today.month() == 12 {
+            self.year = Some(today.year());
+            self.day = Some(today.day());
+        }
+    }
+
+    fn matches(&self, year: i32, day: u32, part: u8) -> bool {
+        if self.all {
+            return true;
+        }
+        match (self.year, self.day, self.part) {
+            (Some(y), _, _) if y != year => false,
+            (_, Some(d), _) if d != day => false,
+            (_, _, Some(p)) if p != part => false,
+            _ => true,
+        }
+    }
 }
