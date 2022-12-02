@@ -3,9 +3,14 @@
 version = 3
 
 [[package]]
+name = "advent-of-code-registry"
+version = "0.1.0"
+
+[[package]]
 name = "advent-of-code-rust"
 version = "0.1.0"
 dependencies = [
+ "advent-of-code-registry",
  "anyhow",
  "chrono",
  "clap",
