@@ -30,6 +30,9 @@ use input::get_input;
 use solutionset::SolutionSet;
 use token::{get_token, set_token};
 
+#[macro_use]
+extern crate advent_of_code_registry;
+
 fn main() {
     let cli = Cli::parse();
     match cli.set_token {
@@ -40,6 +43,22 @@ fn main() {
 
 fn do_run(cli: Cli) -> anyhow::Result<()> {
     let mut runner = Runner::new();
+    /*
+     * TODO:
+     * register here like:
+     *   register![
+     *     y2021::day1part1,
+     *     y2021::day1part2,
+     *     y2021::day2part1,
+     *     y2021::day2part2,
+     *     ...
+     *   ]
+     * even better would be to not need to list everything, let register! scan all the modules.
+     *
+     * annotate days like:
+     *   #[aoc(year = 2021, day = 1, part = 1, label = "optional extra string")]
+     *   pub fn day1part1(...
+     */
     years::y2021::register(&mut runner);
     years::y2022::register(&mut runner);
     runner.run(cli)
