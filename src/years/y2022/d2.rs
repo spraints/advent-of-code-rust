@@ -23,7 +23,7 @@ pub fn part1(input: String) -> Box<dyn Display> {
 pub fn part1_nosplit(input: String) -> Box<dyn Display> {
     let mut score: u64 = 0;
     for line in input.lines() {
-        score += match line.trim() {
+        score += match line {
             "A X" => 1 + 3,
             "B X" => 1, // + 0,
             "C X" => 1 + 6,
