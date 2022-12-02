@@ -51,25 +51,17 @@ mod test {
     use super::*;
     use crate::test::*;
 
+    const EX: &str = r"A Y
+B X
+C Z";
+
     #[test]
     fn part1_example() {
-        dotest(
-            15,
-            r"A Y
-B X
-C Z",
-            part1,
-        );
+        dotest(15, EX, part1);
     }
 
     #[test]
     fn part2_example() {
-        dotest(
-            12,
-            r"A Y
-B X
-C Z",
-            part2,
-        );
+        dotest(12, EX, part2);
     }
 }
