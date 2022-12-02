@@ -20,6 +20,25 @@ pub fn part1(input: String) -> Box<dyn Display> {
     Box::new(score)
 }
 
+pub fn part1_nosplit(input: String) -> Box<dyn Display> {
+    let mut score: u64 = 0;
+    for line in input.lines() {
+        score += match line.trim() {
+            "A X" => 1 + 3,
+            "B X" => 1, // + 0,
+            "C X" => 1 + 6,
+            "A Y" => 2 + 6,
+            "B Y" => 2 + 3,
+            "C Y" => 2, // + 0,
+            "A Z" => 3, // + 0,
+            "B Z" => 3 + 6,
+            "C Z" => 3 + 3,
+            _ => panic!("illegal {}", line),
+        };
+    }
+    Box::new(score)
+}
+
 pub fn part2(input: String) -> Box<dyn Display> {
     let mut score: u64 = 0;
     for line in input.lines() {
@@ -88,6 +107,7 @@ C Z";
     fn part1_example() {
         dotest(15, EX, part1);
         dotest(15, EX, part1alt);
+        dotest(15, EX, part1_nosplit);
     }
 
     #[test]

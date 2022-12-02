@@ -12,6 +12,7 @@ pub fn register<S: SolutionSet>(s: &mut S) {
     s.add(2022, 2, 2, None, d2::part2);
     s.add(2022, 2, 1, Some("mods"), d2::part1alt);
     s.add(2022, 2, 2, Some("mods"), d2::part2alt);
+    s.add(2022, 2, 1, Some("no split"), d2::part1_nosplit);
 
     s.add(2022, 3, 1, None, d3::part1);
     s.add(2022, 3, 2, None, d3::part2);
