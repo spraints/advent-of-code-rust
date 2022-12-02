@@ -93,14 +93,14 @@ impl Runner {
                 let result = f(input)?;
                 let elapsed = now.elapsed();
                 println!(
-                    "{}{}: Dec {:02}: part {}: {} ({:.2?})",
+                    "{}: Dec {:02}: part {}: {}{} ({:.2?})",
+                    year,
+                    day,
+                    part,
                     match label {
                         Some(s) => format!("{}: ", s),
                         None => "".to_string(),
                     },
-                    year,
-                    day,
-                    part,
                     result,
                     elapsed,
                 );
