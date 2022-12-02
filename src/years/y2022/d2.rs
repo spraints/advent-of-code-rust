@@ -46,6 +46,35 @@ pub fn part2(input: String) -> anyhow::Result<Box<dyn Display>> {
     Ok(Box::new(score))
 }
 
+pub fn part1alt(input: String) -> anyhow::Result<Box<dyn Display>> {
+    Ok(Box::new(input.lines().map(score_line1).sum::<u32>()))
+}
+
+fn score_line1(line: &str) -> u32 {
+    let (opp, me) = parse_line(line);
+    let res = (me + 4 - opp) % 3;
+    me + 1 + res * 3
+}
+
+pub fn part2alt(input: String) -> anyhow::Result<Box<dyn Display>> {
+    Ok(Box::new(input.lines().map(score_line2).sum::<u32>()))
+}
+
+fn score_line2(line: &str) -> u32 {
+    let (opp, res) = parse_line(line);
+    let me = (res + 2 + opp) % 3;
+    me + 1 + res * 3
+}
+
+fn parse_line(line: &str) -> (u32, u32) {
+    const A: u32 = 'A' as u32;
+    const X: u32 = 'X' as u32;
+    let mut c = line.chars();
+    let opp = c.next().unwrap() as u32 - A;
+    let me = c.skip(1).next().unwrap() as u32 - X;
+    (opp, me)
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -58,10 +87,12 @@ C Z";
     #[test]
     fn part1_example() {
         dotest(15, EX, part1);
+        dotest(15, EX, part1alt);
     }
 
     #[test]
     fn part2_example() {
         dotest(12, EX, part2);
+        dotest(12, EX, part2alt);
     }
 }
