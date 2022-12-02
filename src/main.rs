@@ -21,6 +21,8 @@ mod years;
 #[cfg(test)]
 mod test;
 
+use std::fmt::Display;
+
 use chrono::Datelike;
 use clap::Parser;
 use curday::aoc_now;
@@ -80,7 +82,7 @@ impl Runner {
 impl SolutionSet for Runner {
     fn add<F>(&mut self, year: i32, day: u32, part: u8, f: F)
     where
-        F: Fn(String) -> anyhow::Result<String> + 'static,
+        F: Fn(String) -> anyhow::Result<Box<dyn std::fmt::Display>> + 'static,
     {
         self.solvers.push(Solver {
             year,
@@ -95,7 +97,7 @@ struct Solver {
     year: i32,
     day: u32,
     part: u8,
-    f: Box<dyn Fn(String) -> anyhow::Result<String>>,
+    f: Box<dyn Fn(String) -> anyhow::Result<Box<dyn Display>>>,
 }
 
 #[derive(Parser, Debug)]
