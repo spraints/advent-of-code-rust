@@ -80,14 +80,29 @@ impl Runner {
         let mut any = false;
         for solver in self.solvers {
             if cli.matches(solver.year, solver.day, solver.part) {
+                let Solver {
+                    year,
+                    day,
+                    part,
+                    label,
+                    f,
+                } = solver;
                 any = true;
-                let input = get_input(solver.year, solver.day, &token)?;
+                let input = get_input(year, day, &token)?;
                 let now = std::time::Instant::now();
-                let result = (solver.f)(input)?;
+                let result = f(input)?;
                 let elapsed = now.elapsed();
                 println!(
-                    "{}: Dec {:02}: part {}: {} ({:.2?})",
-                    solver.year, solver.day, solver.part, result, elapsed,
+                    "{}{}: Dec {:02}: part {}: {} ({:.2?})",
+                    match label {
+                        Some(s) => format!("{}: ", s),
+                        None => "".to_string(),
+                    },
+                    year,
+                    day,
+                    part,
+                    result,
+                    elapsed,
                 );
             }
         }
@@ -99,7 +114,7 @@ impl Runner {
 }
 
 impl SolutionSet for Runner {
-    fn add<F>(&mut self, year: i32, day: u32, part: u8, f: F)
+    fn add<F>(&mut self, year: i32, day: u32, part: u8, label: Option<&'static str>, f: F)
     where
         F: Fn(String) -> anyhow::Result<Box<dyn std::fmt::Display>> + 'static,
     {
@@ -107,6 +122,7 @@ impl SolutionSet for Runner {
             year,
             day,
             part,
+            label,
             f: Box::new(f),
         });
     }
@@ -116,6 +132,7 @@ struct Solver {
     year: i32,
     day: u32,
     part: u8,
+    label: Option<&'static str>,
     f: Box<dyn Fn(String) -> anyhow::Result<Box<dyn Display>>>,
 }
 
