@@ -76,17 +76,22 @@ impl Runner {
 
     fn run(self, mut cli: Cli) -> anyhow::Result<()> {
         let token = get_token()?;
-        cli.set_today(aoc_now());
+        let now = aoc_now();
+        cli.set_today(&now);
         let mut any = false;
         for solver in self.solvers {
-            if cli.matches(solver.year, solver.day, solver.part) {
-                let Solver {
-                    year,
-                    day,
-                    part,
-                    label,
-                    f,
-                } = solver;
+            let Solver {
+                year,
+                day,
+                part,
+                label,
+                f,
+            } = solver;
+            if cli.matches(year, day, part) {
+                if is_future(&now, year, day) {
+                    println!("{}: Dec {:02}: part {}: (future)", year, day, part,);
+                    continue;
+                }
                 any = true;
                 let input = get_input(year, day, &token)?;
                 let now = std::time::Instant::now();
@@ -111,6 +116,10 @@ impl Runner {
         }
         Ok(())
     }
+}
+
+fn is_future<D: Datelike>(now: &D, year: i32, day: u32) -> bool {
+    year > now.year() || (year == now.year() && day > now.day())
 }
 
 impl SolutionSet for Runner {
@@ -161,7 +170,7 @@ struct Cli {
 }
 
 impl Cli {
-    fn set_today<D: Datelike>(&mut self, today: D) {
+    fn set_today<D: Datelike>(&mut self, today: &D) {
         if self.year.is_none() && self.day.is_none() && today.month() == 12 {
             self.year = Some(today.year());
             self.day = Some(today.day());
