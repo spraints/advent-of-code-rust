@@ -90,7 +90,7 @@ impl Runner {
                 any = true;
                 let input = get_input(year, day, &token)?;
                 let now = std::time::Instant::now();
-                let result = f(input)?;
+                let result = f(input);
                 let elapsed = now.elapsed();
                 println!(
                     "{}: Dec {:02}: part {}: {} ({:.2?}){}",
@@ -116,7 +116,7 @@ impl Runner {
 impl SolutionSet for Runner {
     fn add<F>(&mut self, year: i32, day: u32, part: u8, label: Option<&'static str>, f: F)
     where
-        F: Fn(String) -> anyhow::Result<Box<dyn std::fmt::Display>> + 'static,
+        F: Fn(String) -> Box<dyn std::fmt::Display> + 'static,
     {
         self.solvers.push(Solver {
             year,
@@ -133,7 +133,7 @@ struct Solver {
     day: u32,
     part: u8,
     label: Option<&'static str>,
-    f: Box<dyn Fn(String) -> anyhow::Result<Box<dyn Display>>>,
+    f: Box<dyn Fn(String) -> Box<dyn Display>>,
 }
 
 #[derive(Parser, Debug)]

@@ -1,11 +1,11 @@
 use std::fmt::Display;
 
-pub fn part1(input: String) -> anyhow::Result<Box<dyn Display>> {
-    Ok(Box::new(input))
+pub fn part1(input: String) -> Box<dyn Display> {
+    Box::new(input)
 }
 
-pub fn part2(input: String) -> anyhow::Result<Box<dyn Display>> {
-    Ok(Box::new(input))
+pub fn part2(input: String) -> Box<dyn Display> {
+    Box::new(input)
 }
 
 #[cfg(test)]

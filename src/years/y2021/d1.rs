@@ -1,16 +1,16 @@
 use std::fmt::Display;
 
 #[aoc(year = 2021, day = 1, part = 1)]
-pub fn part1(input: String) -> anyhow::Result<Box<dyn Display>> {
+pub fn part1(input: String) -> Box<dyn Display> {
     let values: Vec<u32> = input.lines().map(|l| l.trim().parse().unwrap()).collect();
-    Ok(Box::new(values.windows(2).filter(|x| x[0] < x[1]).count()))
+    Box::new(values.windows(2).filter(|x| x[0] < x[1]).count())
 }
 
 #[aoc(year = 2021, day = 1, part = 2)]
-pub fn part2(input: String) -> anyhow::Result<Box<dyn Display>> {
+pub fn part2(input: String) -> Box<dyn Display> {
     let values: Vec<u32> = input.lines().map(|l| l.trim().parse().unwrap()).collect();
     let sums: Vec<u32> = values.windows(3).map(|x| x[0] + x[1] + x[2]).collect();
-    Ok(Box::new(sums.windows(2).filter(|x| x[0] < x[1]).count()))
+    Box::new(sums.windows(2).filter(|x| x[0] < x[1]).count())
 }
 
 #[cfg(test)]

@@ -1,7 +1,7 @@
 use std::{collections::BinaryHeap, fmt::Display};
 
-pub fn part1(input: String) -> anyhow::Result<Box<dyn Display>> {
-    Ok(Box::new(sum_first_n(groups(input), 1)))
+pub fn part1(input: String) -> Box<dyn Display> {
+    Box::new(sum_first_n(groups(input), 1))
 }
 
 fn groups(input: String) -> BinaryHeap<u32> {
@@ -23,8 +23,8 @@ fn sum_first_n(mut groups: BinaryHeap<u32>, n: usize) -> u32 {
     res
 }
 
-pub fn part2(input: String) -> anyhow::Result<Box<dyn Display>> {
-    Ok(Box::new(sum_first_n(groups(input), 3)))
+pub fn part2(input: String) -> Box<dyn Display> {
+    Box::new(sum_first_n(groups(input), 3))
 }
 
 #[cfg(test)]
