@@ -86,7 +86,7 @@ impl Runner {
                 let result = (solver.f)(input)?;
                 let elapsed = now.elapsed();
                 println!(
-                    "{}/{}/{}: {} ({:.2?})",
+                    "{}: Dec {:02}: part {}: {} ({:.2?})",
                     solver.year, solver.day, solver.part, result, elapsed,
                 );
             }
