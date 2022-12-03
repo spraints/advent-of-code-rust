@@ -90,7 +90,8 @@ fn parse_line(line: &str) -> (u32, u32) {
     const X: u32 = 'X' as u32;
     let mut c = line.chars();
     let opp = c.next().unwrap() as u32 - A;
-    let me = c.skip(1).next().unwrap() as u32 - X;
+    c.next().unwrap();
+    let me = c.next().unwrap() as u32 - X;
     (opp, me)
 }
 
