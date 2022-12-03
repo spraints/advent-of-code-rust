@@ -16,4 +16,6 @@ pub fn register<S: SolutionSet>(s: &mut S) {
 
     s.add(2022, 3, 1, None, d3::part1);
     s.add(2022, 3, 2, None, d3::part2);
+    s.add(2022, 3, 1, Some("with set"), d3::part1_set);
+    s.add(2022, 3, 2, Some("with set"), d3::part2_set);
 }
