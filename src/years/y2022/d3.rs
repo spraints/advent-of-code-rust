@@ -1,18 +1,16 @@
-use std::fmt::Display;
+use std::{collections::BTreeSet, fmt::Display};
 
 pub fn part1(input: String) -> Box<dyn Display> {
     let sacks = input.lines().map(compartmentalize);
     let common = sacks.map(compare_compartments);
-    let priorities = common.map(priority);
-    let total_priority: u32 = priorities.sum();
+    let total_priority: u32 = common.sum();
     Box::new(total_priority)
 }
 
 pub fn part2(input: String) -> Box<dyn Display> {
     let sacks = input.lines().collect::<Vec<&str>>();
     let groups = sacks.chunks(3);
-    let common = groups.map(compare_groups);
-    let priorities = common.map(priority);
+    let priorities = groups.map(compare_groups);
     let total_priority: u32 = priorities.sum();
     Box::new(total_priority)
 }
@@ -21,41 +19,30 @@ fn compartmentalize(line: &str) -> (&str, &str) {
     line.split_at(line.len() / 2)
 }
 
-fn compare_compartments(ab: (&str, &str)) -> char {
+fn compare_compartments(ab: (&str, &str)) -> u32 {
     let (a, b) = ab;
-    let mut a: Vec<char> = a.chars().collect();
-    a.sort_unstable();
-    let mut b: Vec<char> = b.chars().collect();
-    b.sort_unstable();
-    for ac in a {
-        for bc in &b {
-            if ac == *bc {
-                return ac;
-            }
-        }
-    }
-    panic!("No match in {:?}", ab);
+    common(compare_two(score(a), score(b)))
 }
 
-fn compare_groups(abc: &[&str]) -> char {
-    let mut a: Vec<char> = abc[0].chars().collect();
-    a.sort_unstable();
-    let mut b: Vec<char> = abc[1].chars().collect();
-    b.sort_unstable();
-    let mut c: Vec<char> = abc[2].chars().collect();
-    c.sort_unstable();
-    for ac in a {
-        for bc in &b {
-            if ac == *bc {
-                for cc in &c {
-                    if ac == *cc {
-                        return ac;
-                    }
-                }
-            }
-        }
-    }
-    panic!("No match in {:?}", abc);
+fn common(s: BTreeSet<u32>) -> u32 {
+    s.into_iter().next().unwrap()
+}
+
+fn compare_two(a: BTreeSet<u32>, b: BTreeSet<u32>) -> BTreeSet<u32> {
+    a.intersection(&b).copied().collect()
+}
+
+fn score(s: &str) -> BTreeSet<u32> {
+    s.chars().map(priority).collect()
+}
+
+fn compare_groups(abc: &[&str]) -> u32 {
+    let reduced = abc
+        .iter()
+        .map(|s| score(s))
+        .reduce(|a, b| compare_two(a, b))
+        .unwrap();
+    common(reduced)
 }
 
 fn priority(c: char) -> u32 {
