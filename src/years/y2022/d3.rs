@@ -45,13 +45,13 @@ pub fn part2_set2(input: String) -> Box<dyn Display> {
 }
 
 pub fn part2_bytes(input: String) -> Box<dyn Display> {
-    let mut priorities = vec![0; 256];
-    let little_a = b'a' as usize;
-    let big_a = b'A' as usize;
-    for i in 0..26 {
-        priorities[little_a + i] = i + 1;
-        priorities[big_a + i] = i + 27;
-    }
+    //let mut priorities = vec![0; 256];
+    //let little_a = b'a' as usize;
+    //let big_a = b'A' as usize;
+    //for i in 0..26 {
+    //    priorities[little_a + i] = i + 1;
+    //    priorities[big_a + i] = i + 27;
+    //}
     let mut sacks = input.lines();
     let mut total_priority = 0;
     loop {
@@ -66,7 +66,13 @@ pub fn part2_bytes(input: String) -> Box<dyn Display> {
                 if ac == bc {
                     for cc in c.iter() {
                         if ac == cc {
-                            total_priority += priorities[*ac as usize];
+                            total_priority += if *ac >= b'a' {
+                                *ac + 1 - b'a'
+                            } else {
+                                *ac + 27 - b'A'
+                            };
+
+                            //total_priority += priorities[*ac as usize];
                             break 'search;
                         }
                     }
