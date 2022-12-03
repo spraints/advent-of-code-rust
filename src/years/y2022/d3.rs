@@ -44,6 +44,39 @@ pub fn part2_set2(input: String) -> Box<dyn Display> {
     Box::new(total_priority)
 }
 
+pub fn part2_bytes(input: String) -> Box<dyn Display> {
+    let mut priorities = vec![0; 256];
+    let little_a = b'a' as usize;
+    let big_a = b'A' as usize;
+    for i in 0..26 {
+        priorities[little_a + i] = i + 1;
+        priorities[big_a + i] = i + 27;
+    }
+    let mut sacks = input.lines();
+    let mut total_priority = 0;
+    loop {
+        let a = match sacks.next() {
+            Some(s) => s.as_bytes(),
+            None => break,
+        };
+        let b = sacks.next().unwrap().as_bytes();
+        let c = sacks.next().unwrap().as_bytes();
+        'search: for ac in a {
+            for bc in b.iter() {
+                if ac == bc {
+                    for cc in c.iter() {
+                        if ac == cc {
+                            total_priority += priorities[*ac as usize];
+                            break 'search;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Box::new(total_priority)
+}
+
 fn compartmentalize(line: &str) -> (&str, &str) {
     line.split_at(line.len() / 2)
 }
@@ -162,5 +195,6 @@ CrZsJsPPZsGzwwsLwLmpwMDw";
         dotest(70, EX, part2);
         dotest(70, EX, part2_set);
         dotest(70, EX, part2_set2);
+        dotest(70, EX, part2_bytes);
     }
 }
