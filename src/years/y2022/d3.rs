@@ -1,4 +1,7 @@
-use std::{collections::BTreeSet, fmt::Display};
+use std::{
+    collections::{BTreeSet, HashSet},
+    fmt::Display,
+};
 
 pub fn part1(input: String) -> Box<dyn Display> {
     let sacks = input.lines().map(compartmentalize);
@@ -28,6 +31,15 @@ pub fn part2_set(input: String) -> Box<dyn Display> {
     let sacks = input.lines().collect::<Vec<&str>>();
     let groups = sacks.chunks(3);
     let priorities = groups.map(compare_groups_set);
+    let total_priority: u32 = priorities.sum();
+    Box::new(total_priority)
+}
+
+pub fn part2_set2(input: String) -> Box<dyn Display> {
+    let sacks = input.lines().collect::<Vec<&str>>();
+    let groups = sacks.chunks(3);
+    let common = groups.map(compare_groups_set2);
+    let priorities = common.map(priority);
     let total_priority: u32 = priorities.sum();
     Box::new(total_priority)
 }
@@ -92,6 +104,35 @@ fn compare_groups_set(abc: &[&str]) -> u32 {
     common(reduced)
 }
 
+fn compare_groups_set2(abc: &[&str]) -> char {
+    let common = reduce(abc[0].chars().collect(), abc[1].chars());
+    let mut common = reduce(common.collect(), abc[2].chars());
+    common.next().unwrap()
+}
+
+fn reduce(a: HashSet<char>, b: std::str::Chars) -> Reduction {
+    Reduction { a, b }
+}
+
+struct Reduction<'a> {
+    a: HashSet<char>,
+    b: std::str::Chars<'a>,
+}
+
+impl<'a> Iterator for Reduction<'a> {
+    type Item = char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            match self.b.next() {
+                None => return None,
+                Some(c) if self.a.contains(&c) => return Some(c),
+                _ => continue,
+            };
+        }
+    }
+}
+
 fn priority(c: char) -> u32 {
     const LOWER: u32 = 'a' as u32 - 1;
     const UPPER: u32 = 'A' as u32 - 27;
@@ -120,5 +161,6 @@ CrZsJsPPZsGzwwsLwLmpwMDw";
     fn part2_example() {
         dotest(70, EX, part2);
         dotest(70, EX, part2_set);
+        dotest(70, EX, part2_set2);
     }
 }
