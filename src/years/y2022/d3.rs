@@ -53,15 +53,11 @@ pub fn part2_bytes(input: String) -> Box<dyn Display> {
     //    priorities[big_a + i] = i + 27;
     //}
     let mut sacks = input.lines();
-    let mut total_priority = 0;
-    loop {
-        let a = match sacks.next() {
-            Some(s) => s.as_bytes(),
-            None => break,
-        };
+    let mut total_priority: u32 = 0;
+    while let Some(a) = sacks.next() {
         let b = sacks.next().unwrap().as_bytes();
         let c = sacks.next().unwrap().as_bytes();
-        'search: for ac in a {
+        'search: for ac in a.as_bytes() {
             for bc in b.iter() {
                 if ac == bc {
                     for cc in c.iter() {
@@ -70,7 +66,7 @@ pub fn part2_bytes(input: String) -> Box<dyn Display> {
                                 *ac + 1 - b'a'
                             } else {
                                 *ac + 27 - b'A'
-                            };
+                            } as u32;
 
                             //total_priority += priorities[*ac as usize];
                             break 'search;
@@ -135,11 +131,7 @@ fn compare_groups(abc: &[&str]) -> char {
 }
 
 fn compare_groups_set(abc: &[&str]) -> u32 {
-    let reduced = abc
-        .iter()
-        .map(|s| score(s))
-        .reduce(|a, b| compare_two(a, b))
-        .unwrap();
+    let reduced = abc.iter().map(|s| score(s)).reduce(compare_two).unwrap();
     common(reduced)
 }
 

@@ -3,9 +3,7 @@ use std::fmt::Display;
 pub fn part1(input: String) -> Box<dyn Display> {
     fn completely_contains(x: &(u8, u8, u8, u8)) -> bool {
         let (a1, b1, a2, b2) = x;
-        let res = (a1 <= a2 && b1 >= b2) || (a2 <= a1 && b2 >= b1);
-        //println!("{:?} => {:?}", x, res);
-        res
+        (a1 <= a2 && b1 >= b2) || (a2 <= a1 && b2 >= b1)
     }
     Box::new(input.lines().map(parse).filter(completely_contains).count())
 }
@@ -13,9 +11,7 @@ pub fn part1(input: String) -> Box<dyn Display> {
 pub fn part2(input: String) -> Box<dyn Display> {
     fn overlaps(x: &(u8, u8, u8, u8)) -> bool {
         let (a1, b1, a2, b2) = x;
-        let res = (a1 <= a2 && b1 >= a2) || (a2 <= a1 && b2 >= a1);
-        //println!("{:?} => {:?}", x, res);
-        res
+        (a1 <= a2 && b1 >= a2) || (a2 <= a1 && b2 >= a1)
     }
     Box::new(input.lines().map(parse).filter(overlaps).count())
 }
