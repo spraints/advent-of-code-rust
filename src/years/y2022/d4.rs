@@ -1,17 +1,6 @@
 use std::fmt::Display;
 
 pub fn part1(input: String) -> Box<dyn Display> {
-    fn parse(s: &str) -> (u8, u8, u8, u8) {
-        let (a, b) = s.split_once(",").unwrap();
-        let (a1, b1) = a.split_once("-").unwrap();
-        let (a2, b2) = b.split_once("-").unwrap();
-        (
-            a1.parse().unwrap(),
-            b1.parse().unwrap(),
-            a2.parse().unwrap(),
-            b2.parse().unwrap(),
-        )
-    }
     fn completely_contains(x: &(u8, u8, u8, u8)) -> bool {
         let (a1, b1, a2, b2) = x;
         let res = (a1 <= a2 && b1 >= b2) || (a2 <= a1 && b2 >= b1);
@@ -22,17 +11,6 @@ pub fn part1(input: String) -> Box<dyn Display> {
 }
 
 pub fn part2(input: String) -> Box<dyn Display> {
-    fn parse(s: &str) -> (u8, u8, u8, u8) {
-        let (a, b) = s.split_once(",").unwrap();
-        let (a1, b1) = a.split_once("-").unwrap();
-        let (a2, b2) = b.split_once("-").unwrap();
-        (
-            a1.parse().unwrap(),
-            b1.parse().unwrap(),
-            a2.parse().unwrap(),
-            b2.parse().unwrap(),
-        )
-    }
     fn overlaps(x: &(u8, u8, u8, u8)) -> bool {
         let (a1, b1, a2, b2) = x;
         let res = (a1 <= a2 && b1 >= a2) || (a2 <= a1 && b2 >= a1);
@@ -40,6 +18,18 @@ pub fn part2(input: String) -> Box<dyn Display> {
         res
     }
     Box::new(input.lines().map(parse).filter(overlaps).count())
+}
+
+fn parse(s: &str) -> (u8, u8, u8, u8) {
+    let (a, b) = s.split_once(",").unwrap();
+    let (a1, b1) = a.split_once("-").unwrap();
+    let (a2, b2) = b.split_once("-").unwrap();
+    (
+        a1.parse().unwrap(),
+        b1.parse().unwrap(),
+        a2.parse().unwrap(),
+        b2.parse().unwrap(),
+    )
 }
 
 #[cfg(test)]
