@@ -21,15 +21,12 @@ pub fn part2(input: String) -> Box<dyn Display> {
 }
 
 fn parse(s: &str) -> (u8, u8, u8, u8) {
-    let (a, b) = s.split_once(",").unwrap();
-    let (a1, b1) = a.split_once("-").unwrap();
-    let (a2, b2) = b.split_once("-").unwrap();
-    (
-        a1.parse().unwrap(),
-        b1.parse().unwrap(),
-        a2.parse().unwrap(),
-        b2.parse().unwrap(),
-    )
+    let mut s = s.split(&[',', '-'][..]).map(|s| s.parse().unwrap());
+    let a1 = s.next().unwrap();
+    let b1 = s.next().unwrap();
+    let a2 = s.next().unwrap();
+    let b2 = s.next().unwrap();
+    (a1, b1, a2, b2)
 }
 
 #[cfg(test)]
