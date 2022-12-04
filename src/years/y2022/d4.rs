@@ -21,7 +21,7 @@ pub fn part2(input: String) -> Box<dyn Display> {
 }
 
 fn parse(s: &str) -> (u8, u8, u8, u8) {
-    let mut s = s.split(&[',', '-'][..]).map(|s| s.parse().unwrap());
+    let mut s = s.split(&[',', '-']).map(|s| s.parse().unwrap());
     let a1 = s.next().unwrap();
     let b1 = s.next().unwrap();
     let a2 = s.next().unwrap();
