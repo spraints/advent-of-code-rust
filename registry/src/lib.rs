@@ -1,6 +1,14 @@
 //use proc_macro::{Ident, Punct, TokenTree};
 use proc_macro::TokenStream;
 
+// Attribute examples:
+//   #[aoc(year = 2022, day = 1, part = 1)]
+//   #[aoc(year = 2022, day = 1, part = 1, label = "blah")]
+// Solution function examples:
+//   no option to visualize:
+//     fn solve(input: String) -> Box<dyn Display> {}
+//   can have visualizations turned on:
+//     fn solve(input: String, vis: bool) -> Box<dyn Display> {}
 #[proc_macro_attribute]
 pub fn aoc(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // let mut year = None;
