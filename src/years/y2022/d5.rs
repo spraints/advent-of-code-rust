@@ -32,6 +32,31 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     )
 }
 
+pub fn part1_transpose(input: String, vis: bool) -> Box<dyn Display> {
+    let (mut stacks, moves) = parse_transpose(&input);
+    if vis {
+        show_stacks(&stacks);
+    }
+    for m in moves {
+        if vis {
+            println!("{}", m);
+        }
+        for _ in 0..m.count {
+            let moved = stacks[m.from].pop().unwrap();
+            stacks[m.to].push(moved);
+        }
+        if vis {
+            show_stacks(&stacks);
+        }
+    }
+    Box::new(
+        stacks
+            .into_iter()
+            .map(|mut s| s.pop().unwrap())
+            .collect::<String>(),
+    )
+}
+
 pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     let (mut stacks, moves) = parse(&input);
     if vis {
@@ -44,6 +69,33 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
         let i = stacks[m.from].len() - m.count;
         let mut moved = stacks[m.from].split_off(i);
         stacks[m.to].append(&mut moved);
+        if vis {
+            show_stacks(&stacks);
+        }
+    }
+    Box::new(
+        stacks
+            .into_iter()
+            .map(|mut s| s.pop().unwrap())
+            .collect::<String>(),
+    )
+}
+
+pub fn part2_slices(input: String, vis: bool) -> Box<dyn Display> {
+    let (mut stacks, moves) = parse(&input);
+    if vis {
+        show_stacks(&stacks);
+    }
+    for m in moves {
+        if vis {
+            println!("{}", m);
+        }
+        let new_len = stacks[m.from].len() - m.count;
+        for i in 0..m.count {
+            let moved = stacks[m.from][new_len + i];
+            stacks[m.to].push(moved);
+        }
+        stacks[m.from].resize(new_len, Default::default());
         if vis {
             show_stacks(&stacks);
         }
@@ -117,16 +169,6 @@ fn parse(s: &str) -> (Vec<Stack>, Vec<Move>) {
             i += 1;
         }
     }
-    fn parse_move(line: &str) -> Move {
-        let mut words = line.split(' ');
-        words.next().unwrap();
-        let count = words.next().unwrap().parse().unwrap();
-        words.next().unwrap();
-        let from = words.next().unwrap().parse::<usize>().unwrap() - 1;
-        words.next().unwrap();
-        let to = words.next().unwrap().parse::<usize>().unwrap() - 1;
-        Move { count, from, to }
-    }
     let mut stacks = Vec::new();
     let mut moves = Vec::new();
     let mut state = 0;
@@ -140,6 +182,60 @@ fn parse(s: &str) -> (Vec<Stack>, Vec<Move>) {
         };
     }
     (stacks, moves)
+}
+
+fn parse_transpose(s: &str) -> (Vec<Stack>, Vec<Move>) {
+    fn parse_crates(line: &str) -> Vec<u8> {
+        let line = line.as_bytes();
+        let count = line.len() / 4;
+        (0..=count).map(|i| line[i * 4 + 1]).collect()
+    }
+    fn transpose(raw_stacks: Vec<Vec<u8>>) -> Vec<Stack> {
+        let mut raw_stacks: Vec<_> = raw_stacks
+            .into_iter()
+            .rev()
+            .map(|v| v.into_iter())
+            .collect();
+        let mut res = Vec::new();
+        loop {
+            let stack: Stack = raw_stacks
+                .iter_mut()
+                .filter_map(|level| match level.next() {
+                    None | Some(b' ') => None,
+                    Some(b) => Some(unsafe { char::from_u32_unchecked(b as u32) }),
+                })
+                .collect();
+            if stack.is_empty() {
+                break;
+            }
+            res.push(stack);
+        }
+        res
+    }
+    let mut stacks = Vec::new();
+    let mut moves = Vec::new();
+    let mut state = 0;
+    for line in s.lines() {
+        match (state, line) {
+            (0, l) if l.starts_with(" 1 ") => state = 1,
+            (0, l) => stacks.push(parse_crates(l)),
+            (1, _) => state = 2,
+            (2, l) => moves.push(parse_move(l)),
+            _ => unreachable!(),
+        };
+    }
+    (transpose(stacks), moves)
+}
+
+fn parse_move(line: &str) -> Move {
+    let mut words = line.split(' ');
+    words.next().unwrap();
+    let count = words.next().unwrap().parse().unwrap();
+    words.next().unwrap();
+    let from = words.next().unwrap().parse::<usize>().unwrap() - 1;
+    words.next().unwrap();
+    let to = words.next().unwrap().parse::<usize>().unwrap() - 1;
+    Move { count, from, to }
 }
 
 #[cfg(test)]
@@ -160,10 +256,12 @@ move 1 from 1 to 2";
     #[test]
     fn part1_example() {
         dotest("CMZ", EX, part1);
+        dotest("CMZ", EX, part1_transpose);
     }
 
     #[test]
     fn part2_example() {
         dotest("MCD", EX, part2);
+        dotest("MCD", EX, part2_slices);
     }
 }
