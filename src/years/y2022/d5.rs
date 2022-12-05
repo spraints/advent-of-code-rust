@@ -7,16 +7,22 @@ struct Move {
     to: usize,
 }
 
-pub fn part1(input: String) -> Box<dyn Display> {
+pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     let (mut stacks, moves) = parse(&input);
-    //show_stacks(&stacks);
+    if vis {
+        show_stacks(&stacks);
+    }
     for m in moves {
-        //println!("{}", m);
+        if vis {
+            println!("{}", m);
+        }
         for _ in 0..m.count {
             let moved = stacks[m.from].pop().unwrap();
             stacks[m.to].push(moved);
         }
-        //show_stacks(&stacks);
+        if vis {
+            show_stacks(&stacks);
+        }
     }
     Box::new(
         stacks
@@ -26,15 +32,21 @@ pub fn part1(input: String) -> Box<dyn Display> {
     )
 }
 
-pub fn part2(input: String) -> Box<dyn Display> {
+pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     let (mut stacks, moves) = parse(&input);
-    show_stacks(&stacks);
+    if vis {
+        show_stacks(&stacks);
+    }
     for m in moves {
-        println!("{}", m);
+        if vis {
+            println!("{}", m);
+        }
         let i = stacks[m.from].len() - m.count;
         let mut moved = stacks[m.from].split_off(i);
         stacks[m.to].append(&mut moved);
-        show_stacks(&stacks);
+        if vis {
+            show_stacks(&stacks);
+        }
     }
     Box::new(
         stacks

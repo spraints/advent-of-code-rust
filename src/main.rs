@@ -42,7 +42,7 @@ fn main() {
 }
 
 fn do_run(cli: Cli) -> anyhow::Result<()> {
-    let mut runner = Runner::new();
+    let mut runner = Runner::new(cli.visualize);
     /*
      * TODO:
      * register here like:
@@ -66,12 +66,16 @@ fn do_run(cli: Cli) -> anyhow::Result<()> {
 
 #[derive(Default)]
 struct Runner {
+    visualize: bool,
     solvers: Vec<Solver>,
 }
 
 impl Runner {
-    fn new() -> Self {
-        Default::default()
+    fn new(visualize: bool) -> Self {
+        Self {
+            visualize,
+            ..Default::default()
+        }
     }
 
     fn run(self, mut cli: Cli) -> anyhow::Result<()> {
@@ -95,7 +99,7 @@ impl Runner {
                 any = true;
                 let input = get_input(year, day, &token)?;
                 let now = std::time::Instant::now();
-                let result = f(input);
+                let result = f(input, self.visualize);
                 let elapsed = now.elapsed();
                 println!(
                     "{}: Dec {:02}: part {}: {} ({:.2?}){}",
@@ -125,7 +129,7 @@ fn is_future<D: Datelike>(now: &D, year: i32, day: u32) -> bool {
 impl SolutionSet for Runner {
     fn add<F>(&mut self, year: i32, day: u32, part: u8, label: Option<&'static str>, f: F)
     where
-        F: Fn(String) -> Box<dyn std::fmt::Display> + 'static,
+        F: Fn(String, bool) -> Box<dyn std::fmt::Display> + 'static,
     {
         self.solvers.push(Solver {
             year,
@@ -142,7 +146,7 @@ struct Solver {
     day: u32,
     part: u8,
     label: Option<&'static str>,
-    f: Box<dyn Fn(String) -> Box<dyn Display>>,
+    f: Box<dyn Fn(String, bool) -> Box<dyn Display>>,
 }
 
 #[derive(Parser, Debug)]
@@ -167,6 +171,10 @@ struct Cli {
     /// Run either part 1 or 2.
     #[arg(short, long)]
     part: Option<u8>,
+
+    /// Include visualizations.
+    #[arg(long)]
+    visualize: bool,
 }
 
 impl Cli {

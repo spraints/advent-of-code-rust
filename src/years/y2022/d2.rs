@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-pub fn part1(input: String) -> Box<dyn Display> {
+pub fn part1(input: String, _: bool) -> Box<dyn Display> {
     let mut score: u64 = 0;
     for line in input.lines() {
         let (opp, me) = line.split_once(' ').unwrap();
@@ -20,7 +20,7 @@ pub fn part1(input: String) -> Box<dyn Display> {
     Box::new(score)
 }
 
-pub fn part1_nosplit(input: String) -> Box<dyn Display> {
+pub fn part1_nosplit(input: String, _: bool) -> Box<dyn Display> {
     let mut score: u64 = 0;
     for line in input.lines() {
         score += match line {
@@ -39,7 +39,7 @@ pub fn part1_nosplit(input: String) -> Box<dyn Display> {
     Box::new(score)
 }
 
-pub fn part2(input: String) -> Box<dyn Display> {
+pub fn part2(input: String, _: bool) -> Box<dyn Display> {
     let mut score: u64 = 0;
     for line in input.lines() {
         let (opp, me) = line.split_once(' ').unwrap();
@@ -65,7 +65,7 @@ pub fn part2(input: String) -> Box<dyn Display> {
     Box::new(score)
 }
 
-pub fn part1alt(input: String) -> Box<dyn Display> {
+pub fn part1alt(input: String, _: bool) -> Box<dyn Display> {
     Box::new(input.lines().map(score_line1).sum::<u32>())
 }
 
@@ -75,7 +75,7 @@ fn score_line1(line: &str) -> u32 {
     me + 1 + res * 3
 }
 
-pub fn part2alt(input: String) -> Box<dyn Display> {
+pub fn part2alt(input: String, _: bool) -> Box<dyn Display> {
     Box::new(input.lines().map(score_line2).sum::<u32>())
 }
 

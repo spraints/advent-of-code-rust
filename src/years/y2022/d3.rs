@@ -3,7 +3,7 @@ use std::{
     fmt::Display,
 };
 
-pub fn part1(input: String) -> Box<dyn Display> {
+pub fn part1(input: String, _: bool) -> Box<dyn Display> {
     let sacks = input.lines().map(compartmentalize);
     let common = sacks.map(compare_compartments);
     let priorities = common.map(priority);
@@ -11,7 +11,7 @@ pub fn part1(input: String) -> Box<dyn Display> {
     Box::new(total_priority)
 }
 
-pub fn part2(input: String) -> Box<dyn Display> {
+pub fn part2(input: String, _: bool) -> Box<dyn Display> {
     let sacks = input.lines().collect::<Vec<&str>>();
     let groups = sacks.chunks(3);
     let common = groups.map(compare_groups);
@@ -20,14 +20,14 @@ pub fn part2(input: String) -> Box<dyn Display> {
     Box::new(total_priority)
 }
 
-pub fn part1_set(input: String) -> Box<dyn Display> {
+pub fn part1_set(input: String, _: bool) -> Box<dyn Display> {
     let sacks = input.lines().map(compartmentalize);
     let common = sacks.map(compare_compartments_set);
     let total_priority: u32 = common.sum();
     Box::new(total_priority)
 }
 
-pub fn part2_set(input: String) -> Box<dyn Display> {
+pub fn part2_set(input: String, _: bool) -> Box<dyn Display> {
     let sacks = input.lines().collect::<Vec<&str>>();
     let groups = sacks.chunks(3);
     let priorities = groups.map(compare_groups_set);
@@ -35,7 +35,7 @@ pub fn part2_set(input: String) -> Box<dyn Display> {
     Box::new(total_priority)
 }
 
-pub fn part2_set2(input: String) -> Box<dyn Display> {
+pub fn part2_set2(input: String, _: bool) -> Box<dyn Display> {
     let sacks = input.lines().collect::<Vec<&str>>();
     let groups = sacks.chunks(3);
     let common = groups.map(compare_groups_set2);
@@ -44,7 +44,7 @@ pub fn part2_set2(input: String) -> Box<dyn Display> {
     Box::new(total_priority)
 }
 
-pub fn part2_bytes(input: String) -> Box<dyn Display> {
+pub fn part2_bytes(input: String, _: bool) -> Box<dyn Display> {
     //let mut priorities = vec![0; 256];
     //let little_a = b'a' as usize;
     //let big_a = b'A' as usize;

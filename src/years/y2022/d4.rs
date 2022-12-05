@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-pub fn part1(input: String) -> Box<dyn Display> {
+pub fn part1(input: String, _: bool) -> Box<dyn Display> {
     fn completely_contains(x: &(u8, u8, u8, u8)) -> bool {
         let (a1, b1, a2, b2) = x;
         (a1 <= a2 && b1 >= b2) || (a2 <= a1 && b2 >= b1)
@@ -8,7 +8,7 @@ pub fn part1(input: String) -> Box<dyn Display> {
     Box::new(input.lines().map(parse).filter(completely_contains).count())
 }
 
-pub fn part2(input: String) -> Box<dyn Display> {
+pub fn part2(input: String, _: bool) -> Box<dyn Display> {
     fn overlaps(x: &(u8, u8, u8, u8)) -> bool {
         let (a1, b1, a2, b2) = x;
         (a1 <= a2 && b1 >= a2) || (a2 <= a1 && b2 >= a1)
