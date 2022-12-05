@@ -26,8 +26,22 @@ pub fn part1(input: String) -> Box<dyn Display> {
     )
 }
 
-pub fn part2(_input: String) -> Box<dyn Display> {
-    Box::new("todo2")
+pub fn part2(input: String) -> Box<dyn Display> {
+    let (mut stacks, moves) = parse(&input);
+    show_stacks(&stacks);
+    for m in moves {
+        println!("{}", m);
+        let i = stacks[m.from].len() - m.count;
+        let mut moved = stacks[m.from].split_off(i);
+        stacks[m.to].append(&mut moved);
+        show_stacks(&stacks);
+    }
+    Box::new(
+        stacks
+            .into_iter()
+            .map(|mut s| s.pop().unwrap())
+            .collect::<String>(),
+    )
 }
 
 fn show_stacks(stacks: &Vec<Stack>) {
@@ -138,6 +152,6 @@ move 1 from 1 to 2";
 
     #[test]
     fn part2_example() {
-        dotest("todo2", EX, part2);
+        dotest("MCD", EX, part2);
     }
 }
