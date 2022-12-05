@@ -15,19 +15,21 @@
 mod curday;
 mod input;
 mod solutionset;
+mod solver;
 mod token;
 mod years;
 
 #[cfg(test)]
 mod test;
 
-use std::fmt::Display;
+use std::collections::BTreeSet;
 
 use chrono::Datelike;
 use clap::Parser;
 use curday::aoc_now;
 use input::get_input;
 use solutionset::SolutionSet;
+use solver::Solver;
 use token::{get_token, set_token};
 
 #[macro_use]
@@ -64,17 +66,16 @@ fn do_run(cli: Cli) -> anyhow::Result<()> {
     runner.run(cli)
 }
 
-#[derive(Default)]
 struct Runner {
     visualize: bool,
-    solvers: Vec<Solver>,
+    solvers: BTreeSet<Solver>,
 }
 
 impl Runner {
     fn new(visualize: bool) -> Self {
         Self {
             visualize,
-            ..Default::default()
+            solvers: BTreeSet::new(),
         }
     }
 
@@ -131,7 +132,7 @@ impl SolutionSet for Runner {
     where
         F: Fn(String, bool) -> Box<dyn std::fmt::Display> + 'static,
     {
-        self.solvers.push(Solver {
+        self.solvers.insert(Solver {
             year,
             day,
             part,
@@ -139,14 +140,6 @@ impl SolutionSet for Runner {
             f: Box::new(f),
         });
     }
-}
-
-struct Solver {
-    year: i32,
-    day: u32,
-    part: u8,
-    label: Option<&'static str>,
-    f: Box<dyn Fn(String, bool) -> Box<dyn Display>>,
 }
 
 #[derive(Parser, Debug)]
