@@ -66,12 +66,12 @@ fn show_stacks(stacks: &Vec<Stack>) {
                 Some(c) => print!("[{}] ", c),
             };
         }
-        println!("");
+        println!();
     }
     for i in 0..stacks.len() {
         print!(" {}  ", i + 1);
     }
-    println!("");
+    println!();
 }
 
 impl std::fmt::Display for Move {
@@ -99,14 +99,14 @@ fn parse(s: &str) -> (Vec<Stack>, Vec<Move>) {
                     }
                     stacks[i].insert(0, c);
                     for _ in 0..2 {
-                        if let None = line.next() {
+                        if line.next().is_none() {
                             return;
                         }
                     }
                 }
                 Some(' ') => {
                     for _ in 0..3 {
-                        if let None = line.next() {
+                        if line.next().is_none() {
                             return;
                         }
                     }
