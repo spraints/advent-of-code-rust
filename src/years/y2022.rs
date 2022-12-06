@@ -14,6 +14,8 @@ pub fn register<S: SolutionSet>(s: &mut S) {
 
     s.add(2022, 6, 1, None, d6::part1);
     s.add(2022, 6, 2, None, d6::part2);
+    s.add(2022, 6, 1, Some("fewer comparisons"), d6::part1_alt);
+    s.add(2022, 6, 2, Some("fewer comparisons"), d6::part2_alt);
 
     //
 
