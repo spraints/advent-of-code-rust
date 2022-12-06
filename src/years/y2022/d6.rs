@@ -32,23 +32,11 @@ pub fn part2(input: String, _vis: bool) -> Box<dyn Display> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test::*;
+    use crate::test::aoc_test;
 
-    #[test]
-    fn part1_example() {
-        dotest(7, "mjqjpqmgbljsphdztnvjfqwrcgsmlb", part1);
-        dotest(5, "bvwbjplbgvbhsrlpgdmjqwftvncz", part1);
-        dotest(6, "nppdvjthqldpwncqszvftbrmjlhg", part1);
-        dotest(10, "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg", part1);
-        dotest(11, "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw", part1);
-    }
-
-    #[test]
-    fn part2_example() {
-        dotest(19, "mjqjpqmgbljsphdztnvjfqwrcgsmlb", part2);
-        dotest(23, "bvwbjplbgvbhsrlpgdmjqwftvncz", part2);
-        dotest(23, "nppdvjthqldpwncqszvftbrmjlhg", part2);
-        dotest(29, "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg", part2);
-        dotest(26, "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw", part2);
-    }
+    aoc_test!(a, "mjqjpqmgbljsphdztnvjfqwrcgsmlb", part1 => 7, part2 => 19);
+    aoc_test!(b, "bvwbjplbgvbhsrlpgdmjqwftvncz", part1 => 5, part2 => 23);
+    aoc_test!(c, "nppdvjthqldpwncqszvftbrmjlhg", part1 => 6, part2 => 23);
+    aoc_test!(d, "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg", part1 => 10, part2 => 29);
+    aoc_test!(e, "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw", part1 => 11, part2 => 26);
 }
