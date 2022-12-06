@@ -16,7 +16,7 @@ fn find_tag(input: &str, size: usize, vis: bool) -> Box<dyn Display> {
             if vis {
                 unsafe {
                     println!(
-                        "{}[{}]{}",
+                        "{} [ {} ] {}",
                         std::str::from_utf8_unchecked(&input[..i]),
                         std::str::from_utf8_unchecked(&input[i..j]),
                         std::str::from_utf8_unchecked(&input[j..])
@@ -64,7 +64,7 @@ fn find_tag2(input: &str, size: usize, vis: bool) -> Box<dyn Display> {
             if vis {
                 unsafe {
                     println!(
-                        "{}[{}]{}",
+                        "{} [ {} ] {}",
                         std::str::from_utf8_unchecked(&input[..s]),
                         std::str::from_utf8_unchecked(&input[s..i]),
                         std::str::from_utf8_unchecked(&input[i..])
@@ -84,15 +84,6 @@ fn find_tag2(input: &str, size: usize, vis: bool) -> Box<dyn Display> {
                 continue 'search;
             }
             let j = i - off;
-            if vis {
-                unsafe {
-                    println!(
-                        "{} vs {}",
-                        char::from_u32_unchecked(input[j] as u32),
-                        char::from_u32_unchecked(c as u32)
-                    )
-                };
-            }
             if input[j] == c {
                 let maybe = j + size + 1;
                 if maybe > min_good {
@@ -116,9 +107,10 @@ fn find_tag2(input: &str, size: usize, vis: bool) -> Box<dyn Display> {
         if vis && i >= size {
             unsafe {
                 println!(
-                    "{}: {}: no match",
+                    "{}: {}: no match for {}",
                     i,
-                    std::str::from_utf8_unchecked(&input[i - size..=i])
+                    std::str::from_utf8_unchecked(&input[i - size..=i]),
+                    std::char::from_u32_unchecked(c as u32),
                 )
             };
         }
