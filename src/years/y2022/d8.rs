@@ -76,13 +76,13 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     Box::new(max_score)
 }
 
-fn scenic_score(heights: &Vec<Vec<i8>>, row: usize, col: usize) -> usize {
-    vd(&heights, (row, col), (1, 0))
-        * vd(&heights, (row, col), (-1, 0))
-        * vd(&heights, (row, col), (0, 1))
-        * vd(&heights, (row, col), (0, -1))
+fn scenic_score(heights: &[Vec<i8>], row: usize, col: usize) -> usize {
+    vd(heights, (row, col), (1, 0))
+        * vd(heights, (row, col), (-1, 0))
+        * vd(heights, (row, col), (0, 1))
+        * vd(heights, (row, col), (0, -1))
 }
-fn vd(heights: &Vec<Vec<i8>>, pos: (usize, usize), off: (isize, isize)) -> usize {
+fn vd(heights: &[Vec<i8>], pos: (usize, usize), off: (isize, isize)) -> usize {
     let (mut row, mut col) = pos;
     let (roff, coff) = off;
     let h = heights[row][col];
@@ -108,10 +108,7 @@ fn vd(heights: &Vec<Vec<i8>>, pos: (usize, usize), off: (isize, isize)) -> usize
 
 fn parse(input: &str) -> Vec<Vec<i8>> {
     fn parse_line(line: &str) -> Vec<i8> {
-        line.as_bytes()
-            .into_iter()
-            .map(|b| (b - b'0') as i8)
-            .collect()
+        line.as_bytes().iter().map(|b| (b - b'0') as i8).collect()
     }
     input.lines().map(parse_line).collect()
 }
