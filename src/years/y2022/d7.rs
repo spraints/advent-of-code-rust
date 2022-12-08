@@ -12,8 +12,19 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     Box::new(total)
 }
 
-pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
+pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
+    const TOT_SPACE: usize = 70000000;
+    const NEED: usize = 30000000;
+    let fs = parse_fs(&input, vis);
+    let free = TOT_SPACE - fs.total_size();
+    let mut will_free = fs.total_size();
+    for dir in fs.dirs() {
+        let s = dir.total_size();
+        if s < will_free && (free + s > NEED) {
+            will_free = s;
+        }
+    }
+    Box::new(will_free)
 }
 
 fn parse_fs(input: &str, vis: bool) -> FS {
@@ -142,5 +153,5 @@ $ ls
 5626152 d.ext
 7214296 k",
         part1 => 95437,
-        part2 => "todo");
+        part2 => 24933642);
 }
