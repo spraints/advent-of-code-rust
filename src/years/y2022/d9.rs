@@ -40,16 +40,18 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
         let ((dx, dy), steps) = parse(line);
         for _ in 0..steps {
             let (mut hx, mut hy) = positions[0].clone();
-            println!("head: ({},{}) + ({},{})", hx, hy, dx, dy);
+            if vis {
+                println!("head: ({},{}) + ({},{})", hx, hy, dx, dy);
+            }
             hx += dx;
             hy += dy;
             positions[0] = (hx, hy);
+            if vis {
+                println!("  [{}] ({},{})", 0, hx, hy);
+            }
             for i in 1..10 {
                 let (mut tx, mut ty) = positions[i].clone();
                 if ty - hy > 1 {
-                    if vis {
-                        println!(" [{}] ({},{}) catch up to ({},{})", i, tx, ty, hx, hy);
-                    }
                     if hx > tx {
                         tx += 1
                     } else if tx > hx {
@@ -57,9 +59,6 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
                     }
                     ty -= 1;
                 } else if hy - ty > 1 {
-                    if vis {
-                        println!(" [{}] ({},{}) catch up to ({},{})", i, tx, ty, hx, hy);
-                    }
                     if hx > tx {
                         tx += 1
                     } else if tx > hx {
@@ -67,9 +66,6 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
                     }
                     ty += 1;
                 } else if hx - tx > 1 {
-                    if vis {
-                        println!(" [{}] ({},{}) catch up to ({},{})", i, tx, ty, hx, hy);
-                    }
                     if ty > hy {
                         ty -= 1;
                     } else if hy > ty {
@@ -77,15 +73,14 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
                     }
                     tx += 1;
                 } else if tx - hx > 1 {
-                    if vis {
-                        println!(" [{}] ({},{}) catch up to ({},{})", i, tx, ty, hx, hy);
-                    }
                     if ty > hy {
                         ty -= 1;
                     } else if hy > ty {
                         ty += 1;
                     }
                     tx -= 1;
+                } else {
+                    break;
                 }
                 if vis {
                     println!("  [{}] ({},{})", i, tx, ty);
@@ -98,32 +93,6 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
         }
         if vis {
             println!("{} => {:?}", line, positions);
-            /*
-            let xs: Vec<isize> = positions.iter().map(|(x, _)| x).copied().collect();
-            let ys: Vec<isize> = positions.iter().map(|(_, y)| y).copied().collect();
-            let minx = *xs.iter().min().unwrap();
-            let maxx = *xs.iter().max().unwrap();
-            let miny = *ys.iter().min().unwrap();
-            let maxy = *ys.iter().max().unwrap();
-            let mut grid = vec![
-                vec!['.'; (maxy - miny + 1).try_into().unwrap()];
-                (maxx - minx + 1).try_into().unwrap()
-            ];
-            for (i, (x, y)) in positions.iter().enumerate() {
-                let label = match i as u32 {
-                    0 => 'H',
-                    n => unsafe { char::from_u32_unchecked(30 + n) },
-                };
-                let line: &mut Vec<char> = &mut grid[(x - minx) as usize];
-                line[(y - miny) as usize] = label;
-            }
-            for y in (miny..maxy).rev() {
-                for x in minx..maxx {
-                    print!("{}", grid[(x - minx) as usize][(y - miny) as usize]);
-                }
-                println!();
-            }
-            */
         }
     }
     // 2528 is too high
@@ -166,5 +135,5 @@ D 3
 R 17
 D 10
 L 25
-U 20", part2 => 35);
+U 20", part2 => 36);
 }
