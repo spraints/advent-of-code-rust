@@ -1,39 +1,15 @@
 use std::{cmp::Ordering, collections::HashSet, fmt::Display};
 
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
-    let (mut hx, mut hy) = (0, 0);
-    let (mut tx, mut ty) = (0, 0);
-    let mut visited = HashSet::new();
-    visited.insert((tx, ty));
-    for line in input.lines() {
-        let ((dx, dy), steps) = parse(line);
-        for _ in 0..steps {
-            hx += dx;
-            hy += dy;
-            if ty - hy > 1 {
-                tx = hx;
-                ty -= 1;
-            } else if hy - ty > 1 {
-                tx = hx;
-                ty += 1;
-            } else if hx - tx > 1 {
-                ty = hy;
-                tx += 1;
-            } else if tx - hx > 1 {
-                ty = hy;
-                tx -= 1;
-            }
-            visited.insert((tx, ty));
-            if vis {
-                println!("H=({},{}), T=({},{})", hx, hy, tx, ty);
-            }
-        }
-    }
-    Box::new(visited.len())
+    doit(input, vis, 2)
 }
 
 pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
-    let mut positions = vec![(0, 0); 10];
+    doit(input, vis, 10)
+}
+
+fn doit(input: String, vis: bool, size: usize) -> Box<dyn Display> {
+    let mut positions = vec![(0, 0); size];
     let mut visited = HashSet::new();
     visited.insert((0, 0));
     for line in input.lines() {
@@ -89,7 +65,7 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
                 hx = tx;
                 hy = ty;
             }
-            visited.insert(positions[9]);
+            visited.insert(*positions.last().unwrap());
         }
         if vis {
             println!("{} => {:?}", line, positions);
