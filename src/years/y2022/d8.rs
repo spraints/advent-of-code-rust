@@ -10,11 +10,11 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     let mut seen = HashSet::new();
     let rows = heights.len();
     let cols = heights[0].len();
-    for row in 0..rows {
+    for (row, heights_row) in heights.iter().enumerate() {
         let mut max_height_from_left = -1;
         let mut max_height_from_right = -1;
         for col in 0..cols {
-            let h = heights[row][col];
+            let h = heights_row[col];
             if h > max_height_from_left {
                 if vis {
                     println!("can see > row={} col={} val={}", row, col, h);
@@ -22,7 +22,7 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
                 seen.insert((row, col));
                 max_height_from_left = h
             }
-            let h = heights[row][cols - col - 1];
+            let h = heights_row[cols - col - 1];
             if h > max_height_from_right {
                 if vis {
                     println!("can see < row={} col={} val={}", row, cols - col - 1, h);
