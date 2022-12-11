@@ -1,4 +1,5 @@
 mod d1;
+mod d10;
 mod d2;
 mod d3;
 mod d4;
@@ -11,6 +12,9 @@ mod d9;
 use crate::solutionset::SolutionSet;
 
 pub fn register<S: SolutionSet>(s: &mut S) {
+    s.add(2022, 10, 1, None, d10::part1);
+    s.add(2022, 10, 2, None, d10::part2);
+
     s.add(2022, 9, 1, None, d9::part1);
     s.add(2022, 9, 2, None, d9::part2);
 
