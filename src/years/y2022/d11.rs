@@ -20,7 +20,7 @@ fn go_around(monkeys: &mut Vec<Monkey>) {
             let dest = monkeys[i].do_test(worry);
             monkeys[dest].items.push(worry);
         }
-        monkeys[i].items.resize(0, 0);
+        monkeys[i].items.clear();
         monkeys[i].inspections += nitems;
     }
 }
@@ -133,7 +133,7 @@ pub fn part2(input: String, _vis: bool) -> Box<dyn Display> {
 }
 
 fn go_around2(monkeys: &mut Vec<Monkey>) {
-    let common = monkeys.iter().map(|m| m.test).fold(1, |a, b| a * b);
+    let common: Worry = monkeys.iter().map(|m| m.test).product();
     for i in 0..monkeys.len() {
         let nitems = monkeys[i].items.len();
         for j in 0..nitems {
@@ -141,7 +141,7 @@ fn go_around2(monkeys: &mut Vec<Monkey>) {
             let dest = monkeys[i].do_test(worry);
             monkeys[dest].items.push(worry);
         }
-        monkeys[i].items.resize(0, 0);
+        monkeys[i].items.clear();
         monkeys[i].inspections += nitems;
     }
 }
