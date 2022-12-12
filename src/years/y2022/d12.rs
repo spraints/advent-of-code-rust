@@ -1,56 +1,40 @@
 use std::{cmp::Ordering, collections::BinaryHeap, fmt::Display};
 
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
-    let map: Vec<Vec<u8>> = input.lines().map(|s| s.as_bytes().to_vec()).collect();
-    Box::new(shortest_path(map, vis))
+    Box::new(solve(input, vis, |map| vec![find_start(map)]))
 }
 
 pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
-    let map: Vec<Vec<u8>> = input.lines().map(|s| s.as_bytes().to_vec()).collect();
-    Box::new(shortest_path2(map, vis))
-}
-
-fn shortest_path(map: Vec<Vec<u8>>, vis: bool) -> usize {
-    let mut dist: Vec<Vec<usize>> = map
-        .iter()
-        .map(|row| row.iter().map(|_| usize::MAX).collect())
-        .collect();
-    let mut heap = BinaryHeap::new();
-    let (row, col) = find_start(&map);
-    dist[row][col] = 0;
-    heap.push(State { row, col, cost: 0 });
-    sp(map, dist, heap, vis)
-}
-
-fn shortest_path2(map: Vec<Vec<u8>>, vis: bool) -> usize {
-    let mut dist: Vec<Vec<usize>> = map
-        .iter()
-        .map(|row| row.iter().map(|_| usize::MAX).collect())
-        .collect();
-    let mut heap = BinaryHeap::new();
-
-    for (i, row) in map.iter().enumerate() {
-        for (j, c) in row.iter().enumerate() {
-            if *c == b'S' || *c == b'a' {
-                dist[i][j] = 0;
-                heap.push(State {
-                    row: i,
-                    col: j,
-                    cost: 0,
-                });
+    Box::new(solve(input, vis, |map| {
+        let mut res = Vec::new();
+        for (i, row) in map.iter().enumerate() {
+            for (j, c) in row.iter().enumerate() {
+                if *c == b'S' || *c == b'a' {
+                    res.push((i, j));
+                }
             }
         }
-    }
-
-    sp(map, dist, heap, vis)
+        res
+    }))
 }
 
-fn sp(
-    map: Vec<Vec<u8>>,
-    mut dist: Vec<Vec<usize>>,
-    mut heap: BinaryHeap<State>,
-    vis: bool,
-) -> usize {
+fn solve<F>(input: String, vis: bool, get_starts: F) -> usize
+where
+    F: FnOnce(&[Vec<u8>]) -> Vec<(usize, usize)>,
+{
+    let map: Vec<Vec<u8>> = input.lines().map(|s| s.as_bytes().to_vec()).collect();
+
+    let mut dist: Vec<Vec<usize>> = map
+        .iter()
+        .map(|row| row.iter().map(|_| usize::MAX).collect())
+        .collect();
+    let mut heap = BinaryHeap::new();
+
+    for (row, col) in get_starts(&map) {
+        dist[row][col] = 0;
+        heap.push(State { row, col, cost: 0 });
+    }
+
     while let Some(State { cost, row, col }) = heap.pop() {
         if vis {
             println!("{:?}", dist);
