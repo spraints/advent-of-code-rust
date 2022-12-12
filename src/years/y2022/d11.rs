@@ -1,22 +1,31 @@
 use std::fmt::Display;
 
 pub fn part1(input: String, _vis: bool) -> Box<dyn Display> {
+    Box::new(solve(input, 20, 3))
+}
+
+pub fn part2(input: String, _vis: bool) -> Box<dyn Display> {
+    Box::new(solve(input, 10000, 1))
+}
+
+fn solve(input: String, iterations: usize, backoff: Worry) -> usize {
     let mut monkeys = parse_monkeys(&input);
-    for _ in 0..20 {
-        go_around(&mut monkeys);
+    for _ in 0..iterations {
+        go_around(&mut monkeys, backoff);
     }
     let mut inspections: Vec<usize> = monkeys.iter().map(|m| m.inspections).collect();
     inspections.sort();
     let a = inspections.pop().unwrap();
     let b = inspections.pop().unwrap();
-    Box::new(a * b)
+    a * b
 }
 
-fn go_around(monkeys: &mut Vec<Monkey>) {
+fn go_around(monkeys: &mut Vec<Monkey>, backoff: Worry) {
+    let common: Worry = monkeys.iter().map(|m| m.test).product();
     for i in 0..monkeys.len() {
         let nitems = monkeys[i].items.len();
         for j in 0..nitems {
-            let worry = monkeys[i].change_worry(monkeys[i].items[j]) / 3;
+            let worry = (monkeys[i].change_worry(monkeys[i].items[j]) / backoff) % common;
             let dest = monkeys[i].do_test(worry);
             monkeys[dest].items.push(worry);
         }
@@ -118,32 +127,6 @@ fn parse_monkeys(input: &str) -> Vec<Monkey> {
             }
         })
         .collect()
-}
-
-pub fn part2(input: String, _vis: bool) -> Box<dyn Display> {
-    let mut monkeys = parse_monkeys(&input);
-    for _ in 0..10000 {
-        go_around2(&mut monkeys);
-    }
-    let mut inspections: Vec<usize> = monkeys.iter().map(|m| m.inspections).collect();
-    inspections.sort();
-    let a = inspections.pop().unwrap();
-    let b = inspections.pop().unwrap();
-    Box::new(a * b)
-}
-
-fn go_around2(monkeys: &mut Vec<Monkey>) {
-    let common: Worry = monkeys.iter().map(|m| m.test).product();
-    for i in 0..monkeys.len() {
-        let nitems = monkeys[i].items.len();
-        for j in 0..nitems {
-            let worry = monkeys[i].change_worry(monkeys[i].items[j]) % common;
-            let dest = monkeys[i].do_test(worry);
-            monkeys[dest].items.push(worry);
-        }
-        monkeys[i].items.clear();
-        monkeys[i].inspections += nitems;
-    }
 }
 
 #[cfg(test)]
