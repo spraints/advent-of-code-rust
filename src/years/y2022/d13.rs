@@ -12,8 +12,27 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     Box::new(sum)
 }
 
-pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
+pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
+    let mut packets: Vec<Packet> = input
+        .lines()
+        .filter(|s| *s != "")
+        .map(|s| parse(s, vis))
+        .collect();
+    let p1 = parse("[[2]]", vis);
+    let p2 = parse("[[6]]", vis);
+    packets.push(p1.clone());
+    packets.push(p2.clone());
+    packets.sort();
+    let mut res = 1;
+    for (i, p) in packets.iter().enumerate() {
+        if *p == p1 || *p == p2 {
+            if vis {
+                println!("found {:?} at {}", p, i);
+            }
+            res *= i + 1;
+        }
+    }
+    Box::new(res)
 }
 
 fn parse(s: &str, vis: bool) -> Packet {
@@ -118,7 +137,7 @@ impl Ord for Packet {
             (Self::List(l), r) => Self::List(l.clone()).cmp(&Self::List(vec![r.clone()])),
             (l, Self::List(r)) => Self::List(vec![l.clone()]).cmp(&Self::List(r.clone())),
         };
-        println!("{:?} < {:?} => {:?}", self, other, res);
+        //println!("{:?} < {:?} => {:?}", self, other, res);
         res
     }
 }
@@ -167,7 +186,7 @@ mod test {
 [1,[2,[3,[4,[5,6,7]]]],8,9]
 [1,[2,[3,[4,[5,6,0]]]],8,9]",
         part1 => 13,
-        part2 => "todo");
+        part2 => 140);
 
     #[test]
     fn parse() {
