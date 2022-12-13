@@ -6,7 +6,14 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
         let (left, right) = pair.split_once('\n').unwrap();
         let (left, right) = (parse(left, vis), parse(right, vis));
         if left < right {
+            if vis {
+                println!(" => in order!");
+            }
             sum += i + 1;
+        } else {
+            if vis {
+                println!(" => out of order!");
+            }
         }
     }
     Box::new(sum)
@@ -16,15 +23,18 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     let mut packets: Vec<Packet> = input
         .lines()
         .filter(|s| *s != "")
-        .map(|s| parse(s, vis))
+        .map(|s| parse(s, false))
         .collect();
-    let p1 = parse("[[2]]", vis);
-    let p2 = parse("[[6]]", vis);
+    let p1 = parse("[[2]]", false);
+    let p2 = parse("[[6]]", false);
     packets.push(p1.clone());
     packets.push(p2.clone());
     packets.sort();
     let mut res = 1;
     for (i, p) in packets.iter().enumerate() {
+        if vis {
+            println!("{:3}: {}", i, p);
+        }
         if *p == p1 || *p == p2 {
             if vis {
                 println!("found {:?} at {}", p, i);
@@ -37,9 +47,6 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
 
 fn parse(s: &str, vis: bool) -> Packet {
     let s = s.trim();
-    if vis {
-        println!("PARSING {}", s);
-    }
     let mut parents = Vec::new();
     let mut cur = Vec::new();
     for tok in tokens(s) {
@@ -58,7 +65,7 @@ fn parse(s: &str, vis: bool) -> Packet {
     }
     let res = cur.into_iter().next().unwrap();
     if vis {
-        println!("RESULT: {}", res);
+        println!("PARSED: {}", res);
     }
     res
 }
@@ -128,14 +135,12 @@ enum Packet {
 
 impl Ord for Packet {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        let res = match (self, other) {
+        match (self, other) {
             (Self::Value(l), Self::Value(r)) => l.cmp(r),
             (Self::List(l), Self::List(r)) => cmp_list(l, r),
             (Self::List(l), r) => Self::List(l.clone()).cmp(&Self::List(vec![r.clone()])),
             (l, Self::List(r)) => Self::List(vec![l.clone()]).cmp(&Self::List(r.clone())),
-        };
-        // println!("{} <=> {} => {:?}", self, other, res);
-        res
+        }
     }
 }
 
