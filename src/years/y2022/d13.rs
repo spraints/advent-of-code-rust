@@ -43,9 +43,6 @@ fn parse(s: &str, vis: bool) -> Packet {
     let mut parents = Vec::new();
     let mut cur = Vec::new();
     for tok in tokens(s) {
-        if vis {
-            println!("TOKEN: {:?}", tok);
-        }
         match tok {
             Token::Open => {
                 parents.push(cur);
@@ -61,7 +58,7 @@ fn parse(s: &str, vis: bool) -> Packet {
     }
     let res = cur.into_iter().next().unwrap();
     if vis {
-        println!("{} => {:?}", s, res);
+        println!("RESULT: {}", res);
     }
     res
 }
@@ -137,7 +134,7 @@ impl Ord for Packet {
             (Self::List(l), r) => Self::List(l.clone()).cmp(&Self::List(vec![r.clone()])),
             (l, Self::List(r)) => Self::List(vec![l.clone()]).cmp(&Self::List(r.clone())),
         };
-        //println!("{:?} < {:?} => {:?}", self, other, res);
+        // println!("{} <=> {} => {:?}", self, other, res);
         res
     }
 }
@@ -155,6 +152,24 @@ fn cmp_list(l: &[Packet], r: &[Packet]) -> std::cmp::Ordering {
 impl PartialOrd for Packet {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+impl Display for Packet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Value(val) => write!(f, "{}", val),
+            Self::List(items) => {
+                write!(f, "[")?;
+                for (i, item) in items.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ",")?;
+                    }
+                    write!(f, "{}", item)?;
+                }
+                write!(f, "]")
+            }
+        }
     }
 }
 
