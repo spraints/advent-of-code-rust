@@ -1,10 +1,10 @@
 use std::fmt::Display;
 
-pub fn part1(input: String, _vis: bool) -> Box<dyn Display> {
+pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     let mut sum = 0;
     for (i, pair) in input.split("\n\n").enumerate() {
         let (left, right) = pair.split_once('\n').unwrap();
-        let (left, right) = (parse(left), parse(right));
+        let (left, right) = (parse(left, vis), parse(right, vis));
         if left < right {
             sum += i + 1;
         }
@@ -16,36 +16,92 @@ pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
     Box::new("todo")
 }
 
-fn parse(s: &str) -> Packet {
-    parse_item(s, 0).0
+fn parse(s: &str, vis: bool) -> Packet {
+    let s = s.trim();
+    if vis {
+        println!("PARSING {}", s);
+    }
+    let mut parents = Vec::new();
+    let mut cur = Vec::new();
+    for tok in tokens(s) {
+        if vis {
+            println!("TOKEN: {:?}", tok);
+        }
+        match tok {
+            Token::Open => {
+                parents.push(cur);
+                cur = Vec::new()
+            }
+            Token::Close => {
+                let child = cur;
+                cur = parents.pop().unwrap();
+                cur.push(Packet::List(child));
+            }
+            Token::Value(s) => cur.push(Packet::Value(s.parse().unwrap())),
+        };
+    }
+    let res = cur.into_iter().next().unwrap();
+    if vis {
+        println!("{} => {:?}", s, res);
+    }
+    res
 }
 
-fn parse_item(mut s: &str, level: usize) -> (Packet, &str) {
-    let os = s;
-    if s.starts_with('[') {
-        let mut items = Vec::new();
-        s = &s[1..];
-        while !s.starts_with(']') {
-            println!("[{}] '{}'", level, s);
-            let parsed = parse_item(s, level + 1);
-            items.push(parsed.0);
-            s = parsed.1;
+fn tokens(s: &str) -> Tokens {
+    Tokens { s }
+}
+
+struct Tokens<'a> {
+    s: &'a str,
+}
+
+impl<'a> Iterator for Tokens<'a> {
+    type Item = Token<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.s.starts_with(',') {
+            self.s = &self.s[1..];
         }
-        let res = (Packet::List(items), &s[1..]);
-        println!("[{}] '{}' => {:?}", level, os, res);
-        res
-    } else {
-        let (val, rest): (&str, &str) = match (s.find(','), s.find(']')) {
-            (None, None) => (s, ""),
-            (Some(i), Some(j)) if i < j => (&s[0..i], &s[i + 1..]),
-            (Some(i), None) => (&s[0..i], &s[i + 1..]),
-            (_, Some(i)) => (&s[0..i], &s[i..]),
-        };
-        println!("[{}] '{}': VALUE: '{}'/'{}'", level, os, val, rest);
-        let res = (Packet::Value(val.parse().unwrap()), rest);
-        println!("[{}] '{}' => {:?}", level, os, res);
-        res
+        if self.s == "" {
+            None
+        } else if self.s.starts_with('[') {
+            self.s = &self.s[1..];
+            Some(Token::Open)
+        } else if self.s.starts_with(']') {
+            self.s = &self.s[1..];
+            Some(Token::Close)
+        } else {
+            match (self.s.find(','), self.s.find(']')) {
+                (None, None) => {
+                    let val = self.s;
+                    self.s = "";
+                    Some(Token::Value(val))
+                }
+                (Some(comma), None) => {
+                    let val = &self.s[0..comma];
+                    self.s = &self.s[comma + 1..];
+                    Some(Token::Value(val))
+                }
+                (Some(comma), Some(close)) if comma < close => {
+                    let val = &self.s[0..comma];
+                    self.s = &self.s[comma + 1..];
+                    Some(Token::Value(val))
+                }
+                (_, Some(close)) => {
+                    let val = &self.s[0..close];
+                    self.s = &self.s[close..];
+                    Some(Token::Value(val))
+                }
+            }
+        }
     }
+}
+
+#[derive(Debug)]
+enum Token<'a> {
+    Open,
+    Close,
+    Value(&'a str),
 }
 
 #[derive(Eq, PartialEq, Clone, Debug)]
@@ -56,12 +112,14 @@ enum Packet {
 
 impl Ord for Packet {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        match (self, other) {
+        let res = match (self, other) {
             (Self::Value(l), Self::Value(r)) => l.cmp(r),
             (Self::List(l), Self::List(r)) => cmp_list(l, r),
             (Self::List(l), r) => Self::List(l.clone()).cmp(&Self::List(vec![r.clone()])),
             (l, Self::List(r)) => Self::List(vec![l.clone()]).cmp(&Self::List(r.clone())),
-        }
+        };
+        println!("{:?} < {:?} => {:?}", self, other, res);
+        res
     }
 }
 
@@ -114,8 +172,29 @@ mod test {
     #[test]
     fn parse() {
         use super::{parse, Packet};
-        assert_eq!(Packet::List(Vec::new()), parse("[]"));
-        assert_eq!(Packet::Value(1), parse("1"));
-        assert_eq!(Packet::Value(10), parse("10"));
+        assert_eq!(Packet::List(Vec::new()), parse("[]", true));
+        assert_eq!(Packet::Value(1), parse("1", true));
+        assert_eq!(Packet::Value(10), parse("10", true));
+        assert_eq!(
+            Packet::List(vec![Packet::Value(1), Packet::List(vec![Packet::Value(2)])]),
+            parse("[1,[2]]", true)
+        );
+    }
+
+    #[test]
+    fn cmp() {
+        use super::Packet;
+        fn lt(a: Packet, b: Packet) {
+            assert!(a < b, "expect {:?} to be less than {:?}", a, b);
+        }
+        fn eq(a: Packet, b: Packet) {
+            assert!(a == b, "expect {:?} to be equal to {:?}", a, b);
+        }
+        lt(
+            Packet::List(Vec::new()),
+            Packet::List(vec![Packet::Value(1)]),
+        );
+        lt(Packet::Value(1), Packet::Value(2));
+        eq(Packet::Value(1), Packet::Value(1));
     }
 }
