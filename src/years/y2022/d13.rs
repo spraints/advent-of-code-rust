@@ -10,10 +10,8 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
                 println!(" => in order!");
             }
             sum += i + 1;
-        } else {
-            if vis {
-                println!(" => out of order!");
-            }
+        } else if vis {
+            println!(" => out of order!");
         }
     }
     Box::new(sum)
@@ -22,7 +20,7 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
 pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     let mut packets: Vec<Packet> = input
         .lines()
-        .filter(|s| *s != "")
+        .filter(|s| !s.is_empty())
         .map(|s| parse(s, false))
         .collect();
     let p1 = parse("[[2]]", false);
@@ -43,6 +41,29 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
         }
     }
     Box::new(res)
+}
+
+pub fn part2_no_sort(input: String, vis: bool) -> Box<dyn Display> {
+    let p1 = parse("[[2]]", false);
+    let p2 = parse("[[6]]", false);
+    let mut small = 1;
+    let mut mid = 2;
+    for line in input.lines().filter(|s| !s.is_empty()) {
+        let p = parse(line, vis);
+        if p < p1 {
+            if vis {
+                println!(" ==> SMALL!");
+            }
+            small += 1;
+            mid += 1;
+        } else if p < p2 {
+            if vis {
+                println!(" ==> MID!");
+            }
+            mid += 1;
+        }
+    }
+    Box::new(small * mid)
 }
 
 fn parse(s: &str, vis: bool) -> Packet {
@@ -85,7 +106,7 @@ impl<'a> Iterator for Tokens<'a> {
         if self.s.starts_with(',') {
             self.s = &self.s[1..];
         }
-        if self.s == "" {
+        if self.s.is_empty() {
             None
         } else if self.s.starts_with('[') {
             self.s = &self.s[1..];
@@ -206,7 +227,8 @@ mod test {
 [1,[2,[3,[4,[5,6,7]]]],8,9]
 [1,[2,[3,[4,[5,6,0]]]],8,9]",
         part1 => 13,
-        part2 => 140);
+        part2 => 140,
+        part2_no_sort => 140);
 
     #[test]
     fn parse() {
