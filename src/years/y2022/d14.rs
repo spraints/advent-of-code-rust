@@ -26,8 +26,67 @@ pub fn part1(input: String, _vis: bool) -> Box<dyn Display> {
     unreachable!()
 }
 
-pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
+pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
+    let rocks = input.lines().map(parse_rock).collect();
+    let (mut space, _) = create_space(rocks);
+    space.push(vec![Space::Empty; 1000]);
+    space.push(vec![Space::Floor; 1000]);
+    for grains in 0.. {
+        let mut sand_depth = 0;
+        let mut sand_col = 500;
+        if space[sand_depth][sand_col] != Space::Empty {
+            if vis {
+                printspace(space);
+            }
+            return Box::new(grains);
+        }
+        'grain: loop {
+            if space[sand_depth + 1][sand_col] == Space::Empty {
+                sand_depth += 1;
+            } else if space[sand_depth + 1][sand_col - 1] == Space::Empty {
+                sand_depth += 1;
+                sand_col -= 1;
+            } else if space[sand_depth + 1][sand_col + 1] == Space::Empty {
+                sand_depth += 1;
+                sand_col += 1;
+            } else {
+                space[sand_depth][sand_col] = Space::Sand;
+                break 'grain;
+            }
+        }
+    }
+    unreachable!()
+}
+
+fn printspace(space: Vec<Vec<Space>>) {
+    let mut min_col = 999;
+    let mut max_col = 0;
+    for row in &space {
+        for (col, x) in row.iter().enumerate() {
+            if *x != Space::Empty && *x != Space::Floor {
+                if col < min_col {
+                    min_col = col;
+                }
+                if col > max_col {
+                    max_col = col;
+                }
+            }
+        }
+    }
+    for row in space {
+        for x in &row[min_col..=max_col] {
+            print!(
+                "{}",
+                match x {
+                    Space::Empty => '.',
+                    Space::Sand => 'o',
+                    Space::Rock => '#',
+                    Space::Floor => '-',
+                }
+            );
+        }
+        println!();
+    }
 }
 
 fn create_space(rocks: Vec<Vec<Coord>>) -> (Vec<Vec<Space>>, usize) {
@@ -73,6 +132,7 @@ enum Space {
     Empty,
     Sand,
     Rock,
+    Floor,
 }
 
 fn parse_rock(line: &str) -> Vec<Coord> {
@@ -90,5 +150,5 @@ mod test {
     crate::test::aoc_test!(example, r"498,4 -> 498,6 -> 496,6
 503,4 -> 502,4 -> 502,9 -> 494,9",
         part1 => 24,
-        part2 => "todo");
+        part2 => 93);
 }
