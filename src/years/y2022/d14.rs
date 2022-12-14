@@ -1,6 +1,6 @@
 use std::{fmt::Display, ops::RangeInclusive};
 
-pub fn part1(input: String, _vis: bool) -> Box<dyn Display> {
+pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     let rocks = input.lines().map(parse_rock).collect();
     let (mut space, max_depth) = create_space(rocks);
     for grains in 0.. {
@@ -8,6 +8,9 @@ pub fn part1(input: String, _vis: bool) -> Box<dyn Display> {
         let mut sand_col = 500;
         'grain: loop {
             if sand_depth == max_depth {
+                if vis {
+                    printspace(space);
+                }
                 return Box::new(grains);
             } else if space[sand_depth + 1][sand_col] == Space::Empty {
                 sand_depth += 1;
