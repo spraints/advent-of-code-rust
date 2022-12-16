@@ -21,7 +21,7 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     let start_i = vindices["AA"];
     let mut visited = vec![false; valves.len()];
     visited[start_i] = true;
-    Box::new(search(
+    let (dist, path) = search(
         start_i,
         0,
         30,
@@ -30,7 +30,12 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
         &dists,
         &mut visited,
         vis,
-    ))
+    );
+    if vis {
+        println!("optimal path: {}", path);
+    }
+    // 1199 is too low.
+    Box::new(dist)
 }
 
 fn search(
@@ -42,31 +47,40 @@ fn search(
     dists: &[Vec<Option<usize>>],
     visited: &mut [bool],
     vis: bool,
-) -> Flow {
-    if vis {
-        println!(
-            "[{}] from {} with flow={}:",
-            31 - minutes,
-            valves[start].name,
-            accum
-        );
-    }
+) -> (Flow, String) {
+    let disp_minute = 31 - minutes;
     let mut max = accum;
+    let mut max_path = format!("{}", valves[start].name);
     visited[start] = true;
     for (i, d) in dists[start].iter().enumerate() {
         if let Some(d) = d {
+            if !visited[i] && vis {
+                println!(
+                    "{} minutes left, can i get from {} to {} (need {} minutes)?",
+                    minutes, valves[start].name, valves[i].name, d
+                );
+            }
             if !visited[i] && d + 1 < minutes {
                 let new_minutes = minutes - d - 1;
-                let new_accum = accum + new_minutes * valves[i].rate;
+                let added_accum = new_minutes * valves[i].rate;
+                let new_accum = accum + added_accum;
                 if vis {
                     println!(
-                        "   -> {} takes {} minutes to move, increases flow to {}",
-                        valves[i].name, d, new_accum
+                        "[{}] {} -> {} (rate={}) takes {} minutes to move, increases flow by {} to {}",
+                        disp_minute,
+                        valves[start].name,
+                        valves[i].name,
+                        valves[i].rate,
+                        d,
+                        added_accum,
+                        new_accum
                     );
                 }
-                let best = search(i, new_accum, new_minutes, valves, vi, dists, visited, vis);
+                let (best, path) =
+                    search(i, new_accum, new_minutes, valves, vi, dists, visited, vis);
                 if best > max {
                     max = best;
+                    max_path = format!("{} -> {}", valves[start].name, path);
                 }
             }
         }
@@ -74,13 +88,14 @@ fn search(
     visited[start] = false;
     if vis {
         println!(
-            "[{}] from {} max is {}",
+            "[{}] from {} max is {} ({})",
             31 - minutes,
             valves[start].name,
-            max
+            max,
+            max_path
         );
     }
-    max
+    (max, max_path)
 }
 
 pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
