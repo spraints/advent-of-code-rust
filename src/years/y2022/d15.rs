@@ -100,7 +100,7 @@ fn merge(
     }
 }
 
-type Coord = i32;
+type Coord = i64;
 type SensorReading = ((Coord, Coord), (Coord, Coord));
 
 fn parse_sensor(line: &str) -> SensorReading {
