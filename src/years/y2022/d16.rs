@@ -1,78 +1,136 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{
+    collections::{BinaryHeap, HashMap},
+    fmt::Display,
+};
 
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     let (valves, vindices) = parse_input(input);
-
-    let open = vec![false; valves.len()];
-    Box::new(search(0, &valves, &vindices, &open, 30, vis, 0))
+    let dists = find_distances(&valves, &vindices);
+    if vis {
+        for (i, r) in dists.iter().enumerate() {
+            print!("{}", valves[i].name);
+            for c in r {
+                match c {
+                    None => print!("   "),
+                    Some(d) => print!("{:3}", d),
+                };
+            }
+            println!();
+        }
+    }
+    let start_i = vindices["AA"];
+    let mut visited = vec![false; valves.len()];
+    visited[start_i] = true;
+    Box::new(search(
+        start_i,
+        0,
+        30,
+        &valves,
+        &vindices,
+        &dists,
+        &mut visited,
+        vis,
+    ))
 }
 
 fn search(
-    pos: usize,
+    start: usize,
+    accum: Flow,
+    minutes: Flow,
     valves: &[Valve],
     vi: &HashMap<String, usize>,
-    open: &[bool],
-    mut steps_left: u8,
+    dists: &[Vec<Option<usize>>],
+    visited: &mut [bool],
     vis: bool,
-    released: Flow,
 ) -> Flow {
-    if steps_left == 1 {
-        return released;
-    }
-    steps_left -= 1;
-
-    let valve = &valves[pos];
-
-    let steps = 30 - steps_left as usize;
     if vis {
         println!(
-            "{:width$} visiting {} (rate={}, open={}) (already released {})",
-            steps,
-            valve.name,
-            valve.rate,
-            open[pos],
-            released,
-            width = steps
+            "[{}] from {} with flow={}:",
+            31 - minutes,
+            valves[start].name,
+            accum
         );
     }
-
-    let mut max_released = released;
-
-    if !open[pos] && valve.rate > 0 {
-        if vis {
-            println!(
-                "{:width$} try opening {} for rate={}",
-                steps,
-                valve.name,
-                valve.rate,
-                width = steps
-            );
-        }
-        let added = valve.rate * steps_left as Flow;
-        let mut open = open.to_vec();
-        open[pos] = true;
-        let max = search(pos, valves, vi, &open, steps_left, vis, released + added);
-        if max > max_released {
-            max_released = max;
-        }
-        return max_released;
-    }
-
-    for n in &valve.neighbors {
-        if vis {
-            println!("{:width$} try visiting {}", steps, n, width = steps);
-        }
-        let max = search(vi[n], valves, vi, open, steps_left, vis, released);
-        if max > max_released {
-            max_released = max;
+    let mut max = accum;
+    visited[start] = true;
+    for (i, d) in dists[start].iter().enumerate() {
+        if let Some(d) = d {
+            if !visited[i] && d + 1 < minutes {
+                let new_minutes = minutes - d - 1;
+                let new_accum = accum + new_minutes * valves[i].rate;
+                if vis {
+                    println!(
+                        "   -> {} takes {} minutes to move, increases flow to {}",
+                        valves[i].name, d, new_accum
+                    );
+                }
+                let best = search(i, new_accum, new_minutes, valves, vi, dists, visited, vis);
+                if best > max {
+                    max = best;
+                }
+            }
         }
     }
-
-    max_released
+    visited[start] = false;
+    if vis {
+        println!(
+            "[{}] from {} max is {}",
+            31 - minutes,
+            valves[start].name,
+            max
+        );
+    }
+    max
 }
 
 pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
     Box::new("todo")
+}
+
+// Figure out how far it is from every pair of valves to each other.
+fn find_distances(v: &[Valve], vi: &HashMap<String, usize>) -> Vec<Vec<Option<usize>>> {
+    let mut dists = vec![vec![None; v.len()]; v.len()];
+    for (from, valve) in v.iter().enumerate() {
+        if valve.name == "AA" || valve.rate > 0 {
+            for (to, dest_valve) in v.iter().enumerate() {
+                if dest_valve.rate > 0 && dest_valve.name != valve.name {
+                    if dists[from][to].is_none() {
+                        let d = Some(get_dist(from, to, v, vi));
+                        dists[from][to] = d;
+                        dists[to][from] = d;
+                    }
+                }
+            }
+        }
+    }
+    dists
+}
+
+fn get_dist(from: usize, to: usize, v: &[Valve], vi: &HashMap<String, usize>) -> usize {
+    let mut dists: Vec<usize> = vec![usize::MAX; v.len()];
+    let mut heap = BinaryHeap::new();
+
+    dists[from] = 0;
+    heap.push((0, from));
+
+    while let Some((dist, i)) = heap.pop() {
+        if i == to {
+            return dist;
+        }
+        if dist > dists[i] {
+            continue;
+        }
+        let next_dist = dist + 1;
+        for neighbor in &v[i].neighbors {
+            let ni = &vi[neighbor];
+            if dists[*ni] > next_dist {
+                dists[*ni] = next_dist;
+                heap.push((next_dist, *ni));
+            }
+        }
+    }
+
+    unreachable!()
 }
 
 fn parse_input(input: String) -> (Vec<Valve>, HashMap<String, usize>) {
@@ -91,7 +149,7 @@ struct Valve {
     rate: Flow,
 }
 
-type Flow = u32;
+type Flow = usize;
 
 fn parse_valve(line: &str) -> Valve {
     // line looks like this:
