@@ -1,8 +1,74 @@
 use std::{collections::HashMap, fmt::Display};
 
-pub fn part1(input: String, _vis: bool) -> Box<dyn Display> {
+pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     let (valves, vindices) = parse_input(input);
-    Box::new(vindices.len())
+
+    let open = vec![false; valves.len()];
+    Box::new(search(0, &valves, &vindices, &open, 30, vis, 0))
+}
+
+fn search(
+    pos: usize,
+    valves: &[Valve],
+    vi: &HashMap<String, usize>,
+    open: &[bool],
+    mut steps_left: u8,
+    vis: bool,
+    released: Flow,
+) -> Flow {
+    if steps_left == 1 {
+        return released;
+    }
+    steps_left -= 1;
+
+    let valve = &valves[pos];
+
+    let steps = 30 - steps_left as usize;
+    if vis {
+        println!(
+            "{:width$} visiting {} (rate={}, open={}) (already released {})",
+            steps,
+            valve.name,
+            valve.rate,
+            open[pos],
+            released,
+            width = steps
+        );
+    }
+
+    let mut max_released = released;
+
+    if !open[pos] && valve.rate > 0 {
+        if vis {
+            println!(
+                "{:width$} try opening {} for rate={}",
+                steps,
+                valve.name,
+                valve.rate,
+                width = steps
+            );
+        }
+        let added = valve.rate * steps_left as Flow;
+        let mut open = open.to_vec();
+        open[pos] = true;
+        let max = search(pos, valves, vi, &open, steps_left, vis, released + added);
+        if max > max_released {
+            max_released = max;
+        }
+        return max_released;
+    }
+
+    for n in &valve.neighbors {
+        if vis {
+            println!("{:width$} try visiting {}", steps, n, width = steps);
+        }
+        let max = search(vi[n], valves, vi, open, steps_left, vis, released);
+        if max > max_released {
+            max_released = max;
+        }
+    }
+
+    max_released
 }
 
 pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
@@ -28,19 +94,26 @@ struct Valve {
 type Flow = u32;
 
 fn parse_valve(line: &str) -> Valve {
-    let line = line.strip_prefix("Valve ").unwrap();
-    let (name, line) = line.split_once(' ').unwrap();
-    let line = line.strip_prefix("has flow rate=").unwrap();
-    let (rate, line) = line.split_once(';').unwrap();
-    println!("line: {:?}", line);
-    let line = match line.strip_prefix(" tunnels lead to valves ") {
-        Some(s) => s,
-        None => line.strip_prefix(" tunnel leads to valve ").unwrap(),
-    };
-    let neighbors = line.split(", ").map(|s| s.to_owned()).collect();
+    // line looks like this:
+    // Valve CC has flow rate=2; tunnels lead to valves DD, BB
+    // 0     1  2   3    4       5       6    7  8      9
+    let line: Vec<&str> = line.split(' ').collect();
+    let name = line[1].to_owned();
+    let rate = line[4]
+        .strip_prefix("rate=")
+        .unwrap()
+        .strip_suffix(";")
+        .unwrap()
+        .parse()
+        .unwrap();
+    let neighbors = line
+        .iter()
+        .skip(9)
+        .map(|s| s.strip_suffix(',').unwrap_or(s).to_owned())
+        .collect();
     Valve {
-        name: name.to_owned(),
-        rate: rate.parse().unwrap(),
+        name,
+        rate,
         neighbors,
     }
 }
