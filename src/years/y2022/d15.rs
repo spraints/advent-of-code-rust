@@ -9,7 +9,7 @@ fn real_part1(input: String, vis: bool, y: Coord) -> Box<dyn Display> {
     let mut beacons = BTreeSet::new();
     let mut covered = Vec::new();
     for s in sensors {
-        let new = cover(s, y);
+        let new = cover(&s, y);
         if vis {
             println!("{:?} => {:?}", s, new);
         }
@@ -28,8 +28,37 @@ fn real_part1(input: String, vis: bool, y: Coord) -> Box<dyn Display> {
     Box::new(covered - beacons)
 }
 
-pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
+pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
+    real_part2(input, vis, 4000000)
+}
+
+fn real_part2(input: String, vis: bool, max: Coord) -> Box<dyn Display> {
+    let (x, y) = real_part2_2(input, vis, max);
+    Box::new(x * 4000000 + y)
+}
+
+fn real_part2_2(input: String, vis: bool, max: Coord) -> (Coord, Coord) {
+    let stepsize = max / 20;
+    let sensors: Vec<SensorReading> = input.lines().map(parse_sensor).collect();
+    for y in 0..=max {
+        if vis && y > 0 && y % stepsize == 0 {
+            println!("checking {} ...", y);
+        }
+        let mut covered = Vec::new();
+        for s in &sensors {
+            let new = cover(s, y);
+            covered = merge(covered, new);
+        }
+        for c in covered {
+            if *c.start() > 0 {
+                return (*c.start() - 1, y);
+            }
+            if *c.end() < max {
+                return (*c.end() + 1, y);
+            }
+        }
+    }
+    unreachable!()
 }
 
 fn merge(
@@ -92,8 +121,8 @@ fn parse_sensor(line: &str) -> SensorReading {
     ((sensor_x, sensor_y), (beacon_x, beacon_y))
 }
 
-fn cover(s: SensorReading, y: Coord) -> Option<RangeInclusive<Coord>> {
-    let ((sx, sy), (bx, by)) = s;
+fn cover(s: &SensorReading, y: Coord) -> Option<RangeInclusive<Coord>> {
+    let ((sx, sy), (bx, by)) = *s;
     let dist = md((sx, sy), (bx, by));
     if sy + dist < y || sy - dist > y {
         None
@@ -115,6 +144,10 @@ mod test {
         real_part1(input, vis, 10)
     }
 
+    fn part2_20(input: String, vis: bool) -> Box<dyn Display> {
+        real_part2(input, vis, 20)
+    }
+
     crate::test::aoc_test!(example, r"Sensor at x=2, y=18: closest beacon is at x=-2, y=15
 Sensor at x=9, y=16: closest beacon is at x=10, y=16
 Sensor at x=13, y=2: closest beacon is at x=15, y=3
@@ -130,7 +163,7 @@ Sensor at x=16, y=7: closest beacon is at x=15, y=3
 Sensor at x=14, y=3: closest beacon is at x=15, y=3
 Sensor at x=20, y=1: closest beacon is at x=15, y=3",
         part1_10 => 26,
-        part2 => "todo");
+        part2_20 => 56000011);
 
     #[test]
     fn merges() {
