@@ -40,12 +40,15 @@ fn real_part2(input: String, vis: bool, max: Coord) -> Box<dyn Display> {
 fn real_part2_2(input: String, vis: bool, max: Coord) -> (Coord, Coord) {
     let stepsize = max / 20;
     let sensors: Vec<SensorReading> = input.lines().map(parse_sensor).collect();
+    let mut a = Vec::new();
+    let mut b = Vec::new();
     'y: for y in 0..=max {
         if vis && y > 0 && y % stepsize == 0 {
             println!("checking {} ...", y);
         }
-        let mut a = vec![0..=max];
-        let mut b = Vec::new();
+        a.clear();
+        b.clear();
+        a.push(0..=max);
         for s in &sensors {
             if let Some(new) = cover(&s, y) {
                 update(&a, &mut b, new);
