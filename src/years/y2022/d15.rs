@@ -44,43 +44,41 @@ fn real_part2_2(input: String, vis: bool, max: Coord) -> (Coord, Coord) {
         if vis && y > 0 && y % stepsize == 0 {
             println!("checking {} ...", y);
         }
-        let mut not_covered = vec![0..=max];
+        let mut a = vec![0..=max];
+        let mut b = Vec::new();
         for s in &sensors {
-            let new = cover(s, y);
-            not_covered = remove(not_covered, new);
-            if not_covered.is_empty() {
-                continue 'y;
+            if let Some(new) = cover(&s, y) {
+                update(&a, &mut b, new);
+                if b.is_empty() {
+                    continue 'y;
+                }
+                (a, b) = (b, a);
             }
         }
         if vis {
-            println!("at y={} found {:?}", y, not_covered);
+            println!("at y={} found {:?}", y, a);
         }
-        return (*not_covered[0].start(), y);
+        return (*a[0].start(), y);
     }
     unreachable!()
 }
 
-fn remove(
-    ranges: Vec<RangeInclusive<Coord>>,
-    r: Option<RangeInclusive<Coord>>,
-) -> Vec<RangeInclusive<Coord>> {
-    match r {
-        None => ranges,
-        Some(r) => {
-            let mut res = Vec::new();
-            for pr in ranges {
-                if pr.start() > r.end() || pr.end() < r.start() {
-                    res.push(pr);
-                    continue;
-                }
-                if pr.start() < r.start() {
-                    res.push(*pr.start()..=(*r.start() - 1));
-                }
-                if pr.end() > r.end() {
-                    res.push((*r.end() + 1)..=*pr.end());
-                }
-            }
-            res
+fn update(
+    old: &Vec<RangeInclusive<Coord>>,
+    new: &mut Vec<RangeInclusive<Coord>>,
+    r: RangeInclusive<Coord>,
+) {
+    new.clear();
+    for pr in old {
+        if pr.start() > r.end() || pr.end() < r.start() {
+            new.push(pr.clone());
+            continue;
+        }
+        if pr.start() < r.start() {
+            new.push(*pr.start()..=(*r.start() - 1));
+        }
+        if pr.end() > r.end() {
+            new.push((*r.end() + 1)..=*pr.end());
         }
     }
 }
