@@ -35,109 +35,12 @@ fn write_dot(valves: &[Valve]) -> std::io::Result<()> {
 }
 
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
-    let (valves, vindices) = parse_input(input);
-    write_dot(&valves).unwrap();
-    let dists = find_distances(&valves, &vindices, vis);
-    if vis {
-        print!("  ");
-        for v in &valves {
-            print!("{:3}", v.name);
-        }
-        println!();
-        for (i, r) in dists.iter().enumerate() {
-            print!("{}", valves[i].name);
-            for c in r {
-                match c {
-                    None => print!("   "),
-                    Some(d) => print!("{:3}", d),
-                };
-            }
-            println!();
-        }
-    }
-    let start_i = vindices["AA"];
-    let mut visited = vec![false; valves.len()];
-    visited[start_i] = true;
-    let (dist, path) = search(
-        start_i,
-        0,
-        30,
-        &valves,
-        &vindices,
-        &dists,
-        &mut visited,
-        vis,
-    );
-    if vis {
-        println!("optimal path: {}", path);
-    }
-    // 1199 is too low.
-    Box::new(dist)
+    Box::new(solve(input, vis, 30, 1))
 }
 
-fn search(
-    start: usize,
-    accum: Flow,
-    minutes: Flow,
-    valves: &[Valve],
-    vi: &HashMap<String, usize>,
-    dists: &[Vec<Option<usize>>],
-    visited: &mut [bool],
-    vis: bool,
-) -> (Flow, String) {
-    let disp_minute = 31 - minutes;
-    let mut max = accum;
-    let mut max_path = format!("{}({})", valves[start].name, valves[start].rate);
-    visited[start] = true;
-    for (i, d) in dists[start].iter().enumerate() {
-        if let Some(d) = d {
-            /*
-            if !visited[i] && vis {
-                println!(
-                    "{} minutes left, can i get from {} to {} (need {} minutes)?",
-                    minutes, valves[start].name, valves[i].name, d
-                );
-            }
-            */
-            if !visited[i] && d + 1 < minutes {
-                let new_minutes = minutes - d - 1;
-                let added_accum = new_minutes * valves[i].rate;
-                let new_accum = accum + added_accum;
-                if vis {
-                    println!(
-                        "[{}] {} -> {} (rate={}) takes {} minutes to move, increases flow by {} to {}",
-                        disp_minute,
-                        valves[start].name,
-                        valves[i].name,
-                        valves[i].rate,
-                        d,
-                        added_accum,
-                        new_accum
-                    );
-                }
-                let (best, path) =
-                    search(i, new_accum, new_minutes, valves, vi, dists, visited, vis);
-                if best > max {
-                    max = best;
-                    max_path = format!(
-                        "{}({}) -{}-> {}",
-                        valves[start].name, valves[start].rate, d, path
-                    );
-                }
-            }
-        }
-    }
-    visited[start] = false;
-    if vis {
-        println!(
-            "[{}] from {} max is {} ({})",
-            31 - minutes,
-            valves[start].name,
-            max,
-            max_path
-        );
-    }
-    (max, max_path)
+// 2105 is too low
+pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
+    Box::new(solve(input, vis, 26, 2))
 }
 
 #[derive(Eq, PartialEq, Debug)]
@@ -174,14 +77,13 @@ struct Game {
     dists: Vec<Vec<Option<usize>>>,
 }
 
-// 2105 is too low
-pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
-    Box::new(solve(input, vis, 26, 2))
-}
-
 fn solve(input: String, vis: bool, minutes: Flow, actors: usize) -> Flow {
     let (valves, vindices) = parse_input(input);
     let dists = find_distances(&valves, &vindices, vis);
+
+    if vis {
+        write_dot(&valves).unwrap();
+    }
 
     let game = Game {
         valves,
