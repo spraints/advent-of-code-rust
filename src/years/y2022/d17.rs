@@ -114,15 +114,8 @@ fn go(input: String, vis: bool, iterations: usize) -> Box<dyn Display> {
     let mut cavern = Cavern(Vec::new());
     let mut puffs = forever(puffs);
     let mut seen = HashMap::new();
-    let cavern_width = 7;
     for i in 0..iterations {
-        rock_fall(
-            &mut cavern,
-            cavern_width,
-            &rocks[i % rocks.len()],
-            &mut puffs,
-            vis,
-        );
+        rock_fall(&mut cavern, &rocks[i % rocks.len()], &mut puffs, vis);
         if vis && i < 12 {
             print_cavern(&cavern);
         }
@@ -153,13 +146,7 @@ fn go(input: String, vis: bool, iterations: usize) -> Box<dyn Display> {
                         println!("  span={} dheight={}", span, height - last_height);
                     }
                     for i in resume..iterations {
-                        rock_fall(
-                            &mut cavern,
-                            cavern_width,
-                            &rocks[i % rocks.len()],
-                            &mut puffs,
-                            vis,
-                        );
+                        rock_fall(&mut cavern, &rocks[i % rocks.len()], &mut puffs, vis);
                     }
                     // 1523167155410 is too high.
                     return Box::new(add_height + tower_height(&cavern));
@@ -189,7 +176,6 @@ fn top(cavern: &Cavern) -> BF {
 
 fn rock_fall<'a, I: Iterator<Item = Puff>>(
     cavern: &mut Cavern,
-    cavern_width: usize,
     rock: &Rock,
     puffs: &'a mut I,
     vis: bool,
@@ -206,7 +192,7 @@ fn rock_fall<'a, I: Iterator<Item = Puff>>(
         from_left: usize,
     }
 
-    fn puff(puff: Puff, cavern: &Cavern, rock: &Rock, state: State, cavern_width: usize) -> State {
+    fn puff(puff: Puff, cavern: &Cavern, rock: &Rock, state: State) -> State {
         match puff {
             Puff::Left => {
                 if state.from_left == 0 {
@@ -223,7 +209,7 @@ fn rock_fall<'a, I: Iterator<Item = Puff>>(
                 }
             }
             Puff::Right => {
-                if state.from_left + rock.width() == cavern_width {
+                if state.from_left + rock.width() == CAVERN_WIDTH {
                     return state;
                 }
                 let maybe = State {
@@ -265,7 +251,7 @@ fn rock_fall<'a, I: Iterator<Item = Puff>>(
 
     loop {
         let p = puffs.next().unwrap();
-        state = puff(p, cavern, rock, state, cavern_width);
+        state = puff(p, cavern, rock, state);
         if state.height == 0
             || collides(
                 cavern,
