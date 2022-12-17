@@ -141,6 +141,7 @@ fn search(
     (max, max_path)
 }
 
+// 2105 is too low
 pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     let (valves, vindices) = parse_input(input);
     let dists = find_distances(&valves, &vindices, vis);
@@ -183,6 +184,10 @@ fn search2(
     visited: &mut [bool],
     vis: bool,
 ) -> (Flow, (String, String)) {
+    if vis {
+        println!("[{}]/0 {:?} {}", minutes_remaining, acts.0, paths.0);
+        println!("[{}]/1 {:?} {}", minutes_remaining, acts.1, paths.1);
+    }
     let mut max = accum;
     let mut max_paths = (Cow::from(paths.0), Cow::from(paths.1));
     let (me_path, him_path) = (paths.0, paths.1);
@@ -253,7 +258,6 @@ fn search2_1(
     let mut max_path = (Cow::from(idle_path), Cow::from(going_path));
     let (him_dest, him_arrive_at) = going;
     let him_path = going_path;
-    visited[idle] = true;
     for (me_dest, d) in dists[idle].iter().enumerate() {
         if let Some(d) = d {
             if !visited[me_dest] && d + 1 < minutes_remaining {
@@ -265,29 +269,13 @@ fn search2_1(
                     idle_path, valves[me_dest].name, me_arrive_at, added_accum
                 );
                 if vis {
-                    println!("trying {} ...", me_path);
+                    println!("trying i={},d={} {} ...", me_dest, d, me_path);
                     println!("  other is {}", him_path);
                 }
 
                 let (acts, new_min, paths): ((Act, Act), Flow, (&str, &str)) =
                     match me_arrive_at.cmp(&him_arrive_at) {
                         Ordering::Less => (
-                            (
-                                Act::Idle { i: me_dest },
-                                Act::Going {
-                                    dest: him_dest,
-                                    arrive_at: him_arrive_at,
-                                },
-                            ),
-                            me_arrive_at,
-                            (&me_path, him_path),
-                        ),
-                        Ordering::Equal => (
-                            (Act::Idle { i: me_dest }, Act::Idle { i: him_dest }),
-                            me_arrive_at,
-                            (&me_path, him_path),
-                        ),
-                        Ordering::Greater => (
                             (
                                 Act::Idle { i: him_dest },
                                 Act::Going {
@@ -298,10 +286,31 @@ fn search2_1(
                             him_arrive_at,
                             (him_path, &me_path),
                         ),
+                        Ordering::Equal => (
+                            (Act::Idle { i: me_dest }, Act::Idle { i: him_dest }),
+                            me_arrive_at,
+                            (&me_path, him_path),
+                        ),
+                        Ordering::Greater => (
+                            (
+                                Act::Idle { i: me_dest },
+                                Act::Going {
+                                    dest: him_dest,
+                                    arrive_at: him_arrive_at,
+                                },
+                            ),
+                            me_arrive_at,
+                            (&me_path, him_path),
+                        ),
                     };
+                if vis {
+                    println!("    acts: {:?}", acts);
+                }
+                visited[me_dest] = true;
                 let (best, best_paths) = search2(
                     acts, paths, new_min, new_accum, valves, vi, dists, visited, vis,
                 );
+                visited[me_dest] = false;
                 if best > max {
                     max = best;
                     max_path = (Cow::from(best_paths.0), Cow::from(best_paths.1));
@@ -309,7 +318,6 @@ fn search2_1(
             }
         }
     }
-    visited[idle] = false;
     (max, (max_path.0.into_owned(), max_path.1.into_owned()))
 }
 
@@ -328,7 +336,6 @@ fn search2_2(
 ) -> (usize, (String, String)) {
     let mut max = accum;
     let mut max_path = (Cow::from(idle1_path), Cow::from(idle2_path));
-    visited[idle1] = true;
     for (me_dest, d) in dists[idle1].iter().enumerate() {
         if let Some(d) = d {
             if !visited[me_dest] && d + 1 < minutes_remaining {
@@ -340,10 +347,11 @@ fn search2_2(
                     idle1_path, valves[me_dest].name, me_arrive_at, added_accum
                 );
                 if vis {
-                    println!("trying {} ...", me_path);
+                    println!("trying i={},d={} {} ...", me_dest, d, me_path);
                     println!("  other is {}", idle2_path);
                 }
 
+                visited[me_dest] = true;
                 let (best, best_path) = search2_1(
                     idle2,
                     idle2_path,
@@ -357,6 +365,7 @@ fn search2_2(
                     visited,
                     vis,
                 );
+                visited[me_dest] = false;
                 if best > max {
                     max = best;
                     max_path = (Cow::from(best_path.0), Cow::from(best_path.1));
