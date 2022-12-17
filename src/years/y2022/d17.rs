@@ -65,12 +65,6 @@ impl Rock {
     }
 }
 
-impl Rock {
-    fn bottom(&self) -> &[Space] {
-        &self.0[self.0.len() - 1]
-    }
-}
-
 impl Display for Rock {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         fn fmt_row(row: &Vec<Space>) -> String {
@@ -103,8 +97,15 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     //let mut cavern = vec![vec![None; 7]; 3];
     let mut cavern = Cavern(Vec::new());
     let mut puffs = forever(puffs);
+    let cavern_width = 7;
     for i in 0..2022 {
-        rock_fall(&mut cavern, &rocks[i % rocks.len()], &mut puffs, vis);
+        rock_fall(
+            &mut cavern,
+            cavern_width,
+            &rocks[i % rocks.len()],
+            &mut puffs,
+            vis,
+        );
         if vis && i < 12 {
             print_cavern(&cavern);
         }
@@ -114,38 +115,101 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
 
 fn rock_fall<'a, I: Iterator<Item = Puff>>(
     cavern: &mut Cavern,
+    cavern_width: usize,
     rock: &Rock,
     puffs: &'a mut I,
     vis: bool,
 ) {
     let need = 4 - empty_space(cavern);
-    println!("add {} rows to cavern", need);
-    cavern
-        .0
-        .resize(cavern.0.len() + need, vec![Default::default(); 7]);
-    let mut height = cavern.0.len() - 1;
-    let mut from_left = 2;
-    let max_from_left = 7 - rock.width();
-    loop {
-        //if vis && cavern.0.len() < 10 {
-        //    print_falling_rock(cavern, rock, height, from_left);
-        //}
-        let puff = puffs.next().unwrap();
-        from_left = match (puff, from_left, max_from_left - from_left) {
-            (Puff::Left, 0, _) => 0,
-            (Puff::Left, from_left, _) => from_left - 1,
-            (Puff::Right, from_left, 0) => from_left,
-            (Puff::Right, from_left, _) => from_left + 1,
+    if vis {
+        println!("add {} rows to cavern", need);
+    }
+    cavern.0.resize(
+        cavern.0.len() + need,
+        vec![Default::default(); cavern_width],
+    );
+
+    #[derive(Clone, Copy, Debug)]
+    struct State {
+        height: usize,
+        from_left: usize,
+    }
+
+    fn puff(puff: Puff, cavern: &Cavern, rock: &Rock, state: State, cavern_width: usize) -> State {
+        match puff {
+            Puff::Left => {
+                if state.from_left == 0 {
+                    return state;
+                }
+                let maybe = State {
+                    from_left: state.from_left - 1,
+                    ..state
+                };
+                if collides(cavern, rock, maybe) {
+                    return state;
+                } else {
+                    return maybe;
+                }
+            }
+            Puff::Right => {
+                if state.from_left + rock.width() == cavern_width {
+                    return state;
+                }
+                let maybe = State {
+                    from_left: state.from_left + 1,
+                    ..state
+                };
+                if collides(cavern, rock, maybe) {
+                    return state;
+                } else {
+                    return maybe;
+                }
+            }
         };
-        assert!(
-            from_left + rock.width() <= 7,
-            "puff={:?} from_left={} rock_width={}",
-            puff,
-            from_left,
-            rock.width(),
-        );
-        if height == 0 || is_landed(cavern, rock, height, from_left) {
-            for (i, row) in rock.0.iter().enumerate() {
+    }
+
+    fn collides(cavern: &Cavern, rock: &Rock, state: State) -> bool {
+        for (i, row) in rock.0.iter().rev().enumerate() {
+            for (j, x) in row.iter().enumerate() {
+                if matches!(x, Space::Filled)
+                    && matches!(
+                        cavern
+                            .0
+                            .get(state.height + i)
+                            .map(|cr| cr[state.from_left + j]),
+                        Some(Space::Filled)
+                    )
+                {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    let mut state = State {
+        height: cavern.0.len() - 1,
+        from_left: 2,
+    };
+
+    loop {
+        let p = puffs.next().unwrap();
+        state = puff(p, cavern, rock, state, cavern_width);
+        if vis {
+            println!("{:?} => {:?}", p, state);
+        }
+        if state.height == 0
+            || collides(
+                cavern,
+                rock,
+                State {
+                    height: state.height - 1,
+                    ..state
+                },
+            )
+        {
+            let State { height, from_left } = state;
+            for (i, row) in rock.0.iter().rev().enumerate() {
                 for (j, x) in row.iter().enumerate() {
                     if x.is_filled() {
                         assert!(
@@ -163,35 +227,11 @@ fn rock_fall<'a, I: Iterator<Item = Puff>>(
             }
             return;
         }
-        height -= 1;
+        state.height -= 1;
         if vis {
             println!("... fall");
         }
     }
-}
-
-fn is_landed(cavern: &Cavern, rock: &Rock, height: usize, from_left: usize) -> bool {
-    println!("height={} from_left={}", height, from_left);
-    for (i, x) in rock.bottom().iter().enumerate() {
-        println!(
-            "  i={} x={:?} c[h]={:?} c[h+1]={:?}",
-            i,
-            x,
-            cavern.0.get(height - 1).map(|cr| cr.get(from_left + i)),
-            cavern.0.get(height).map(|cr| cr.get(from_left + i))
-        );
-        match (
-            x,
-            cavern.0[height - 1][from_left + i],
-            cavern.0.get(height).map(|cr| cr[from_left + i]),
-        ) {
-            (Space::Empty, Space::Filled, _) => return true,
-            (Space::Filled, _, Some(Space::Filled)) => return true,
-            _ => (),
-        };
-    }
-    println!("  NO CONTACT");
-    false
 }
 
 fn tower_height(cavern: &Cavern) -> usize {
