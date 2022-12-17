@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 
 const ROCKS: &str = r"####
 
@@ -30,6 +30,13 @@ impl Space {
         match self {
             Space::Empty => '.',
             Space::Filled => filled,
+        }
+    }
+
+    fn b(&self) -> BF {
+        match self {
+            Space::Empty => 0,
+            Space::Filled => 1,
         }
     }
 
@@ -89,16 +96,26 @@ fn parse_puff(c: char) -> Puff {
     }
 }
 
-struct Cavern(Vec<Vec<Space>>);
+struct Cavern(Vec<[Space; CAVERN_WIDTH]>);
+
+const CAVERN_WIDTH: usize = 7;
 
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
+    go(input, vis, 2022)
+}
+
+pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
+    go(input, vis, 1_000_000_000_000)
+}
+
+fn go(input: String, vis: bool, iterations: usize) -> Box<dyn Display> {
     let puffs: Vec<Puff> = input.trim().chars().map(parse_puff).collect();
     let rocks: Vec<Rock> = ROCKS.split("\n\n").map(parse_rock).collect();
-    //let mut cavern = vec![vec![None; 7]; 3];
     let mut cavern = Cavern(Vec::new());
     let mut puffs = forever(puffs);
+    let mut seen = HashMap::new();
     let cavern_width = 7;
-    for i in 0..2022 {
+    for i in 0..iterations {
         rock_fall(
             &mut cavern,
             cavern_width,
@@ -109,8 +126,65 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
         if vis && i < 12 {
             print_cavern(&cavern);
         }
+        if puffs.i > puffs.len {
+            let score = (puffs.i % puffs.len, i % rocks.len(), top(&cavern));
+            let last = seen.get(&score);
+            if vis {
+                println!("i={} last={:?} score={:?}", i, last, score);
+            }
+            let height = tower_height(&cavern);
+            match last {
+                None => seen.insert(score, (i, height)),
+                Some((last_i, last_height)) => {
+                    let remaining = iterations - i;
+                    let span = i - last_i;
+                    let repeats = remaining / span;
+                    let add_height = repeats * (height - last_height);
+                    let resume = i + 1 + repeats * span;
+                    if vis {
+                        println!(
+                            "CYCLE! i={} last_i={} height={} last_height={}",
+                            i, last_i, height, last_height
+                        );
+                        println!(
+                            "  repeats={} resume={} remain={}",
+                            repeats, resume, remaining
+                        );
+                        println!("  span={} dheight={}", span, height - last_height);
+                    }
+                    for i in resume..iterations {
+                        rock_fall(
+                            &mut cavern,
+                            cavern_width,
+                            &rocks[i % rocks.len()],
+                            &mut puffs,
+                            vis,
+                        );
+                    }
+                    // 1523167155410 is too high.
+                    return Box::new(add_height + tower_height(&cavern));
+                }
+            };
+        }
     }
     Box::new(tower_height(&cavern))
+}
+
+type BF = u64;
+const BF_ROWS: usize = (BF::BITS as usize) / CAVERN_WIDTH;
+fn top(cavern: &Cavern) -> BF {
+    fn asbf(row: &[Space]) -> BF {
+        row.iter()
+            .enumerate()
+            .fold(0, |bf, (i, x)| bf | (x.b() << i))
+    }
+    cavern
+        .0
+        .iter()
+        .rev()
+        .take(BF_ROWS)
+        .enumerate()
+        .fold(0, |bf, (i, cr)| bf | (asbf(cr) << (i * CAVERN_WIDTH)))
 }
 
 fn rock_fall<'a, I: Iterator<Item = Puff>>(
@@ -124,10 +198,7 @@ fn rock_fall<'a, I: Iterator<Item = Puff>>(
     if vis {
         println!("add {} rows to cavern", need);
     }
-    cavern.0.resize(
-        cavern.0.len() + need,
-        vec![Default::default(); cavern_width],
-    );
+    cavern.0.resize(cavern.0.len() + need, Default::default());
 
     #[derive(Clone, Copy, Debug)]
     struct State {
@@ -195,9 +266,6 @@ fn rock_fall<'a, I: Iterator<Item = Puff>>(
     loop {
         let p = puffs.next().unwrap();
         state = puff(p, cavern, rock, state, cavern_width);
-        if vis {
-            println!("{:?} => {:?}", p, state);
-        }
         if state.height == 0
             || collides(
                 cavern,
@@ -228,9 +296,6 @@ fn rock_fall<'a, I: Iterator<Item = Puff>>(
             return;
         }
         state.height -= 1;
-        if vis {
-            println!("... fall");
-        }
     }
 }
 
@@ -256,10 +321,6 @@ fn print_cavern(cavern: &Cavern) {
         println!("|");
     }
     println!("+-------+");
-}
-
-pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
 }
 
 struct Forever<T> {
@@ -289,5 +350,5 @@ mod test {
 
     crate::test::aoc_test!(example, r">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>",
         part1 => 3068,
-        part2 => "todo");
+        part2 => 1514285714288usize);
 }
