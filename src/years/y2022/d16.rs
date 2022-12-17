@@ -1,5 +1,4 @@
 use std::{
-    borrow::Cow,
     cmp::Ordering,
     collections::{BinaryHeap, HashMap},
     fmt::Display,
@@ -9,7 +8,7 @@ use std::{
 fn write_dot(valves: &[Valve]) -> std::io::Result<()> {
     let mut f = std::fs::File::create("d16.dot")?;
     writeln!(f, "digraph G {{")?;
-    writeln!(f, "rankdir=LR;")?;
+    //writeln!(f, "rankdir=LR;")?;
     for v in valves {
         if v.name == "AA" {
             writeln!(
@@ -141,240 +140,251 @@ fn search(
     (max, max_path)
 }
 
+#[derive(Eq, PartialEq, Debug)]
+struct State {
+    possible: Flow,
+    actual: Flow,
+    minutes_remaining: Flow,
+    actors: Vec<Act>,
+    visited: Vec<bool>,
+    paths: String,
+}
+
+impl State {
+    fn cmpkey(&self) -> (Flow, Flow, Flow) {
+        (self.possible, self.actual, self.minutes_remaining)
+    }
+}
+
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.cmpkey().cmp(&other.cmpkey())
+    }
+}
+
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+struct Game {
+    valves: Vec<Valve>,
+    vindices: HashMap<String, usize>,
+    dists: Vec<Vec<Option<usize>>>,
+}
+
 // 2105 is too low
 pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
+    Box::new(solve(input, vis, 26, 2))
+}
+
+fn solve(input: String, vis: bool, minutes: Flow, actors: usize) -> Flow {
     let (valves, vindices) = parse_input(input);
     let dists = find_distances(&valves, &vindices, vis);
 
-    let start_i = vindices["AA"];
-    let mut visited = vec![false; valves.len()];
-    visited[start_i] = true;
-    let (relieved, paths) = search2(
-        (Act::Idle { i: start_i }, Act::Idle { i: start_i }),
-        ("AA@1", "AA@1"),
-        26,
-        0,
-        &valves,
-        &vindices,
-        &dists,
-        &mut visited,
-        vis,
-    );
-    if vis {
-        println!("best1: {}", paths.0);
-        println!("best2: {}", paths.1);
+    let game = Game {
+        valves,
+        vindices,
+        dists,
+    };
+
+    let mut states = BinaryHeap::new();
+    let visited = vec![false; game.valves.len()];
+    let possible = possible_flow(minutes, &game, &visited);
+    let i = game.vindices["AA"];
+    states.push(State {
+        possible,
+        actual: 0,
+        minutes_remaining: minutes,
+        actors: vec![Act::Idle { i }; actors],
+        visited,
+        paths: "".to_string(),
+    });
+
+    while let Some(st) = states.pop() {
+        let State {
+            possible,
+            actual,
+            minutes_remaining,
+            actors,
+            visited,
+            paths,
+        } = st;
+        if vis {
+            let visited: Vec<&str> = visited
+                .iter()
+                .enumerate()
+                .filter_map(|(i, b)| {
+                    if *b {
+                        Some(&*game.valves[i].name)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            let actors: Vec<String> = actors
+                .iter()
+                .map(|a| match a {
+                    Act::Idle { i } => format!("@{}", game.valves[*i].name),
+                    Act::Going { dest, arrive_at } => {
+                        format!("->{},{}", game.valves[*dest].name, arrive_at)
+                    }
+                })
+                .collect();
+            println!(
+                "@{} possible={} actual={} actors={} visited={}",
+                minutes_remaining,
+                possible,
+                actual,
+                actors.join(","),
+                visited.join(",")
+            );
+        }
+        if possible == actual {
+            if vis {
+                println!("optimal path:");
+                println!("{}", paths);
+            }
+            return possible;
+        }
+        if all_moving(&actors) {
+            let earliest_arrive_at = actors.iter().map(Act::must_arrive_at).max().unwrap();
+            let actors = actors
+                .into_iter()
+                .map(|a| match a {
+                    Act::Going { dest, arrive_at } if arrive_at == earliest_arrive_at => {
+                        Act::Idle { i: dest }
+                    }
+                    a => a,
+                })
+                .collect();
+            states.push(State {
+                possible,
+                actual,
+                minutes_remaining: earliest_arrive_at,
+                actors,
+                visited,
+                paths,
+            });
+            continue;
+        }
+        for (actor_i, actor) in actors.iter().enumerate() {
+            if let Act::Idle { i: loc } = actor {
+                for step in possible_dests(*loc, minutes_remaining, &visited, &game) {
+                    let Step {
+                        dest,
+                        arrive_at,
+                        added_flow,
+                    } = step;
+                    let mut visited = visited.clone();
+                    visited[dest] = true;
+                    let mut actors = actors.clone();
+                    actors[actor_i] = Act::Going { dest, arrive_at };
+                    states.push(State {
+                        possible: actual
+                            + added_flow
+                            + possible_flow(minutes_remaining, &game, &visited),
+                        actual: actual + added_flow,
+                        minutes_remaining,
+                        actors,
+                        visited,
+                        paths: format!(
+                            "{}[{}] -> {} rate={} arrive_at={} added_flow={}\n",
+                            paths,
+                            actor_i,
+                            game.valves[dest].name,
+                            game.valves[dest].rate,
+                            arrive_at,
+                            added_flow
+                        ),
+                    });
+                }
+            }
+        }
+        states.push(State {
+            possible: actual,
+            actual,
+            minutes_remaining: 0,
+            actors: Vec::new(),
+            visited: Vec::new(),
+            paths,
+        });
     }
-    Box::new(relieved)
+    unreachable!();
 }
 
-#[derive(Copy, Clone, Debug)]
+fn possible_flow(minutes_remaining: Flow, game: &Game, visited: &[bool]) -> Flow {
+    let unvisited_rates: Flow = game
+        .valves
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| !visited[*i])
+        .map(|(_, v)| v.rate)
+        .sum();
+    minutes_remaining * unvisited_rates
+}
+
+fn all_moving(actors: &[Act]) -> bool {
+    actors.iter().all(|a| matches!(a, Act::Going { .. }))
+}
+
+struct Step {
+    dest: usize,
+    arrive_at: Flow,
+    added_flow: Flow,
+}
+
+fn possible_dests(
+    from: usize,
+    minutes_remaining: Flow,
+    visited: &[bool],
+    game: &Game,
+) -> Vec<Step> {
+    fn step(
+        dest: usize,
+        dist: &Option<usize>,
+        minutes_remaining: Flow,
+        visited: &[bool],
+        game: &Game,
+    ) -> Option<Step> {
+        match (dist, visited[dest]) {
+            (Some(dist), false) if *dist < minutes_remaining => {
+                let arrive_at = minutes_remaining - dist - 1;
+                if arrive_at > 0 {
+                    let v = &game.valves[dest];
+                    Some(Step {
+                        added_flow: arrive_at * v.rate,
+                        dest,
+                        arrive_at,
+                    })
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
+    game.dists[from]
+        .iter()
+        .enumerate()
+        .filter_map(|(to, dist)| step(to, dist, minutes_remaining, visited, game))
+        .collect()
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 enum Act {
     Idle { i: usize },
     Going { dest: usize, arrive_at: Flow },
 }
 
-fn search2(
-    acts: (Act, Act),
-    paths: (&str, &str),
-    minutes_remaining: Flow,
-    accum: Flow,
-    valves: &[Valve],
-    vi: &HashMap<String, usize>,
-    dists: &[Vec<Option<usize>>],
-    visited: &mut [bool],
-    vis: bool,
-) -> (Flow, (String, String)) {
-    if vis {
-        println!("[{}]/0 {:?} {}", minutes_remaining, acts.0, paths.0);
-        println!("[{}]/1 {:?} {}", minutes_remaining, acts.1, paths.1);
+impl Act {
+    fn must_arrive_at(&self) -> Flow {
+        if let Act::Going { arrive_at, .. } = self {
+            return *arrive_at;
+        }
+        unreachable!()
     }
-    let mut max = accum;
-    let mut max_paths = (Cow::from(paths.0), Cow::from(paths.1));
-    let (me_path, him_path) = (paths.0, paths.1);
-    match acts {
-        (Act::Idle { i: me_i }, Act::Idle { i: him_i }) => {
-            let (best, best_path) = search2_2(
-                me_i,
-                me_path,
-                him_i,
-                him_path,
-                minutes_remaining,
-                accum,
-                valves,
-                vi,
-                dists,
-                visited,
-                vis,
-            );
-            if best > max {
-                max = best;
-                max_paths = (Cow::from(best_path.0), Cow::from(best_path.1));
-            }
-        }
-        (
-            Act::Idle { i: me_i },
-            Act::Going {
-                dest: him_dest,
-                arrive_at: him_arrive_at,
-            },
-        ) => {
-            let (best, best_path) = search2_1(
-                me_i,
-                me_path,
-                (him_dest, him_arrive_at),
-                him_path,
-                minutes_remaining,
-                accum,
-                valves,
-                vi,
-                dists,
-                visited,
-                vis,
-            );
-            if best > max {
-                max = best;
-                max_paths = (Cow::from(best_path.0), Cow::from(best_path.1));
-            }
-        }
-        _ => unreachable!(),
-    };
-    (max, (max_paths.0.into_owned(), max_paths.1.into_owned()))
-}
-
-fn search2_1(
-    idle: usize,
-    idle_path: &str,
-    going: (usize, Flow),
-    going_path: &str,
-    minutes_remaining: Flow,
-    accum: Flow,
-    valves: &[Valve],
-    vi: &HashMap<String, usize>,
-    dists: &[Vec<Option<usize>>],
-    visited: &mut [bool],
-    vis: bool,
-) -> (usize, (String, String)) {
-    let mut max = accum;
-    let mut max_path = (Cow::from(idle_path), Cow::from(going_path));
-    let (him_dest, him_arrive_at) = going;
-    let him_path = going_path;
-    for (me_dest, d) in dists[idle].iter().enumerate() {
-        if let Some(d) = d {
-            if !visited[me_dest] && d + 1 < minutes_remaining {
-                let me_arrive_at = minutes_remaining - d - 1;
-                let added_accum = me_arrive_at * valves[me_dest].rate;
-                let new_accum = accum + added_accum;
-                let me_path = format!(
-                    "{} -> {}@{}+{}",
-                    idle_path, valves[me_dest].name, me_arrive_at, added_accum
-                );
-                if vis {
-                    println!("trying i={},d={} {} ...", me_dest, d, me_path);
-                    println!("  other is {}", him_path);
-                }
-
-                let (acts, new_min, paths): ((Act, Act), Flow, (&str, &str)) =
-                    match me_arrive_at.cmp(&him_arrive_at) {
-                        Ordering::Less => (
-                            (
-                                Act::Idle { i: him_dest },
-                                Act::Going {
-                                    dest: me_dest,
-                                    arrive_at: me_arrive_at,
-                                },
-                            ),
-                            him_arrive_at,
-                            (him_path, &me_path),
-                        ),
-                        Ordering::Equal => (
-                            (Act::Idle { i: me_dest }, Act::Idle { i: him_dest }),
-                            me_arrive_at,
-                            (&me_path, him_path),
-                        ),
-                        Ordering::Greater => (
-                            (
-                                Act::Idle { i: me_dest },
-                                Act::Going {
-                                    dest: him_dest,
-                                    arrive_at: him_arrive_at,
-                                },
-                            ),
-                            me_arrive_at,
-                            (&me_path, him_path),
-                        ),
-                    };
-                if vis {
-                    println!("    acts: {:?}", acts);
-                }
-                visited[me_dest] = true;
-                let (best, best_paths) = search2(
-                    acts, paths, new_min, new_accum, valves, vi, dists, visited, vis,
-                );
-                visited[me_dest] = false;
-                if best > max {
-                    max = best;
-                    max_path = (Cow::from(best_paths.0), Cow::from(best_paths.1));
-                }
-            }
-        }
-    }
-    (max, (max_path.0.into_owned(), max_path.1.into_owned()))
-}
-
-fn search2_2(
-    idle1: usize,
-    idle1_path: &str,
-    idle2: usize,
-    idle2_path: &str,
-    minutes_remaining: Flow,
-    accum: Flow,
-    valves: &[Valve],
-    vi: &HashMap<String, usize>,
-    dists: &[Vec<Option<usize>>],
-    visited: &mut [bool],
-    vis: bool,
-) -> (usize, (String, String)) {
-    let mut max = accum;
-    let mut max_path = (Cow::from(idle1_path), Cow::from(idle2_path));
-    for (me_dest, d) in dists[idle1].iter().enumerate() {
-        if let Some(d) = d {
-            if !visited[me_dest] && d + 1 < minutes_remaining {
-                let me_arrive_at = minutes_remaining - d - 1;
-                let added_accum = me_arrive_at * valves[me_dest].rate;
-                let new_accum = accum + added_accum;
-                let me_path = format!(
-                    "{} -> {}@{}+{}",
-                    idle1_path, valves[me_dest].name, me_arrive_at, added_accum
-                );
-                if vis {
-                    println!("trying i={},d={} {} ...", me_dest, d, me_path);
-                    println!("  other is {}", idle2_path);
-                }
-
-                visited[me_dest] = true;
-                let (best, best_path) = search2_1(
-                    idle2,
-                    idle2_path,
-                    (me_dest, me_arrive_at),
-                    &me_path,
-                    minutes_remaining,
-                    new_accum,
-                    valves,
-                    vi,
-                    dists,
-                    visited,
-                    vis,
-                );
-                visited[me_dest] = false;
-                if best > max {
-                    max = best;
-                    max_path = (Cow::from(best_path.0), Cow::from(best_path.1));
-                }
-            }
-        }
-    }
-    visited[idle1] = false;
-    (max, (max_path.0.into_owned(), max_path.1.into_owned()))
 }
 
 // Figure out how far it is from every pair of valves to each other.
@@ -482,6 +492,6 @@ Valve GG has flow rate=0; tunnels lead to valves FF, HH
 Valve HH has flow rate=22; tunnel leads to valve GG
 Valve II has flow rate=0; tunnels lead to valves AA, JJ
 Valve JJ has flow rate=21; tunnel leads to valve II",
-        //part1 => 1651,
+        part1 => 1651,
         part2 => 1707);
 }
