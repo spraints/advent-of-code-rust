@@ -1,12 +1,48 @@
 use std::{
     collections::{BinaryHeap, HashMap},
     fmt::Display,
+    io::Write,
 };
+
+fn write_dot(valves: &[Valve]) -> std::io::Result<()> {
+    let mut f = std::fs::File::create("d16.dot")?;
+    writeln!(f, "digraph G {{")?;
+    writeln!(f, "rankdir=LR;")?;
+    for v in valves {
+        if v.name == "AA" {
+            writeln!(
+                f,
+                "{} [label=\"{}\\nrate={}\",shape=box];",
+                v.name, v.name, v.rate
+            )?;
+        } else if v.rate > 0 {
+            writeln!(
+                f,
+                "{} [label=\"{}\\nrate={}\",color=red];",
+                v.name, v.name, v.rate
+            )?;
+        } else {
+            writeln!(f, "{} [label=\"{}\"];", v.name, v.name)?;
+        }
+    }
+    for v in valves {
+        for n in &v.neighbors {
+            writeln!(f, "{} -> {};", v.name, n)?;
+        }
+    }
+    writeln!(f, "}}")
+}
 
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     let (valves, vindices) = parse_input(input);
-    let dists = find_distances(&valves, &vindices);
+    write_dot(&valves).unwrap();
+    let dists = find_distances(&valves, &vindices, vis);
     if vis {
+        print!("  ");
+        for v in &valves {
+            print!("{:3}", v.name);
+        }
+        println!();
         for (i, r) in dists.iter().enumerate() {
             print!("{}", valves[i].name);
             for c in r {
@@ -50,16 +86,18 @@ fn search(
 ) -> (Flow, String) {
     let disp_minute = 31 - minutes;
     let mut max = accum;
-    let mut max_path = format!("{}", valves[start].name);
+    let mut max_path = format!("{}({})", valves[start].name, valves[start].rate);
     visited[start] = true;
     for (i, d) in dists[start].iter().enumerate() {
         if let Some(d) = d {
+            /*
             if !visited[i] && vis {
                 println!(
                     "{} minutes left, can i get from {} to {} (need {} minutes)?",
                     minutes, valves[start].name, valves[i].name, d
                 );
             }
+            */
             if !visited[i] && d + 1 < minutes {
                 let new_minutes = minutes - d - 1;
                 let added_accum = new_minutes * valves[i].rate;
@@ -80,7 +118,10 @@ fn search(
                     search(i, new_accum, new_minutes, valves, vi, dists, visited, vis);
                 if best > max {
                     max = best;
-                    max_path = format!("{} -> {}", valves[start].name, path);
+                    max_path = format!(
+                        "{}({}) -{}-> {}",
+                        valves[start].name, valves[start].rate, d, path
+                    );
                 }
             }
         }
@@ -103,14 +144,14 @@ pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
 }
 
 // Figure out how far it is from every pair of valves to each other.
-fn find_distances(v: &[Valve], vi: &HashMap<String, usize>) -> Vec<Vec<Option<usize>>> {
+fn find_distances(v: &[Valve], vi: &HashMap<String, usize>, vis: bool) -> Vec<Vec<Option<usize>>> {
     let mut dists = vec![vec![None; v.len()]; v.len()];
     for (from, valve) in v.iter().enumerate() {
         if valve.name == "AA" || valve.rate > 0 {
             for (to, dest_valve) in v.iter().enumerate() {
                 if dest_valve.rate > 0 && dest_valve.name != valve.name {
                     if dists[from][to].is_none() {
-                        let d = Some(get_dist(from, to, v, vi));
+                        let d = Some(get_dist(from, to, v, vi, vis));
                         dists[from][to] = d;
                         dists[to][from] = d;
                     }
@@ -121,26 +162,43 @@ fn find_distances(v: &[Valve], vi: &HashMap<String, usize>) -> Vec<Vec<Option<us
     dists
 }
 
-fn get_dist(from: usize, to: usize, v: &[Valve], vi: &HashMap<String, usize>) -> usize {
+fn get_dist(from: usize, to: usize, v: &[Valve], vi: &HashMap<String, usize>, vis: bool) -> usize {
     let mut dists: Vec<usize> = vec![usize::MAX; v.len()];
     let mut heap = BinaryHeap::new();
 
     dists[from] = 0;
-    heap.push((0, from));
+    heap.push((0isize, from));
 
+    if vis {
+        println!("{} -> {}", v[from].name, v[to].name);
+    }
     while let Some((dist, i)) = heap.pop() {
+        let dist = -dist as usize;
+        if vis {
+            println!("... {} dist={}", v[i].name, dist);
+        }
         if i == to {
+            if vis {
+                println!("=> {}", dist);
+            }
             return dist;
         }
         if dist > dists[i] {
             continue;
         }
         let next_dist = dist + 1;
+        let next_idist = -(next_dist as isize);
         for neighbor in &v[i].neighbors {
             let ni = &vi[neighbor];
             if dists[*ni] > next_dist {
+                if vis {
+                    println!(
+                        "  + {} dist={} (was {})",
+                        v[*ni].name, next_dist, dists[*ni]
+                    );
+                }
                 dists[*ni] = next_dist;
-                heap.push((next_dist, *ni));
+                heap.push((next_idist, *ni));
             }
         }
     }
