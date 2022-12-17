@@ -43,7 +43,7 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     Box::new(solve(input, vis, 26, 2))
 }
 
-#[derive(Eq, PartialEq, Debug)]
+#[derive(Eq, Debug)]
 struct State {
     possible: Flow,
     actual: Flow,
@@ -68,6 +68,17 @@ impl Ord for State {
 impl PartialOrd for State {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for State {
+    fn eq(&self, other: &Self) -> bool {
+        // compare everything except path
+        self.possible == other.possible
+            && self.actual == other.actual
+            && self.minutes_remaining == other.minutes_remaining
+            && self.actors == other.actors
+            && self.visited == other.visited
     }
 }
 
