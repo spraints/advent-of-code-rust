@@ -33,7 +33,8 @@ fn write_dot(valves: &[Valve]) -> std::io::Result<()> {
     writeln!(f, "}}")
 }
 
-pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
+pub fn part1(input: String, _vis: bool) -> Box<dyn Display> {
+    let vis = false;
     let (valves, vindices) = parse_input(input);
     write_dot(&valves).unwrap();
     let dists = find_distances(&valves, &vindices, vis);
@@ -139,8 +140,146 @@ fn search(
     (max, max_path)
 }
 
-pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
+pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
+    let (valves, vindices) = parse_input(input);
+    let dists = find_distances(&valves, &vindices, vis);
+
+    let start_i = vindices["AA"];
+    let mut visited = vec![false; valves.len()];
+    visited[start_i] = true;
+    let relieved = search2(
+        (Act::Idle { i: start_i }, Act::Idle { i: start_i }),
+        0,
+        26,
+        &valves,
+        &vindices,
+        &dists,
+        &mut visited,
+        vis,
+    );
+    Box::new(relieved)
+}
+
+#[derive(Copy, Clone, Debug)]
+enum Act {
+    Idle { i: usize },
+    Going { dest: usize, arrive_at: Flow },
+}
+
+fn search2(
+    starts: (Act, Act),
+    accum: Flow,
+    minutes: Flow,
+    valves: &[Valve],
+    vi: &HashMap<String, usize>,
+    dists: &[Vec<Option<usize>>],
+    visited: &mut [bool],
+    vis: bool,
+) -> Flow {
+    let mut max = accum;
+    if let Act::Idle { i } = starts.0 {
+        let best = search3(i, starts.1, accum, minutes, valves, vi, dists, visited, vis);
+        if best > max {
+            max = best;
+        }
+    }
+    if let Act::Idle { i } = starts.1 {
+        let best = search3(i, starts.0, accum, minutes, valves, vi, dists, visited, vis);
+        if best > max {
+            max = best;
+        }
+    }
+    max
+}
+
+fn search3(
+    start: usize,
+    other: Act,
+    accum: Flow,
+    minutes: Flow,
+    valves: &[Valve],
+    vi: &HashMap<String, usize>,
+    dists: &[Vec<Option<usize>>],
+    visited: &mut [bool],
+    vis: bool,
+) -> usize {
+    let disp_minutes = 31 - minutes;
+    let mut max = accum;
+    visited[start] = true;
+    for (i, d) in dists[start].iter().enumerate() {
+        if let Some(d) = d {
+            if !visited[i] && d + 1 < minutes {
+                let new_minutes = minutes - d - 1;
+                let added_accum = new_minutes * valves[i].rate;
+                let new_accum = accum + added_accum;
+
+                println!(
+                    "[{}] try {} -> {} (other = {:?}) => {}",
+                    disp_minutes, valves[start].name, valves[i].name, other, new_accum
+                );
+
+                let best = match other {
+                    Act::Idle { .. } => search2(
+                        (
+                            other,
+                            Act::Going {
+                                dest: i,
+                                arrive_at: new_minutes,
+                            },
+                        ),
+                        new_accum,
+                        minutes,
+                        valves,
+                        vi,
+                        dists,
+                        visited,
+                        vis,
+                    ),
+                    Act::Going { dest, arrive_at } if arrive_at < new_minutes => search2(
+                        (
+                            Act::Idle { i: dest },
+                            Act::Going {
+                                dest: i,
+                                arrive_at: new_minutes,
+                            },
+                        ),
+                        new_accum,
+                        arrive_at,
+                        valves,
+                        vi,
+                        dists,
+                        visited,
+                        vis,
+                    ),
+                    Act::Going { dest, arrive_at } if arrive_at == new_minutes => search2(
+                        (Act::Idle { i: dest }, Act::Idle { i }),
+                        new_accum,
+                        new_minutes,
+                        valves,
+                        vi,
+                        dists,
+                        visited,
+                        vis,
+                    ),
+                    other @ Act::Going { .. } => search2(
+                        (other, Act::Idle { i }),
+                        new_accum,
+                        new_minutes,
+                        valves,
+                        vi,
+                        dists,
+                        visited,
+                        vis,
+                    ),
+                };
+                if best > max {
+                    max = best;
+                }
+            }
+        }
+    }
+    visited[start] = false;
+    max
 }
 
 // Figure out how far it is from every pair of valves to each other.
@@ -162,25 +301,16 @@ fn find_distances(v: &[Valve], vi: &HashMap<String, usize>, vis: bool) -> Vec<Ve
     dists
 }
 
-fn get_dist(from: usize, to: usize, v: &[Valve], vi: &HashMap<String, usize>, vis: bool) -> usize {
+fn get_dist(from: usize, to: usize, v: &[Valve], vi: &HashMap<String, usize>, _vis: bool) -> usize {
     let mut dists: Vec<usize> = vec![usize::MAX; v.len()];
     let mut heap = BinaryHeap::new();
 
     dists[from] = 0;
     heap.push((0isize, from));
 
-    if vis {
-        println!("{} -> {}", v[from].name, v[to].name);
-    }
     while let Some((dist, i)) = heap.pop() {
         let dist = -dist as usize;
-        if vis {
-            println!("... {} dist={}", v[i].name, dist);
-        }
         if i == to {
-            if vis {
-                println!("=> {}", dist);
-            }
             return dist;
         }
         if dist > dists[i] {
@@ -191,12 +321,6 @@ fn get_dist(from: usize, to: usize, v: &[Valve], vi: &HashMap<String, usize>, vi
         for neighbor in &v[i].neighbors {
             let ni = &vi[neighbor];
             if dists[*ni] > next_dist {
-                if vis {
-                    println!(
-                        "  + {} dist={} (was {})",
-                        v[*ni].name, next_dist, dists[*ni]
-                    );
-                }
                 dists[*ni] = next_dist;
                 heap.push((next_idist, *ni));
             }
@@ -264,5 +388,5 @@ Valve HH has flow rate=22; tunnel leads to valve GG
 Valve II has flow rate=0; tunnels lead to valves AA, JJ
 Valve JJ has flow rate=21; tunnel leads to valve II",
         part1 => 1651,
-        part2 => "todo");
+        part2 => 1707);
 }
