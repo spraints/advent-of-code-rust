@@ -89,6 +89,9 @@ struct Game {
 }
 
 fn solve(input: String, vis: bool, minutes: Flow, actors: usize) -> Flow {
+    if vis {
+        println!("~~~ 2022 day 16, minutes={} actors={} ~~~", minutes, actors);
+    }
     let (valves, vindices) = parse_input(input);
     let dists = find_distances(&valves, &vindices, vis);
 
@@ -115,7 +118,10 @@ fn solve(input: String, vis: bool, minutes: Flow, actors: usize) -> Flow {
         paths: "".to_string(),
     });
 
+    let mut steps = 0;
+
     while let Some(st) = states.pop() {
+        steps += 1;
         let State {
             possible,
             actual,
@@ -156,7 +162,7 @@ fn solve(input: String, vis: bool, minutes: Flow, actors: usize) -> Flow {
         }
         if possible == actual {
             if vis {
-                println!("optimal path:");
+                println!("optimal path ({} steps):", steps);
                 println!("{}", paths);
             }
             return possible;
@@ -182,8 +188,14 @@ fn solve(input: String, vis: bool, minutes: Flow, actors: usize) -> Flow {
             });
             continue;
         }
+        let mut seen_actors = vec![false; game.valves.len()];
         for (actor_i, actor) in actors.iter().enumerate() {
             if let Act::Idle { i: loc } = actor {
+                if seen_actors[*loc] {
+                    continue;
+                }
+                seen_actors[*loc] = true;
+
                 for step in possible_dests(*loc, minutes_remaining, &visited, &game) {
                     let Step {
                         dest,
