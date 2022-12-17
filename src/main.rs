@@ -22,7 +22,7 @@ mod years;
 #[cfg(test)]
 mod test;
 
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, fmt::Display};
 
 use chrono::Datelike;
 use clap::Parser;
@@ -84,6 +84,15 @@ impl Runner {
         let now = aoc_now();
         cli.set_today(&now);
         let mut any = false;
+
+        fn res(cli: &Cli, res: Box<dyn Display>) -> Box<dyn Display> {
+            if cli.no_spoilers {
+                Box::new("(result hidden)")
+            } else {
+                res
+            }
+        }
+
         for solver in self.solvers {
             let Solver {
                 year,
@@ -107,7 +116,7 @@ impl Runner {
                     year,
                     day,
                     part,
-                    result,
+                    res(&cli, result),
                     elapsed,
                     match label {
                         Some(s) => format!(" ({})", s),
@@ -152,6 +161,10 @@ struct Cli {
     /// Run all solvers.
     #[arg(long)]
     all: bool,
+
+    /// Hide solutions.
+    #[arg(long)]
+    no_spoilers: bool,
 
     /// Run all of the given year's solvers, unless --day is set.
     #[arg(short, long)]
