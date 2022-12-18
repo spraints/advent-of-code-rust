@@ -27,47 +27,120 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
             println!("exposed={} covered={}", exposed.len(), covered.len());
         }
     }
-    for p in &exposed {
-        println!("** {:?}", p);
+    if vis {
+        for p in &exposed {
+            println!("** {:?}", p);
+        }
     }
     Box::new(exposed.values().sum::<usize>())
 }
 
 pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
-    let covered: HashSet<P> = input.lines().map(parse).collect();
-    let (maxx, maxy, maxz) = covered
-        .iter()
-        .copied()
-        .reduce(|(ax, ay, az), (bx, by, bz)| (ax.max(bx), ay.max(by), az.max(bz)))
-        .unwrap();
-    if vis {
-        println!("max: ({},{},{})", maxx, maxy, maxz);
+    let mut exposed = HashMap::new();
+    let mut covered = HashSet::new();
+    let mut maxx = 0;
+    let mut maxy = 0;
+    let mut maxz = 0;
+    for cube in input.lines() {
+        let (x, y, z) = parse(cube);
+        maxx = maxx.max(x);
+        maxy = maxy.max(y);
+        maxz = maxz.max(z);
+
+        covered.insert((x, y, z));
+        exposed.remove(&(x, y, z));
+
+        add_side(&mut exposed, &covered, vis, (x + 1, y, z));
+        add_side(&mut exposed, &covered, vis, (x - 1, y, z));
+        add_side(&mut exposed, &covered, vis, (x, y + 1, z));
+        add_side(&mut exposed, &covered, vis, (x, y - 1, z));
+        add_side(&mut exposed, &covered, vis, (x, y, z + 1));
+        add_side(&mut exposed, &covered, vis, (x, y, z - 1));
     }
 
-    fn e<I: Iterator<Item = C>, F: Fn(C) -> P>(covered: &HashSet<P>, r: I, next: F) -> u16 {
-        for c in r {
-            if covered.contains(&next(c)) {
-                return 0;
+    let mut free = HashSet::new();
+    let mut trapped = HashSet::new();
+    let mut total_exposed = 0;
+    let mut connected = HashSet::new();
+    let mut to_check = Vec::new();
+    'exp: for (p, n) in exposed {
+        if vis {
+            println!("checking {:?} exposed={}...", p, n);
+        }
+        connected.clear();
+        to_check.clear();
+        to_check.push(p);
+        while let Some(p) = to_check.pop() {
+            if p.0 < 0 || p.1 < 0 || p.2 < 0 || p.0 > maxx || p.1 > maxy || p.2 > maxz {
+                // escape!
+                if vis {
+                    println!("... escape via {:?}!", p);
+                }
+                for p in connected.drain() {
+                    free.insert(p);
+                }
+                total_exposed += n;
+                continue 'exp;
+            }
+            if connected.contains(&p) {
+                // Already checked!
+                continue;
+            }
+            if free.contains(&p) {
+                // woo hoo! we're connected to a free square, so we are free too!
+                if vis {
+                    println!("... escape, found a way to {:?}", p);
+                }
+                for p in connected.drain() {
+                    free.insert(p);
+                }
+                total_exposed += n;
+                continue 'exp;
+            }
+            if trapped.contains(&p) {
+                // womp we are trapped.
+                if vis {
+                    println!("... trapped :(");
+                }
+                assert!(
+                    connected.is_empty(),
+                    "expect no other spaces in the current search"
+                );
+                for p in connected.drain() {
+                    trapped.insert(p);
+                }
+                continue 'exp;
+            }
+            if !covered.contains(&p) {
+                // This is an empty space. Search its neighbors.
+                add_neighbors(&mut to_check, &connected, &p);
+                connected.insert(p);
             }
         }
-        1
-    }
-
-    let mut exposed = 0;
-    for p in &covered {
-        let (x, y, z) = p.clone();
-        let before = exposed;
-        exposed += e(&covered, 0..x, |x| (x, y, z));
-        exposed += e(&covered, (x + 1)..=maxx, |x| (x, y, z));
-        exposed += e(&covered, 0..y, |y| (x, y, z));
-        exposed += e(&covered, (y + 1)..=maxy, |y| (x, y, z));
-        exposed += e(&covered, 0..z, |z| (x, y, z));
-        exposed += e(&covered, (z + 1)..=maxz, |z| (x, y, z));
+        // Trapped!
         if vis {
-            println!("{:?} => {}", p, exposed - before);
+            println!("... trapped, along with {} others", connected.len());
+        }
+        for p in connected.drain() {
+            trapped.insert(p);
         }
     }
-    Box::new(exposed)
+    Box::new(total_exposed)
+}
+
+fn add_neighbors(to_check: &mut Vec<P>, seen: &HashSet<P>, p: &P) {
+    fn a(to_check: &mut Vec<P>, seen: &HashSet<P>, p: P) {
+        if !seen.contains(&p) {
+            to_check.push(p);
+        }
+    }
+    let (x, y, z) = p;
+    a(to_check, seen, (x - 1, *y, *z));
+    a(to_check, seen, (x + 1, *y, *z));
+    a(to_check, seen, (*x, y - 1, *z));
+    a(to_check, seen, (*x, y + 1, *z));
+    a(to_check, seen, (*x, *y, z - 1));
+    a(to_check, seen, (*x, *y, z + 1));
 }
 
 fn add_side(exposed: &mut HashMap<P, usize>, covered: &HashSet<P>, vis: bool, p: P) {
