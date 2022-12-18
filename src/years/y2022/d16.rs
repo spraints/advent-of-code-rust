@@ -88,20 +88,25 @@ struct Game {
     dists: Vec<Vec<Option<usize>>>,
 }
 
-type Visited = Vec<bool>;
+type Visited = u64;
 
 fn new_visited(size: usize) -> Visited {
-    vec![false; size]
+    assert!(
+        size < Visited::BITS as usize,
+        "cannot track {} nodes in {} bits",
+        size,
+        Visited::BITS
+    );
+    0
 }
 
 fn set_visited(visited: &Visited, i: usize) -> Visited {
-    let mut visited = visited.clone();
-    visited[i] = true;
-    visited
+    assert!(i < Visited::BITS as usize);
+    visited | (1 << i)
 }
 
 fn is_visited(visited: &Visited, i: usize) -> bool {
-    visited[i]
+    visited & (1 << i) != 0
 }
 
 fn solve(input: String, vis: bool, minutes: Flow, actors: usize) -> Flow {
