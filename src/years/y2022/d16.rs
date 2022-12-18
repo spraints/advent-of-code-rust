@@ -49,7 +49,7 @@ struct State {
     actual: Flow,
     minutes_remaining: Flow,
     actors: Vec<Act>,
-    visited: Vec<bool>,
+    visited: Visited,
     paths: String,
 }
 
@@ -88,6 +88,22 @@ struct Game {
     dists: Vec<Vec<Option<usize>>>,
 }
 
+type Visited = Vec<bool>;
+
+fn new_visited(size: usize) -> Visited {
+    vec![false; size]
+}
+
+fn set_visited(visited: &Visited, i: usize) -> Visited {
+    let mut visited = visited.clone();
+    visited[i] = true;
+    visited
+}
+
+fn is_visited(visited: &Visited, i: usize) -> bool {
+    visited[i]
+}
+
 fn solve(input: String, vis: bool, minutes: Flow, actors: usize) -> Flow {
     if vis {
         println!("~~~ 2022 day 16, minutes={} actors={} ~~~", minutes, actors);
@@ -106,7 +122,7 @@ fn solve(input: String, vis: bool, minutes: Flow, actors: usize) -> Flow {
     };
 
     let mut states = BinaryHeap::new();
-    let visited = vec![false; game.valves.len()];
+    let visited = new_visited(game.valves.len());
     let i = game.vindices["AA"];
     let actors = vec![Act::Idle { i }; actors];
     let possible = possible_flow(minutes, &actors, &game, &visited);
@@ -132,12 +148,13 @@ fn solve(input: String, vis: bool, minutes: Flow, actors: usize) -> Flow {
             paths,
         } = st;
         if vis {
-            let visited: Vec<&str> = visited
+            let visited_names: Vec<&str> = game
+                .valves
                 .iter()
                 .enumerate()
-                .filter_map(|(i, b)| {
-                    if *b {
-                        Some(&*game.valves[i].name)
+                .filter_map(|(i, v)| {
+                    if is_visited(&visited, i) {
+                        Some(&*v.name)
                     } else {
                         None
                     }
@@ -158,7 +175,7 @@ fn solve(input: String, vis: bool, minutes: Flow, actors: usize) -> Flow {
                 possible,
                 actual,
                 actors.join(","),
-                visited.join(",")
+                visited_names.join(",")
             );
         }
         if possible == actual {
@@ -203,8 +220,7 @@ fn solve(input: String, vis: bool, minutes: Flow, actors: usize) -> Flow {
                         arrive_at,
                         added_flow,
                     } = step;
-                    let mut visited = visited.clone();
-                    visited[dest] = true;
+                    let visited = set_visited(&visited, dest);
                     let mut actors = actors.clone();
                     actors[actor_i] = Act::Going { dest, arrive_at };
                     let actual = actual + added_flow;
@@ -241,10 +257,10 @@ fn solve(input: String, vis: bool, minutes: Flow, actors: usize) -> Flow {
     unreachable!();
 }
 
-fn possible_flow(minutes_remaining: Flow, actors: &[Act], game: &Game, visited: &[bool]) -> Flow {
+fn possible_flow(minutes_remaining: Flow, actors: &[Act], game: &Game, visited: &Visited) -> Flow {
     let x = game.valves.iter();
     let x = x.enumerate();
-    let x = x.filter(|(i, v)| !visited[*i] && v.rate > 0);
+    let x = x.filter(|(i, v)| !is_visited(visited, *i) && v.rate > 0);
     let x = x.map(|(to, v)| {
         let a = actors.iter();
         let a = a.filter_map(|a| {
@@ -281,17 +297,17 @@ struct Step {
 fn possible_dests(
     from: usize,
     minutes_remaining: Flow,
-    visited: &[bool],
+    visited: &Visited,
     game: &Game,
 ) -> Vec<Step> {
     fn step(
         dest: usize,
         dist: &Option<usize>,
         minutes_remaining: Flow,
-        visited: &[bool],
+        visited: &Visited,
         game: &Game,
     ) -> Option<Step> {
-        match (dist, visited[dest]) {
+        match (dist, is_visited(visited, dest)) {
             (Some(dist), false) if *dist < minutes_remaining => {
                 let arrive_at = minutes_remaining - dist - 1;
                 if arrive_at > 0 {
