@@ -277,6 +277,11 @@ pub fn part2_new(input: String, vis: bool) -> Box<dyn Display> {
         .iter()
         .fold(0, |visited, i| set_visited(visited, *i));
     let mut seen = HashSet::new();
+    println!(
+        "all_valves={} interesting_valves={}",
+        game.valves.len(),
+        game.interesting.len()
+    );
     for split in 0..(1 << game.valves.len()) {
         let my_start_visited = split & interesting_mask;
         if seen.contains(&my_start_visited) {
@@ -307,16 +312,13 @@ fn parse(input: String, vis: bool) -> Game {
 }
 
 fn solve1(game: &Game, minutes: Flow, visited: Visited, vis: bool) -> Flow {
-    fn get_potential(game: &Game, visited: Visited, minutes_remaining: Flow) -> Flow {
+    fn get_potential(game: &Game, loc: usize, visited: Visited, minutes_remaining: Flow) -> Flow {
         let avail_rate: Flow = game
             .interesting
             .iter()
-            .filter_map(|i| {
-                if !is_visited(visited, *i) {
-                    Some(game.valves[*i].rate)
-                } else {
-                    None
-                }
+            .filter_map(|i| match (is_visited(visited, *i), game.dists[loc][*i]) {
+                (false, Some(dist)) if dist < minutes_remaining => Some(game.valves[*i].rate),
+                _ => None,
             })
             .sum();
         avail_rate * minutes_remaining
@@ -336,7 +338,7 @@ fn solve1(game: &Game, minutes: Flow, visited: Visited, vis: bool) -> Flow {
     let aa = game.vindices["AA"];
     assert!(game.valves[aa].rate == 0, "expect AA to have no flow");
     to_try.push(State {
-        potential_score: get_potential(game, visited, minutes),
+        potential_score: get_potential(game, aa, visited, minutes),
         score: 0,
         loc: aa,
         visited: set_visited(visited, aa),
@@ -372,7 +374,7 @@ fn solve1(game: &Game, minutes: Flow, visited: Visited, vis: bool) -> Flow {
             let new_minutes_remaining = minutes_remaining - dist - 1;
             let new_score = score + new_minutes_remaining * v.rate;
             let new_visited = set_visited(visited, i);
-            let new_potential = get_potential(game, new_visited, new_minutes_remaining);
+            let new_potential = get_potential(game, i, new_visited, new_minutes_remaining);
             to_try.push(State {
                 potential_score: new_score + new_potential,
                 score: new_score,
