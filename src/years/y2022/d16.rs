@@ -107,13 +107,14 @@ fn solve(input: String, vis: bool, minutes: Flow, actors: usize) -> Flow {
 
     let mut states = BinaryHeap::new();
     let visited = vec![false; game.valves.len()];
-    let possible = possible_flow(minutes, &game, &visited);
     let i = game.vindices["AA"];
+    let actors = vec![Act::Idle { i }; actors];
+    let possible = possible_flow(minutes, &actors, &game, &visited);
     states.push(State {
         possible,
         actual: 0,
         minutes_remaining: minutes,
-        actors: vec![Act::Idle { i }; actors],
+        actors,
         visited,
         paths: "".to_string(),
     });
@@ -206,11 +207,12 @@ fn solve(input: String, vis: bool, minutes: Flow, actors: usize) -> Flow {
                     visited[dest] = true;
                     let mut actors = actors.clone();
                     actors[actor_i] = Act::Going { dest, arrive_at };
+                    let actual = actual + added_flow;
+                    let possible =
+                        actual + possible_flow(minutes_remaining, &actors, &game, &visited);
                     states.push(State {
-                        possible: actual
-                            + added_flow
-                            + possible_flow(minutes_remaining, &game, &visited),
-                        actual: actual + added_flow,
+                        possible,
+                        actual,
                         minutes_remaining,
                         actors,
                         visited,
@@ -230,24 +232,40 @@ fn solve(input: String, vis: bool, minutes: Flow, actors: usize) -> Flow {
         states.push(State {
             possible: actual,
             actual,
-            minutes_remaining: 0,
-            actors: Vec::new(),
-            visited: Vec::new(),
+            minutes_remaining,
+            actors,
+            visited,
             paths,
         });
     }
     unreachable!();
 }
 
-fn possible_flow(minutes_remaining: Flow, game: &Game, visited: &[bool]) -> Flow {
-    let unvisited_rates: Flow = game
-        .valves
-        .iter()
-        .enumerate()
-        .filter(|(i, _)| !visited[*i])
-        .map(|(_, v)| v.rate)
-        .sum();
-    minutes_remaining * unvisited_rates
+fn possible_flow(minutes_remaining: Flow, actors: &[Act], game: &Game, visited: &[bool]) -> Flow {
+    let x = game.valves.iter();
+    let x = x.enumerate();
+    let x = x.filter(|(i, v)| !visited[*i] && v.rate > 0);
+    let x = x.map(|(to, v)| {
+        let a = actors.iter();
+        let a = a.filter_map(|a| {
+            let (rate, can_start_going, dist) = match a {
+                Act::Idle { i: from } => (v.rate, minutes_remaining, game.dists[*from][to]),
+                Act::Going {
+                    dest: from,
+                    arrive_at,
+                } => (v.rate, *arrive_at, game.dists[*from][to]),
+            };
+            dist.and_then(|dist| {
+                if dist < can_start_going {
+                    Some(rate * (can_start_going - dist))
+                } else {
+                    None
+                }
+            })
+        });
+        a.max().unwrap_or(0)
+    });
+    x.sum::<Flow>()
 }
 
 fn all_moving(actors: &[Act]) -> bool {
@@ -278,11 +296,15 @@ fn possible_dests(
                 let arrive_at = minutes_remaining - dist - 1;
                 if arrive_at > 0 {
                     let v = &game.valves[dest];
-                    Some(Step {
-                        added_flow: arrive_at * v.rate,
-                        dest,
-                        arrive_at,
-                    })
+                    if v.rate > 0 {
+                        Some(Step {
+                            added_flow: arrive_at * v.rate,
+                            dest,
+                            arrive_at,
+                        })
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }
