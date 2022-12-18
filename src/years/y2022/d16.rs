@@ -1,6 +1,6 @@
 use std::{
     cmp::Ordering,
-    collections::{BinaryHeap, HashMap, HashSet},
+    collections::{BinaryHeap, HashMap},
     fmt::Display,
     io::Write,
 };
@@ -87,6 +87,7 @@ struct Game {
     vindices: HashMap<String, usize>,
     dists: Vec<Vec<Option<usize>>>,
     interesting: Vec<usize>,
+    interesting_bits: HashMap<usize, Visited>, // map of valve index -> a shorter bit mask
 }
 
 type Visited = u64;
@@ -125,7 +126,9 @@ fn solve(input: String, vis: bool, minutes: Flow, actors: usize) -> Flow {
         valves,
         vindices,
         dists,
-        interesting: Vec::new(), // unused
+        // These aren't used in this solver:
+        interesting: Vec::new(),
+        interesting_bits: HashMap::new(),
     };
 
     let mut states = BinaryHeap::new();
@@ -272,24 +275,18 @@ pub fn part1_new(input: String, vis: bool) -> Box<dyn Display> {
 pub fn part2_new(input: String, vis: bool) -> Box<dyn Display> {
     let game = parse(input, vis);
     let mut best = 0;
-    let interesting_mask = game
-        .interesting
-        .iter()
-        .fold(0, |visited, i| set_visited(visited, *i));
-    let mut seen = HashSet::new();
-    println!(
-        "all_valves={} interesting_valves={}",
-        game.valves.len(),
-        game.interesting.len()
-    );
-    for split in 0..(1 << game.valves.len()) {
-        let my_start_visited = split & interesting_mask;
-        if seen.contains(&my_start_visited) {
-            continue;
-        }
-        seen.insert(my_start_visited);
-        let my_score = solve1(&game, 26, my_start_visited, vis);
-        let elephant_score = solve1(&game, 26, !my_start_visited, vis);
+    let all_interesting = (1 << game.interesting.len()) - 1;
+    let mut cache = HashMap::new();
+    for split in 0..(1 << game.interesting.len()) {
+        let my_score = cache
+            .entry(split)
+            .or_insert_with(|| solve1(&game, 26, split, vis))
+            .clone();
+        let esplit = all_interesting & !split;
+        let elephant_score = cache
+            .entry(esplit)
+            .or_insert_with(|| solve1(&game, 26, esplit, vis))
+            .clone();
         best = best.max(my_score + elephant_score);
     }
     Box::new(best)
@@ -298,16 +295,23 @@ pub fn part2_new(input: String, vis: bool) -> Box<dyn Display> {
 fn parse(input: String, vis: bool) -> Game {
     let (valves, vindices) = parse_input(input);
     let dists = find_distances(&valves, &vindices, vis);
-    let interesting = valves
+    let interesting: Vec<usize> = valves
         .iter()
         .enumerate()
         .filter_map(|(i, v)| if v.rate > 0 { Some(i) } else { None })
+        .collect();
+    let interesting_bits = interesting
+        .iter()
+        .copied()
+        .enumerate()
+        .map(|(bit, i)| (i, 1 << bit))
         .collect();
     Game {
         valves,
         vindices,
         dists,
         interesting,
+        interesting_bits,
     }
 }
 
@@ -316,10 +320,12 @@ fn solve1(game: &Game, minutes: Flow, visited: Visited, vis: bool) -> Flow {
         let avail_rate: Flow = game
             .interesting
             .iter()
-            .filter_map(|i| match (is_visited(visited, *i), game.dists[loc][*i]) {
-                (false, Some(dist)) if dist < minutes_remaining => Some(game.valves[*i].rate),
-                _ => None,
-            })
+            .filter_map(
+                |i| match (visited & game.interesting_bits[i], game.dists[loc][*i]) {
+                    (0, Some(dist)) if dist < minutes_remaining => Some(game.valves[*i].rate),
+                    _ => None,
+                },
+            )
             .sum();
         avail_rate * minutes_remaining
     }
@@ -341,7 +347,7 @@ fn solve1(game: &Game, minutes: Flow, visited: Visited, vis: bool) -> Flow {
         potential_score: get_potential(game, aa, visited, minutes),
         score: 0,
         loc: aa,
-        visited: set_visited(visited, aa),
+        visited,
         minutes_remaining: minutes,
     });
 
@@ -359,10 +365,10 @@ fn solve1(game: &Game, minutes: Flow, visited: Visited, vis: bool) -> Flow {
         }
 
         for i in &game.interesting {
-            let i = *i;
-            if is_visited(visited, i) {
+            if visited & game.interesting_bits[i] != 0 {
                 continue;
             }
+            let i = *i;
             let v = &game.valves[i];
             if vis {
                 println!("want to go from {:?} to {:?}", game.valves[loc], v);
@@ -373,7 +379,7 @@ fn solve1(game: &Game, minutes: Flow, visited: Visited, vis: bool) -> Flow {
             }
             let new_minutes_remaining = minutes_remaining - dist - 1;
             let new_score = score + new_minutes_remaining * v.rate;
-            let new_visited = set_visited(visited, i);
+            let new_visited = visited | game.interesting_bits[&i];
             let new_potential = get_potential(game, i, new_visited, new_minutes_remaining);
             to_try.push(State {
                 potential_score: new_score + new_potential,
