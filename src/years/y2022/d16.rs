@@ -86,6 +86,7 @@ struct Game {
     valves: Vec<Valve>,
     vindices: HashMap<String, usize>,
     dists: Vec<Vec<Option<usize>>>,
+    interesting: Vec<usize>,
 }
 
 type Visited = u64;
@@ -124,6 +125,7 @@ fn solve(input: String, vis: bool, minutes: Flow, actors: usize) -> Flow {
         valves,
         vindices,
         dists,
+        interesting: Vec::new(), // unused
     };
 
     let mut states = BinaryHeap::new();
@@ -260,6 +262,63 @@ fn solve(input: String, vis: bool, minutes: Flow, actors: usize) -> Flow {
         });
     }
     unreachable!();
+}
+
+pub fn part1_new(input: String, vis: bool) -> Box<dyn Display> {
+    let game = parse(input, vis);
+    Box::new(solve1(&game, 30, 0, vis))
+}
+
+fn parse(input: String, vis: bool) -> Game {
+    let (valves, vindices) = parse_input(input);
+    let dists = find_distances(&valves, &vindices, vis);
+    let interesting = valves
+        .iter()
+        .enumerate()
+        .filter_map(|(i, v)| if v.rate > 0 { Some(i) } else { None })
+        .collect();
+    Game {
+        valves,
+        vindices,
+        dists,
+        interesting,
+    }
+}
+
+fn solve1(game: &Game, minutes: Flow, visited: Visited, vis: bool) -> Flow {
+    fn solve_inner(
+        game: &Game,
+        minutes_remaining: Flow,
+        visited: Visited,
+        loc: usize,
+        score: Flow,
+        vis: bool,
+    ) -> Flow {
+        let mut best = score;
+        for i in &game.interesting {
+            let i = *i;
+            if is_visited(&visited, i) {
+                continue;
+            }
+            let v = &game.valves[i];
+            if vis {
+                println!("want to go from {:?} to {:?}", game.valves[loc], v);
+            }
+            let dist = game.dists[loc][i].unwrap();
+            if dist + 1 >= minutes_remaining {
+                continue;
+            }
+            let new_minutes_remaining = minutes_remaining - dist - 1;
+            let new_score = score + new_minutes_remaining * v.rate;
+            let new_visited = set_visited(&visited, i);
+            let new_score =
+                solve_inner(game, new_minutes_remaining, new_visited, i, new_score, vis);
+            best = best.max(new_score);
+        }
+        best
+    }
+
+    solve_inner(game, minutes, visited, game.vindices["AA"], 0, vis)
 }
 
 fn possible_flow(minutes_remaining: Flow, actors: &[Act], game: &Game, visited: &Visited) -> Flow {
@@ -413,6 +472,7 @@ fn parse_input(input: String) -> (Vec<Valve>, HashMap<String, usize>) {
     (valves, vindices)
 }
 
+#[derive(Debug)]
 struct Valve {
     name: String,
     neighbors: Vec<String>,
@@ -461,5 +521,6 @@ Valve HH has flow rate=22; tunnel leads to valve GG
 Valve II has flow rate=0; tunnels lead to valves AA, JJ
 Valve JJ has flow rate=21; tunnel leads to valve II",
         part1 => 1651,
+        part1_new => 1651,
         part2 => 1707);
 }
