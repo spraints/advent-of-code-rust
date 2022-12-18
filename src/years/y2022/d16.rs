@@ -1,6 +1,6 @@
 use std::{
     cmp::Ordering,
-    collections::{BinaryHeap, HashMap},
+    collections::{BinaryHeap, HashMap, HashSet},
     fmt::Display,
     io::Write,
 };
@@ -101,12 +101,12 @@ fn new_visited(size: usize) -> Visited {
     0
 }
 
-fn set_visited(visited: &Visited, i: usize) -> Visited {
+fn set_visited(visited: Visited, i: usize) -> Visited {
     assert!(i < Visited::BITS as usize);
     visited | (1 << i)
 }
 
-fn is_visited(visited: &Visited, i: usize) -> bool {
+fn is_visited(visited: Visited, i: usize) -> bool {
     visited & (1 << i) != 0
 }
 
@@ -132,7 +132,7 @@ fn solve(input: String, vis: bool, minutes: Flow, actors: usize) -> Flow {
     let visited = new_visited(game.valves.len());
     let i = game.vindices["AA"];
     let actors = vec![Act::Idle { i }; actors];
-    let possible = possible_flow(minutes, &actors, &game, &visited);
+    let possible = possible_flow(minutes, &actors, &game, visited);
     states.push(State {
         possible,
         actual: 0,
@@ -160,7 +160,7 @@ fn solve(input: String, vis: bool, minutes: Flow, actors: usize) -> Flow {
                 .iter()
                 .enumerate()
                 .filter_map(|(i, v)| {
-                    if is_visited(&visited, i) {
+                    if is_visited(visited, i) {
                         Some(&*v.name)
                     } else {
                         None
@@ -221,18 +221,18 @@ fn solve(input: String, vis: bool, minutes: Flow, actors: usize) -> Flow {
                 }
                 seen_actors[*loc] = true;
 
-                for step in possible_dests(*loc, minutes_remaining, &visited, &game) {
+                for step in possible_dests(*loc, minutes_remaining, visited, &game) {
                     let Step {
                         dest,
                         arrive_at,
                         added_flow,
                     } = step;
-                    let visited = set_visited(&visited, dest);
+                    let visited = set_visited(visited, dest);
                     let mut actors = actors.clone();
                     actors[actor_i] = Act::Going { dest, arrive_at };
                     let actual = actual + added_flow;
                     let possible =
-                        actual + possible_flow(minutes_remaining, &actors, &game, &visited);
+                        actual + possible_flow(minutes_remaining, &actors, &game, visited);
                     states.push(State {
                         possible,
                         actual,
@@ -269,6 +269,27 @@ pub fn part1_new(input: String, vis: bool) -> Box<dyn Display> {
     Box::new(solve1(&game, 30, 0, vis))
 }
 
+pub fn part2_new(input: String, vis: bool) -> Box<dyn Display> {
+    let game = parse(input, vis);
+    let mut best = 0;
+    let interesting_mask = game
+        .interesting
+        .iter()
+        .fold(0, |visited, i| set_visited(visited, *i));
+    let mut seen = HashSet::new();
+    for split in 0..(1 << game.valves.len()) {
+        let my_start_visited = split & interesting_mask;
+        if seen.contains(&my_start_visited) {
+            continue;
+        }
+        seen.insert(my_start_visited);
+        let my_score = solve1(&game, 26, my_start_visited, vis);
+        let elephant_score = solve1(&game, 26, !my_start_visited, vis);
+        best = best.max(my_score + elephant_score);
+    }
+    Box::new(best)
+}
+
 fn parse(input: String, vis: bool) -> Game {
     let (valves, vindices) = parse_input(input);
     let dists = find_distances(&valves, &vindices, vis);
@@ -297,7 +318,7 @@ fn solve1(game: &Game, minutes: Flow, visited: Visited, vis: bool) -> Flow {
         let mut best = score;
         for i in &game.interesting {
             let i = *i;
-            if is_visited(&visited, i) {
+            if is_visited(visited, i) {
                 continue;
             }
             let v = &game.valves[i];
@@ -310,7 +331,7 @@ fn solve1(game: &Game, minutes: Flow, visited: Visited, vis: bool) -> Flow {
             }
             let new_minutes_remaining = minutes_remaining - dist - 1;
             let new_score = score + new_minutes_remaining * v.rate;
-            let new_visited = set_visited(&visited, i);
+            let new_visited = set_visited(visited, i);
             let new_score =
                 solve_inner(game, new_minutes_remaining, new_visited, i, new_score, vis);
             best = best.max(new_score);
@@ -318,10 +339,11 @@ fn solve1(game: &Game, minutes: Flow, visited: Visited, vis: bool) -> Flow {
         best
     }
 
-    solve_inner(game, minutes, visited, game.vindices["AA"], 0, vis)
+    let aa = game.vindices["AA"];
+    solve_inner(game, minutes, set_visited(visited, aa), aa, 0, vis)
 }
 
-fn possible_flow(minutes_remaining: Flow, actors: &[Act], game: &Game, visited: &Visited) -> Flow {
+fn possible_flow(minutes_remaining: Flow, actors: &[Act], game: &Game, visited: Visited) -> Flow {
     let x = game.valves.iter();
     let x = x.enumerate();
     let x = x.filter(|(i, v)| !is_visited(visited, *i) && v.rate > 0);
@@ -361,14 +383,14 @@ struct Step {
 fn possible_dests(
     from: usize,
     minutes_remaining: Flow,
-    visited: &Visited,
+    visited: Visited,
     game: &Game,
 ) -> Vec<Step> {
     fn step(
         dest: usize,
         dist: &Option<usize>,
         minutes_remaining: Flow,
-        visited: &Visited,
+        visited: Visited,
         game: &Game,
     ) -> Option<Step> {
         match (dist, is_visited(visited, dest)) {
@@ -522,5 +544,6 @@ Valve II has flow rate=0; tunnels lead to valves AA, JJ
 Valve JJ has flow rate=21; tunnel leads to valve II",
         part1 => 1651,
         part1_new => 1651,
-        part2 => 1707);
+        part2 => 1707,
+        part2_new => 1707);
 }
