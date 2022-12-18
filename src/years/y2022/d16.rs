@@ -307,15 +307,55 @@ fn parse(input: String, vis: bool) -> Game {
 }
 
 fn solve1(game: &Game, minutes: Flow, visited: Visited, vis: bool) -> Flow {
-    fn solve_inner(
-        game: &Game,
-        minutes_remaining: Flow,
-        visited: Visited,
-        loc: usize,
+    fn get_potential(game: &Game, visited: Visited, minutes_remaining: Flow) -> Flow {
+        let avail_rate: Flow = game
+            .interesting
+            .iter()
+            .filter_map(|i| {
+                if !is_visited(visited, *i) {
+                    Some(game.valves[*i].rate)
+                } else {
+                    None
+                }
+            })
+            .sum();
+        avail_rate * minutes_remaining
+    }
+
+    #[derive(Ord, PartialOrd, Eq, PartialEq)]
+    struct State {
+        potential_score: Flow,
         score: Flow,
-        vis: bool,
-    ) -> Flow {
-        let mut best = score;
+        loc: usize,
+        visited: Visited,
+        minutes_remaining: Flow,
+    }
+
+    let mut to_try = BinaryHeap::new();
+
+    let aa = game.vindices["AA"];
+    assert!(game.valves[aa].rate == 0, "expect AA to have no flow");
+    to_try.push(State {
+        potential_score: get_potential(game, visited, minutes),
+        score: 0,
+        loc: aa,
+        visited: set_visited(visited, aa),
+        minutes_remaining: minutes,
+    });
+
+    while let Some(st) = to_try.pop() {
+        let State {
+            potential_score,
+            score,
+            loc,
+            visited,
+            minutes_remaining,
+        } = st;
+
+        if potential_score == score {
+            return score;
+        }
+
         for i in &game.interesting {
             let i = *i;
             if is_visited(visited, i) {
@@ -332,15 +372,26 @@ fn solve1(game: &Game, minutes: Flow, visited: Visited, vis: bool) -> Flow {
             let new_minutes_remaining = minutes_remaining - dist - 1;
             let new_score = score + new_minutes_remaining * v.rate;
             let new_visited = set_visited(visited, i);
-            let new_score =
-                solve_inner(game, new_minutes_remaining, new_visited, i, new_score, vis);
-            best = best.max(new_score);
+            let new_potential = get_potential(game, new_visited, new_minutes_remaining);
+            to_try.push(State {
+                potential_score: new_score + new_potential,
+                score: new_score,
+                loc: i,
+                visited: new_visited,
+                minutes_remaining: new_minutes_remaining,
+            });
         }
-        best
+
+        to_try.push(State {
+            potential_score: score,
+            score,
+            loc,
+            visited,
+            minutes_remaining,
+        });
     }
 
-    let aa = game.vindices["AA"];
-    solve_inner(game, minutes, set_visited(visited, aa), aa, 0, vis)
+    unreachable!()
 }
 
 fn possible_flow(minutes_remaining: Flow, actors: &[Act], game: &Game, visited: Visited) -> Flow {
