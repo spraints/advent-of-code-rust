@@ -1,4 +1,7 @@
-use std::{collections::HashSet, fmt::Display};
+use std::{
+    collections::{BinaryHeap, HashSet},
+    fmt::Display,
+};
 
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     let total: usize = input
@@ -19,22 +22,22 @@ fn quality_level(bp: &Blueprint, minutes: usize, vis: bool) -> Quality {
     }
     let robots = [1, 0, 0, 0];
     let minerals = [0; 4];
-    let mut seen = HashSet::new();
 
-    let mut to_try = Vec::new();
+    let mut to_try = BinaryHeap::new();
     to_try.push(State {
         elapsed: 0,
+        minutes,
         robots,
         minerals,
     });
 
-    let mut best = 0;
+    let mut seen = HashSet::new();
+
     while let Some(st) = to_try.pop() {
         if st.elapsed == minutes {
             let geodes = st.minerals[Mineral::Geode as usize];
             println!(" => {} {:?}", geodes, st);
-            best = best.max(geodes);
-            continue;
+            return geodes;
         }
 
         if seen.contains(&st) {
@@ -59,6 +62,7 @@ fn quality_level(bp: &Blueprint, minutes: usize, vis: bool) -> Quality {
                 robots[rc.produces as usize] += 1;
                 to_try.push(State {
                     elapsed: st.elapsed + 1,
+                    minutes: st.minutes,
                     robots,
                     minerals,
                 });
@@ -67,12 +71,13 @@ fn quality_level(bp: &Blueprint, minutes: usize, vis: bool) -> Quality {
 
         to_try.push(State {
             elapsed: st.elapsed + 1,
+            minutes: st.minutes,
             robots: st.robots.clone(),
             minerals: collect(st.minerals.clone(), &st.robots),
         });
     }
 
-    best
+    unreachable!("please")
 }
 
 type RobotCount = u8; // max is 24
@@ -81,8 +86,37 @@ type MineralCount = u16; // max is 24 * 24
 #[derive(Hash, PartialEq, Eq, Debug, Clone)]
 struct State {
     elapsed: usize,
+    minutes: usize,
     robots: [RobotCount; 4],
     minerals: [MineralCount; 4],
+}
+
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.score().cmp(&other.score())
+    }
+}
+
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl State {
+    fn score(&self) -> MineralCount {
+        let remaining = (self.minutes - self.elapsed) as MineralCount;
+        let per_step = (self.robots[Mineral::Geode as usize]) as MineralCount;
+        let max_per_step = per_step + remaining;
+        let crazy_potential = (per_step + max_per_step) * remaining / 2;
+        let robot_power: MineralCount = self
+            .robots
+            .iter()
+            .enumerate()
+            .map(|(i, c)| (i + 1) as MineralCount * (*c as MineralCount))
+            .sum();
+        self.minerals[Mineral::Geode as usize] + crazy_potential + robot_power
+    }
 }
 
 fn collect(mut minerals: [MineralCount; 4], robots: &[RobotCount]) -> [MineralCount; 4] {
