@@ -36,7 +36,9 @@ fn quality_level(bp: &Blueprint, minutes: usize, vis: bool) -> Quality {
     while let Some(st) = to_try.pop() {
         if st.elapsed == minutes {
             let geodes = st.minerals[Mineral::Geode as usize];
-            println!(" => {} {:?}", geodes, st);
+            if vis {
+                println!(" => {} {:?}", geodes, st);
+            }
             return geodes;
         }
 
@@ -109,13 +111,7 @@ impl State {
         let per_step = (self.robots[Mineral::Geode as usize]) as MineralCount;
         let max_per_step = per_step + remaining;
         let crazy_potential = (per_step + max_per_step) * remaining / 2;
-        let robot_power: MineralCount = self
-            .robots
-            .iter()
-            .enumerate()
-            .map(|(i, c)| (i + 1) as MineralCount * (*c as MineralCount))
-            .sum();
-        self.minerals[Mineral::Geode as usize] + crazy_potential + robot_power
+        self.minerals[Mineral::Geode as usize] + crazy_potential
     }
 }
 
@@ -216,7 +212,7 @@ mod test {
 
     fn quality_level(s: &str) -> (usize, Quality) {
         let bp = parse(s);
-        (bp.n, super::quality_level(&bp, 24, true))
+        (bp.n, super::quality_level(&bp, 24, false))
     }
 
     crate::test::aoc_test!(example, r"Blueprint 1: Each ore robot costs 4 ore. Each clay robot costs 2 ore. Each obsidian robot costs 3 ore and 14 clay. Each geode robot costs 2 ore and 7 obsidian.
