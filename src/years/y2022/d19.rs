@@ -4,7 +4,7 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     let total: usize = input
         .lines()
         .map(parse)
-        .map(|bp| bp.n * quality_level(&bp, 24, vis))
+        .map(|bp| bp.n * quality_level(&bp, 24, vis) as usize)
         .sum();
     Box::new(total)
 }
@@ -18,62 +18,100 @@ fn quality_level(bp: &Blueprint, minutes: usize, vis: bool) -> Quality {
         println!("{:?}", bp);
     }
     //let minutes = minutes - minutes + 10; // XXX
-    let mut robots = [1, 0, 0, 0];
+    let robots = [1, 0, 0, 0];
     let minerals = [0; 4];
     let mut cache = HashMap::new();
-    ql2(bp, minutes, &mut robots, minerals, &mut cache, vis)
+
+    ql2(
+        bp,
+        minutes,
+        Step {
+            elapsed: 0,
+            robots,
+            minerals,
+        },
+        &mut cache,
+        vis,
+    )
+}
+
+type RobotCount = u8; // max is 24
+type MineralCount = u16; // max is 24 * 24
+
+struct Step {
+    elapsed: usize,
+    robots: [RobotCount; 4],
+    minerals: [MineralCount; 4],
 }
 
 fn ql2(
     bp: &Blueprint,
     minutes: usize,
-    robots: &mut [usize],
-    minerals: [usize; 4],
+    step: Step,
     cache: &mut HashMap<State, Quality>,
     vis: bool,
 ) -> Quality {
-    if minutes < 1 {
+    let Step {
+        elapsed,
+        robots,
+        minerals,
+    } = step;
+
+    if elapsed == minutes {
         println!("  => {:?}", minerals);
         return minerals[Mineral::Geode as usize];
     }
 
-    let st = state(minutes, robots, &minerals);
+    let st = state(elapsed, &robots, &minerals);
     if let Some(res) = cache.get(&st) {
         if vis {
             println!(
-                "[{}] minutes={} already tried robots={:?} minerals={:?} => {}",
-                bp.n, minutes, robots, minerals, res
+                "[{}] elapsed={} already tried robots={:?} minerals={:?} => {}",
+                bp.n, elapsed, robots, minerals, res
             );
         }
         return *res;
     }
     if vis {
         println!(
-            "[{}] minutes={} try robots={:?} minerals={:?}",
-            bp.n, minutes, robots, minerals
+            "[{}] elapsed={} try robots={:?} minerals={:?}",
+            bp.n, elapsed, robots, minerals
         );
     }
 
-    let step = robots[Mineral::Geode as usize];
+    let step = robots[Mineral::Geode as usize] as MineralCount;
     let mut best = 0;
 
     for rc in &bp.robot_costs {
         if let Some(minerals) = rc.buy(&minerals) {
             if vis {
-                println!("    minutes={} try buying {:?}", minutes, rc);
+                println!("    elapsed={} try buying {:?}", elapsed, rc);
             }
-            let minerals = collect(minerals, robots);
+            let minerals = collect(minerals, &robots);
+            let mut robots = robots.clone();
             robots[rc.produces as usize] += 1;
-            best = best.max(ql2(bp, minutes - 1, robots, minerals, cache, vis));
-            robots[rc.produces as usize] -= 1;
+            best = best.max(ql2(
+                bp,
+                minutes,
+                Step {
+                    elapsed: elapsed + 1,
+                    robots,
+                    minerals,
+                },
+                cache,
+                vis,
+            ));
         }
     }
 
     best = best.max(ql2(
         bp,
-        minutes - 1,
-        robots,
-        collect(minerals, robots),
+        minutes,
+        Step {
+            elapsed: elapsed + 1,
+            robots,
+            minerals: collect(minerals, &robots),
+        },
         cache,
         vis,
     ));
@@ -84,24 +122,20 @@ fn ql2(
     best
 }
 
-fn collect(mut minerals: [usize; 4], robots: &[usize]) -> [usize; 4] {
+fn collect(mut minerals: [MineralCount; 4], robots: &[RobotCount]) -> [MineralCount; 4] {
     for (i, m) in minerals.iter_mut().enumerate() {
-        *m += robots[i];
+        *m += robots[i] as MineralCount;
     }
     minerals
 }
 
-type State = (usize, [usize; 4], [usize; 4]);
+type State = (usize, [RobotCount; 4], [MineralCount; 4]);
 
-fn state(minutes: usize, robots: &[usize], minerals: &[usize]) -> State {
-    (
-        minutes,
-        [robots[0], robots[1], robots[2], robots[3]],
-        [minerals[0], minerals[1], minerals[2], minerals[3]],
-    )
+fn state(minutes: usize, robots: &[RobotCount; 4], minerals: &[MineralCount; 4]) -> State {
+    (minutes, robots.clone(), minerals.clone())
 }
 
-type Quality = usize;
+type Quality = MineralCount;
 
 #[derive(Debug)]
 struct Blueprint {
@@ -112,11 +146,11 @@ struct Blueprint {
 #[derive(Debug)]
 struct RobotCost {
     produces: Mineral,
-    costs: [usize; 4],
+    costs: [MineralCount; 4],
 }
 
 impl RobotCost {
-    fn buy(&self, minerals: &[usize]) -> Option<[usize; 4]> {
+    fn buy(&self, minerals: &[MineralCount]) -> Option<[MineralCount; 4]> {
         let mut res = [0; 4];
         for (i, cost) in self.costs.iter().enumerate() {
             let m = &minerals[i];
