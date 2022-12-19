@@ -37,7 +37,7 @@ fn quality_level(bp: &Blueprint, minutes: usize, vis: bool) -> Quality {
 type RobotCount = u8; // max is 24
 type MineralCount = u16; // max is 24 * 24
 
-#[derive(Hash, PartialEq, Eq)]
+#[derive(Hash, PartialEq, Eq, Debug)]
 struct State {
     elapsed: usize,
     robots: [RobotCount; 4],
@@ -52,34 +52,38 @@ fn ql2(
     vis: bool,
 ) -> Quality {
     if st.elapsed == minutes {
-        println!("  => {:?}", st.minerals);
+        println!(" => {} {:?}", st.minerals[Mineral::Geode as usize], st);
         return st.minerals[Mineral::Geode as usize];
     }
 
     if let Some(res) = cache.get(&st) {
         if vis {
             println!(
-                "[{}] elapsed={} already tried robots={:?} minerals={:?} => {}",
-                bp.n, st.elapsed, st.robots, st.minerals, res
+                "{:width$}already tried {:?} => {}",
+                ' ',
+                st,
+                res,
+                width = st.elapsed
             );
         }
         return *res;
     }
 
-    if vis {
-        println!(
-            "[{}] elapsed={} try robots={:?} minerals={:?}",
-            bp.n, st.elapsed, st.robots, st.minerals
-        );
-    }
-
     let step_size = st.robots[Mineral::Geode as usize] as MineralCount;
+
     let mut best = 0;
 
     for rc in &bp.robot_costs {
         if let Some(minerals) = rc.buy(&st.minerals) {
             if vis {
-                println!("    elapsed={} try buying {:?}", st.elapsed, rc);
+                println!(
+                    "{:width$}buy {:?} for {:?} at {:?}",
+                    ' ',
+                    rc.produces,
+                    rc.costs,
+                    st,
+                    width = st.elapsed
+                );
             }
             let minerals = collect(minerals, &st.robots);
             let mut robots = st.robots.clone();
@@ -111,6 +115,10 @@ fn ql2(
     ));
 
     best += step_size;
+
+    if vis {
+        println!("{:width$}{:?} => {}", ' ', st, best, width = st.elapsed);
+    }
 
     cache.insert(st, best);
     best
