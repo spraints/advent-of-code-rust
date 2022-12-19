@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{collections::HashSet, fmt::Display};
 
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     let total: usize = input
@@ -19,109 +19,70 @@ fn quality_level(bp: &Blueprint, minutes: usize, vis: bool) -> Quality {
     }
     let robots = [1, 0, 0, 0];
     let minerals = [0; 4];
-    let mut cache = HashMap::new();
+    let mut seen = HashSet::new();
 
-    ql2(
-        bp,
-        minutes,
-        State {
-            elapsed: 0,
-            robots,
-            minerals,
-        },
-        &mut cache,
-        vis,
-    )
+    let mut to_try = Vec::new();
+    to_try.push(State {
+        elapsed: 0,
+        robots,
+        minerals,
+    });
+
+    let mut best = 0;
+    while let Some(st) = to_try.pop() {
+        if st.elapsed == minutes {
+            let geodes = st.minerals[Mineral::Geode as usize];
+            println!(" => {} {:?}", geodes, st);
+            best = best.max(geodes);
+            continue;
+        }
+
+        if seen.contains(&st) {
+            continue;
+        }
+        seen.insert(st.clone());
+
+        for rc in &bp.robot_costs {
+            if let Some(minerals) = rc.buy(&st.minerals) {
+                if vis {
+                    println!(
+                        "{:width$}buy {:?} for {:?} at {:?}",
+                        ' ',
+                        rc.produces,
+                        rc.costs,
+                        st,
+                        width = st.elapsed
+                    );
+                }
+                let minerals = collect(minerals, &st.robots);
+                let mut robots = st.robots.clone();
+                robots[rc.produces as usize] += 1;
+                to_try.push(State {
+                    elapsed: st.elapsed + 1,
+                    robots,
+                    minerals,
+                });
+            }
+        }
+
+        to_try.push(State {
+            elapsed: st.elapsed + 1,
+            robots: st.robots.clone(),
+            minerals: collect(st.minerals.clone(), &st.robots),
+        });
+    }
+
+    best
 }
 
 type RobotCount = u8; // max is 24
 type MineralCount = u16; // max is 24 * 24
 
-#[derive(Hash, PartialEq, Eq, Debug)]
+#[derive(Hash, PartialEq, Eq, Debug, Clone)]
 struct State {
     elapsed: usize,
     robots: [RobotCount; 4],
     minerals: [MineralCount; 4],
-}
-
-fn ql2(
-    bp: &Blueprint,
-    minutes: usize,
-    st: State,
-    cache: &mut HashMap<State, Quality>,
-    vis: bool,
-) -> Quality {
-    if st.elapsed == minutes {
-        println!(" => {} {:?}", st.minerals[Mineral::Geode as usize], st);
-        return st.minerals[Mineral::Geode as usize];
-    }
-
-    if let Some(res) = cache.get(&st) {
-        if vis {
-            println!(
-                "{:width$}already tried {:?} => {}",
-                ' ',
-                st,
-                res,
-                width = st.elapsed
-            );
-        }
-        return *res;
-    }
-
-    let step_size = st.robots[Mineral::Geode as usize] as MineralCount;
-
-    let mut best = 0;
-
-    for rc in &bp.robot_costs {
-        if let Some(minerals) = rc.buy(&st.minerals) {
-            if vis {
-                println!(
-                    "{:width$}buy {:?} for {:?} at {:?}",
-                    ' ',
-                    rc.produces,
-                    rc.costs,
-                    st,
-                    width = st.elapsed
-                );
-            }
-            let minerals = collect(minerals, &st.robots);
-            let mut robots = st.robots.clone();
-            robots[rc.produces as usize] += 1;
-            best = best.max(ql2(
-                bp,
-                minutes,
-                State {
-                    elapsed: st.elapsed + 1,
-                    robots,
-                    minerals,
-                },
-                cache,
-                vis,
-            ));
-        }
-    }
-
-    best = best.max(ql2(
-        bp,
-        minutes,
-        State {
-            elapsed: st.elapsed + 1,
-            robots: st.robots.clone(),
-            minerals: collect(st.minerals.clone(), &st.robots),
-        },
-        cache,
-        vis,
-    ));
-
-    best += step_size;
-
-    if vis {
-        println!("{:width$}{:?} => {}", ' ', st, best, width = st.elapsed);
-    }
-
-    cache.insert(st, best);
-    best
 }
 
 fn collect(mut minerals: [MineralCount; 4], robots: &[RobotCount]) -> [MineralCount; 4] {
