@@ -212,6 +212,8 @@ fn parse_mineral(mineral: &str) -> Mineral {
     }
 }
 
+/*
+ * too slow
 #[cfg(test)]
 mod test {
     use super::*;
@@ -231,3 +233,4 @@ Blueprint 2: Each ore robot costs 2 ore. Each clay robot costs 3 ore. Each obsid
         assert_eq!((2,12),quality_level("Blueprint 2: Each ore robot costs 2 ore. Each clay robot costs 3 ore. Each obsidian robot costs 3 ore and 8 clay. Each geode robot costs 3 ore and 12 obsidian."));
     }
 }
+*/
