@@ -8,7 +8,7 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
         .enumerate()
         .collect();
     if vis {
-        println!("Initial arrangement:");
+        println!("Initial arrangement of {} items:", values.len());
         let mut sep = "";
         for (_, v) in &values {
             print!("{}{}", sep, v);
@@ -25,9 +25,6 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
         let pos = pos as i32;
         let mut newpos = pos + val;
         let len = values.len() as i32;
-        if vis {
-            println!("{} moves from [{}] to [{}]", val, pos, newpos,);
-        }
         if newpos < 0 {
             newpos -= 1;
             while newpos < 0 {
@@ -35,6 +32,9 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
             }
         }
         newpos = newpos % len;
+        if vis {
+            println!("{} moves from [{}] to [{}]", val, pos, newpos,);
+        }
         if newpos < pos {
             values[(newpos as usize)..=(pos as usize)].rotate_right(1);
         } else if newpos > pos {
