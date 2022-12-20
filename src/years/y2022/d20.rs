@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
 // NOT -6697
+// YES 16533
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     let mut values: Vec<(usize, i64)> = input
         .lines()
@@ -56,13 +57,30 @@ fn mix(values: &mut Vec<(usize, i64)>, vis: bool) {
             .enumerate()
             .find(|(_, (i, _))| *i == order)
             .unwrap();
-        let origpos = origpos;
         let val = *val;
         let mut pos = origpos as i64;
-        let guess_newpos = match origpos as i64 + val {
+        let mut cv = values.clone();
+        let guess_newpos = match pos + val {
             x if x < 0 => (x + len * (x.abs() / len) + len) % len,
             x => x % len,
         };
+        if guess_newpos < origpos as i64 {
+            if vis {
+                println!(
+                    "{} => cv[{}..={}].rotate_right(1)",
+                    val, guess_newpos, origpos
+                );
+            }
+            cv[(guess_newpos as usize)..=origpos].rotate_right(1);
+        } else {
+            if vis {
+                println!(
+                    "{} => cv[{}..={}].rotate_left(1)",
+                    val, origpos, guess_newpos
+                );
+            }
+            cv[origpos..=(guess_newpos as usize)].rotate_left(1);
+        }
         if val != 0 {
             let offset = val / val.abs();
             for _ in 0..val.abs() {
@@ -77,10 +95,17 @@ fn mix(values: &mut Vec<(usize, i64)>, vis: bool) {
                 pos = newpos;
             }
         }
-        assert_eq!(guess_newpos, pos);
         if vis {
-            println!("moved {} from [{}] to [{}]", val, origpos, pos);
+            println!(
+                "moved {} from [{}] to [{}] guess={}",
+                val, origpos, pos, guess_newpos
+            );
             print_values(values, None);
+        }
+        assert_eq!(guess_newpos, pos, "guess was wrong after move");
+        assert_eq!(*values, cv);
+        if vis {
+            println!();
         }
     }
 }
