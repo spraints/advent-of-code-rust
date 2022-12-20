@@ -16,32 +16,32 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
         }
         println!();
     }
+    let len = values.len() as i32;
     for order in 0..values.len() {
-        let (pos, (_, val)) = values
+        let (origpos, (_, val)) = values
             .iter()
             .enumerate()
             .find(|(_, (i, _))| *i == order)
             .unwrap();
-        let pos = pos as i32;
-        let mut newpos = pos + val;
-        let len = values.len() as i32;
-        if newpos < 0 {
-            newpos -= 1;
-            while newpos < 0 {
-                newpos += len;
+        let origpos = origpos;
+        let val = *val;
+        let mut pos = origpos as i32;
+        if val != 0 {
+            let offset = val / val.abs();
+            for _ in 0..val.abs() {
+                let mut newpos = pos + offset;
+                if newpos < 0 {
+                    newpos = len - 1;
+                }
+                newpos = newpos % len;
+                let swap = values[newpos as usize].clone();
+                values[newpos as usize] = values[pos as usize].clone();
+                values[pos as usize] = swap;
+                pos = newpos;
             }
         }
-        newpos = newpos % len;
         if vis {
-            println!("{} moves from [{}] to [{}]", val, pos, newpos,);
-        }
-        if newpos < pos {
-            values[(newpos as usize)..=(pos as usize)].rotate_right(1);
-        } else if newpos > pos {
-            values[(pos as usize)..=(newpos as usize)].rotate_left(1);
-        }
-
-        if vis {
+            println!("moved {} from [{}] to [{}]", val, origpos, pos);
             let mut sep = "";
             for (_, v) in &values {
                 print!("{}{}", sep, v);
