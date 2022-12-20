@@ -12,8 +12,14 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     Box::new(total)
 }
 
-pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
+pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
+    let res: usize = input
+        .lines()
+        .take(3)
+        .map(parse)
+        .map(|bp| quality_level(&bp, 32, vis) as usize)
+        .product();
+    Box::new(res)
 }
 
 fn quality_level(bp: &Blueprint, minutes: usize, vis: bool) -> Quality {
@@ -217,8 +223,7 @@ mod test {
 
     crate::test::aoc_test!(example, r"Blueprint 1: Each ore robot costs 4 ore. Each clay robot costs 2 ore. Each obsidian robot costs 3 ore and 14 clay. Each geode robot costs 2 ore and 7 obsidian.
 Blueprint 2: Each ore robot costs 2 ore. Each clay robot costs 3 ore. Each obsidian robot costs 3 ore and 8 clay. Each geode robot costs 3 ore and 12 obsidian.",
-        part1 => 33,
-        part2 => "todo");
+        part1 => 33);
 
     #[test]
     fn test_quality_level() {
