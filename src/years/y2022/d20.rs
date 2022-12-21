@@ -85,6 +85,7 @@ mod test {
     fn negative_mod() {
         // This is not what I want, but good to know.
         assert_eq!(-32, -32 % 33);
+        assert_eq!(-2, -32 % 5);
     }
 
     crate::test::aoc_test!(example, r"1
@@ -97,6 +98,17 @@ mod test {
         part1 => 3,
         part2 => "todo");
 
+    // Order doesn't matter. If they're the same at any point, things are good.
+    fn check(mut left: Vec<i64>, right: Vec<i64>) {
+        for _ in 0..left.len() {
+            if left == right {
+                return;
+            }
+            left.rotate_right(1);
+        }
+        assert_eq!(left, right);
+    }
+
     #[test]
     fn test_mix() {
         fn mix(values: Vec<i64>) -> Vec<i64> {
@@ -105,17 +117,17 @@ mod test {
             values.into_iter().map(|(_, v)| v).collect()
         }
 
-        assert_eq!(vec![0, 0, 0, 1, 0], mix(vec![0, 0, 1, 0, 0]));
-        assert_eq!(vec![0, -1, 0, 0, 0], mix(vec![0, 0, -1, 0, 0]));
+        check(vec![0, 0, 0, 1, 0], mix(vec![0, 0, 1, 0, 0]));
+        check(vec![0, -1, 0, 0, 0], mix(vec![0, 0, -1, 0, 0]));
 
-        assert_eq!(vec![0, 4, 0, 0, 0], mix(vec![0, 0, 4, 0, 0]));
-        assert_eq!(vec![0, 0, 0, -4, 0], mix(vec![0, 0, -4, 0, 0]));
+        check(vec![0, 4, 0, 0, 0], mix(vec![0, 0, 4, 0, 0]));
+        check(vec![0, 0, 0, -4, 0], mix(vec![0, 0, -4, 0, 0]));
 
-        assert_eq!(vec![0, 0, 0, 6, 0], mix(vec![0, 0, 6, 0, 0]));
-        assert_eq!(vec![0, -6, 0, 0, 0], mix(vec![0, 0, -6, 0, 0]));
+        check(vec![0, 0, 0, 6, 0], mix(vec![0, 0, 6, 0, 0]));
+        check(vec![0, -6, 0, 0, 0], mix(vec![0, 0, -6, 0, 0]));
 
-        assert_eq!(vec![0, 9, 0, 0, 0], mix(vec![0, 0, 9, 0, 0]));
-        assert_eq!(vec![0, 0, 0, -9, 0], mix(vec![0, 0, -9, 0, 0]));
+        check(vec![0, 9, 0, 0, 0], mix(vec![0, 0, 9, 0, 0]));
+        check(vec![0, 0, 0, -9, 0], mix(vec![0, 0, -9, 0, 0]));
     }
 
     #[test]
@@ -126,19 +138,58 @@ mod test {
             values.into_iter().map(|(_, v)| v).collect()
         }
 
-        assert_eq!(vec![4, 5, 6, 1, 7], mix1(vec![4, 5, 1, 6, 7], 2));
-        assert_eq!(vec![4, -1, 5, 6, 7], mix1(vec![4, 5, -1, 6, 7], 2));
+        check(vec![4, 5, 6, 1, 7], mix1(vec![4, 5, 1, 6, 7], 2));
+        check(vec![4, -1, 5, 6, 7], mix1(vec![4, 5, -1, 6, 7], 2));
 
-        assert_eq!(vec![8, 4, 7, 6, 9], mix1(vec![9, 8, 4, 7, 6], 2));
-        assert_eq!(vec![6, 9, 8, -4, 7], mix1(vec![9, 8, -4, 7, 6], 2));
+        check(vec![8, 4, 7, 6, 9], mix1(vec![9, 8, 4, 7, 6], 2));
+        check(vec![6, 9, 8, -4, 7], mix1(vec![9, 8, -4, 7, 6], 2));
 
-        assert_eq!(vec![2, 3, 4, 6, 1], mix1(vec![1, 2, 6, 3, 4], 2));
-        assert_eq!(vec![4, -6, 1, 2, 3], mix1(vec![1, 2, -6, 3, 4], 2));
+        check(vec![2, 3, 4, 6, 1], mix1(vec![1, 2, 6, 3, 4], 2));
+        check(vec![4, -6, 1, 2, 3], mix1(vec![1, 2, -6, 3, 4], 2));
 
-        assert_eq!(vec![3, 9, 4, 1, 2], mix1(vec![1, 2, 9, 3, 4], 2));
-        assert_eq!(vec![3, 4, 1, -9, 2], mix1(vec![1, 2, -9, 3, 4], 2));
+        check(vec![3, 9, 4, 1, 2], mix1(vec![1, 2, 9, 3, 4], 2));
+        check(vec![3, 4, 1, -9, 2], mix1(vec![1, 2, -9, 3, 4], 2));
 
-        assert_eq!(vec![2, 3, 4, 66, 1], mix1(vec![1, 2, 66, 3, 4], 2));
-        assert_eq!(vec![4, -66, 1, 2, 3], mix1(vec![1, 2, -66, 3, 4], 2));
+        // pos = 2
+        // val = 44
+        // len = 5
+        // remove(2)
+        // insert(1)
+        check(vec![2, 44, 3, 4, 1], mix1(vec![1, 2, 44, 3, 4], 2));
+        // remove(2)
+        // insert(2)
+        check(vec![2, 3, 45, 4, 1], mix1(vec![1, 2, 45, 3, 4], 2));
+        // remove(2)
+        // insert(3)
+        check(vec![2, 3, 4, 46, 1], mix1(vec![1, 2, 46, 3, 4], 2));
+        // remove(2)
+        // insert(4)
+        check(vec![2, 3, 4, 1, 47], mix1(vec![1, 2, 47, 3, 4], 2));
+        // remove(2)
+        // insert(0)
+        check(vec![48, 3, 4, 1, 2], mix1(vec![1, 2, 48, 3, 4], 2));
+
+        // remove(pos) => remove(2)
+        // insert((pos + val) mod len) => insert((2 - 44) mod 5) => insert(-42 mod 5) => insert(3)
+        check(vec![4, 1, 2, -44, 3], mix1(vec![1, 2, -44, 3, 4], 2));
+        check(vec![4, 1, -45, 2, 3], mix1(vec![1, 2, -45, 3, 4], 2));
+        check(vec![4, -46, 1, 2, 3], mix1(vec![1, 2, -46, 3, 4], 2));
+        check(vec![-47, 4, 1, 2, 3], mix1(vec![1, 2, -47, 3, 4], 2));
+        check(vec![3, 4, 1, 2, -48], mix1(vec![1, 2, -48, 3, 4], 2));
+
+        /*
+        // val = 49
+        // newpos = 51 % 5 = 1
+        // rotateleft 2 (49, 3, 4, 1, 2), [0..=1].rotateright(1) => (3, 49, 4, 1, 2)
+        assert_eq!(vec![3, 49, 4, 1, 2], mix1(vec![1, 2, 49, 3, 4], 2));
+        // rotateleft 3 (
+        assert_eq!(vec![4, 54, 1, 2, 3], mix1(vec![1, 2, 54, 3, 4], 2));
+        // rotateleft 0
+        assert_eq!(vec![1, 59, 2, 3, 4], mix1(vec![1, 2, 59, 3, 4], 2));
+        // rotateleft 1
+        assert_eq!(vec![2, 64, 3, 4, 1], mix1(vec![1, 2, 64, 3, 4], 2));
+
+        assert_eq!(vec![4, 1, 2, -64, 3], mix1(vec![1, 2, -64, 3, 4], 2));
+        */
     }
 }
