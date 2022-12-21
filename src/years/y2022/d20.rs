@@ -15,11 +15,40 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
 }
 
 pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
+    let mut values: Vec<(usize, i64)> = input
+        .lines()
+        .map(|s| s.parse::<i64>().unwrap() * 811589153)
+        .enumerate()
+        .collect();
+
+    if vis {
+        println!("Initial arrangement of {} items:", values.len());
+        print_values(&values);
+        println!();
+    }
+
+    for i in 0..10 {
+        mix(&mut values, false);
+
+        if vis {
+            let mut rv = values.clone();
+            let zero = find_zero(&rv);
+            rv.rotate_left(zero);
+            println!("After round {}", i + 1);
+            print_values(&rv);
+        }
+    }
+
+    // 15045 is too low
+    Box::new(score(values))
+}
+
+fn find_zero(values: &[(usize, i64)]) -> usize {
+    values.iter().position(|&(_, v)| v == 0).unwrap()
 }
 
 fn score(values: Vec<(usize, i64)>) -> i64 {
-    let zero = values.iter().position(|&(_, v)| v == 0).unwrap();
+    let zero = find_zero(&values);
     let a = values[(zero + 1000) % values.len()].1;
     let b = values[(zero + 2000) % values.len()].1;
     let c = values[(zero + 3000) % values.len()].1;
@@ -105,7 +134,7 @@ mod test {
 0
 4",
         part1 => 3,
-        part2 => "todo");
+        part2 => 1623178306);
 
     // Order doesn't matter. If they're the same at any point, things are good.
     fn check(mut left: Vec<i64>, right: Vec<i64>) {
