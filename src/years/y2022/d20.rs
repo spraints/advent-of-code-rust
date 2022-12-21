@@ -40,6 +40,7 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     }
 
     // 15045 is too low
+    // 4789999181006 is right
     Box::new(score(values))
 }
 
