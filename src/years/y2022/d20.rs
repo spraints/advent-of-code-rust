@@ -29,12 +29,7 @@ fn score(values: Vec<(usize, i64)>) -> i64 {
 fn mix(values: &mut Vec<(usize, i64)>, vis: bool) {
     if vis {
         println!("Initial arrangement of {} items:", values.len());
-        let mut sep = "";
-        for (_, v) in values.iter() {
-            print!("{}{}", sep, v);
-            sep = ", ";
-        }
-        println!();
+        print_values(values);
     }
     for order in 0..values.len() {
         mix1(values, order, vis);
@@ -53,15 +48,15 @@ fn mix1(values: &mut Vec<(usize, i64)>, order: usize, vis: bool) {
 
     let (pos, val) = find(values, order);
     let len = values.len() as i64;
-    if val % len == 0 {
+    if val == 0 {
         return;
     }
-    let mut newpos = (pos as i64 + val) % len;
+    let mut newpos = (pos as i64 + val) % (len - 1);
     if newpos < 0 {
-        newpos += len;
+        newpos += len - 1;
     }
     assert!(
-        newpos >= 0 && newpos < len,
+        newpos >= 0 && newpos < (len - 1),
         "newpos={} values.len={}",
         newpos,
         values.len()
@@ -78,13 +73,17 @@ fn mix1(values: &mut Vec<(usize, i64)>, order: usize, vis: bool) {
     */
     if vis {
         println!("moved {} from [{}] to [{}]", val, pos, newpos);
-        let mut sep = "";
-        for (_, v) in values.iter() {
-            print!("{}{}", sep, v);
-            sep = ", ";
-        }
-        println!();
+        print_values(values);
     }
+}
+
+fn print_values(values: &[(usize, i64)]) {
+    let mut sep = "";
+    for (_, v) in values.iter() {
+        print!("{}{}", sep, v);
+        sep = ", ";
+    }
+    println!();
 }
 
 #[cfg(test)]
@@ -140,11 +139,18 @@ mod test {
         check(vec![0, 0, 0, -9, 0], mix(vec![0, 0, -9, 0, 0]));
     }
 
+    const MIX1_VIS: bool = true;
+
     #[test]
     fn test_mix1() {
         fn mix1(values: Vec<i64>, pos: usize) -> Vec<i64> {
-            let mut values = values.into_iter().enumerate().collect();
-            super::mix1(&mut values, pos, false);
+            let mut values: Vec<(usize, i64)> = values.into_iter().enumerate().collect();
+            if MIX1_VIS {
+                println!("------");
+                println!("mix1 test input");
+                print_values(&values);
+            }
+            super::mix1(&mut values, pos, MIX1_VIS);
             values.into_iter().map(|(_, v)| v).collect()
         }
 
@@ -163,20 +169,20 @@ mod test {
         // pos = 2
         // val = 44
         // len = 5
-        // remove(2)
-        // insert(1)
+        // remove(2) => [1,2,3,4]
+        // insert((pos+val)%(len-1) => 2) => [1,2,44,3,4]
         check(vec![2, 44, 3, 4, 1], mix1(vec![1, 2, 44, 3, 4], 2));
-        // remove(2)
-        // insert(2)
+        // remove(2) => [1,2,3,4]
+        // insert(3) => [1,2,3,45,4]
         check(vec![2, 3, 45, 4, 1], mix1(vec![1, 2, 45, 3, 4], 2));
-        // remove(2)
-        // insert(3)
+        // remove(2) => [1,2,3,4]
+        // insert(0) => [46,1,2,3,4]
         check(vec![2, 3, 4, 46, 1], mix1(vec![1, 2, 46, 3, 4], 2));
-        // remove(2)
-        // insert(4)
+        // remove(2) => [1,2,3,4]
+        // insert(1) => [1,47,2,3,4]
         check(vec![2, 3, 4, 1, 47], mix1(vec![1, 2, 47, 3, 4], 2));
-        // remove(2)
-        // insert(0)
+        // remove(2) => [1,2,3,4]
+        // insert(2) => [1,2,48,3,4]
         check(vec![48, 3, 4, 1, 2], mix1(vec![1, 2, 48, 3, 4], 2));
 
         // remove(pos) => remove(2)
