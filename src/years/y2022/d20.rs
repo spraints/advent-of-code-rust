@@ -3,7 +3,7 @@ use std::fmt::Display;
 // YES 16533
 // NOT -6697
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
-    let mut values: Vec<(usize, i32)> = input
+    let mut values: Vec<(usize, i64)> = input
         .lines()
         .map(|s| s.parse().unwrap())
         .enumerate()
@@ -18,7 +18,7 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     Box::new("todo")
 }
 
-fn score(values: Vec<(usize, i32)>) -> i32 {
+fn score(values: Vec<(usize, i64)>) -> i64 {
     let zero = values.iter().position(|&(_, v)| v == 0).unwrap();
     let a = values[(zero + 1000) % values.len()].1;
     let b = values[(zero + 2000) % values.len()].1;
@@ -26,7 +26,7 @@ fn score(values: Vec<(usize, i32)>) -> i32 {
     a + b + c
 }
 
-fn mix(values: &mut Vec<(usize, i32)>, vis: bool) {
+fn mix(values: &mut Vec<(usize, i64)>, vis: bool) {
     if vis {
         println!("Initial arrangement of {} items:", values.len());
         let mut sep = "";
@@ -41,8 +41,8 @@ fn mix(values: &mut Vec<(usize, i32)>, vis: bool) {
     }
 }
 
-fn mix1(values: &mut Vec<(usize, i32)>, order: usize, vis: bool) {
-    let len = values.len() as i32;
+fn mix1(values: &mut Vec<(usize, i64)>, order: usize, vis: bool) {
+    let len = values.len() as i64;
     let (origpos, (_, val)) = values
         .iter()
         .enumerate()
@@ -50,7 +50,7 @@ fn mix1(values: &mut Vec<(usize, i32)>, order: usize, vis: bool) {
         .unwrap();
     let origpos = origpos;
     let val = *val;
-    let mut pos = origpos as i32;
+    let mut pos = origpos as i64;
     if val != 0 {
         let offset = val / val.abs();
         //let val = offset * (val.abs() % len);
@@ -99,7 +99,7 @@ mod test {
 
     #[test]
     fn test_mix() {
-        fn mix(values: Vec<i32>) -> Vec<i32> {
+        fn mix(values: Vec<i64>) -> Vec<i64> {
             let mut values = values.into_iter().enumerate().collect();
             super::mix(&mut values, false);
             values.into_iter().map(|(_, v)| v).collect()
@@ -120,7 +120,7 @@ mod test {
 
     #[test]
     fn test_mix1() {
-        fn mix1(values: Vec<i32>, pos: usize) -> Vec<i32> {
+        fn mix1(values: Vec<i64>, pos: usize) -> Vec<i64> {
             let mut values = values.into_iter().enumerate().collect();
             super::mix1(&mut values, pos, false);
             values.into_iter().map(|(_, v)| v).collect()
