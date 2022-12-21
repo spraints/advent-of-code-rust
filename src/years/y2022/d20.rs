@@ -42,32 +42,42 @@ fn mix(values: &mut Vec<(usize, i64)>, vis: bool) {
 }
 
 fn mix1(values: &mut Vec<(usize, i64)>, order: usize, vis: bool) {
-    let len = values.len() as i64;
-    let (origpos, (_, val)) = values
-        .iter()
-        .enumerate()
-        .find(|(_, (i, _))| *i == order)
-        .unwrap();
-    let origpos = origpos;
-    let val = *val;
-    let mut pos = origpos as i64;
-    if val != 0 {
-        let offset = val / val.abs();
-        //let val = offset * (val.abs() % len);
-        for _ in 0..val.abs() {
-            let mut newpos = pos + offset;
-            if newpos < 0 {
-                newpos = len - 1;
-            }
-            newpos = newpos % len;
-            let swap = values[newpos as usize].clone();
-            values[newpos as usize] = values[pos as usize].clone();
-            values[pos as usize] = swap;
-            pos = newpos;
-        }
+    fn find(values: &[(usize, i64)], order: usize) -> (usize, i64) {
+        let (pos, (_, val)) = values
+            .iter()
+            .enumerate()
+            .find(|(_, (i, _))| *i == order)
+            .unwrap();
+        (pos, *val)
     }
+
+    let (pos, val) = find(values, order);
+    let len = values.len() as i64;
+    if val % len == 0 {
+        return;
+    }
+    let mut newpos = (pos as i64 + val) % len;
+    if newpos < 0 {
+        newpos += len;
+    }
+    assert!(
+        newpos >= 0 && newpos < len,
+        "newpos={} values.len={}",
+        newpos,
+        values.len()
+    );
+    let newpos = newpos as usize;
+    let e = values.remove(pos);
+    values.insert(newpos, e);
+    /*
+    if newpos < pos {
+        values[newpos..=pos].rotate_right(1);
+    } else {
+        values[pos..=newpos].rotate_left(1);
+    }
+    */
     if vis {
-        println!("moved {} from [{}] to [{}]", val, origpos, pos);
+        println!("moved {} from [{}] to [{}]", val, pos, newpos);
         let mut sep = "";
         for (_, v) in values.iter() {
             print!("{}{}", sep, v);
@@ -176,6 +186,11 @@ mod test {
         check(vec![4, -46, 1, 2, 3], mix1(vec![1, 2, -46, 3, 4], 2));
         check(vec![-47, 4, 1, 2, 3], mix1(vec![1, 2, -47, 3, 4], 2));
         check(vec![3, 4, 1, 2, -48], mix1(vec![1, 2, -48, 3, 4], 2));
+
+        check(
+            vec![1, 2, 3, -2, -3, 0, 4],
+            mix1(vec![1, -3, 2, 3, -2, 0, 4], 1),
+        );
 
         /*
         // val = 49
