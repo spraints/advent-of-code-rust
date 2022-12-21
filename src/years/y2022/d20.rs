@@ -137,5 +137,8 @@ mod test {
 
         assert_eq!(vec![3, 9, 4, 1, 2], mix1(vec![1, 2, 9, 3, 4], 2));
         assert_eq!(vec![3, 4, 1, -9, 2], mix1(vec![1, 2, -9, 3, 4], 2));
+
+        assert_eq!(vec![2, 3, 4, 66, 1], mix1(vec![1, 2, 66, 3, 4], 2));
+        assert_eq!(vec![4, -66, 1, 2, 3], mix1(vec![1, 2, -66, 3, 4], 2));
     }
 }
