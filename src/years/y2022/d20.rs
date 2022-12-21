@@ -31,6 +31,9 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     }
 
     for i in 0..10 {
+        if i == 0 {
+            return Box::new("BOOOM");
+        }
         mix(&mut values, false);
         if vis {
             println!("After round {}:", i + 1);
@@ -59,28 +62,6 @@ fn mix(values: &mut Vec<(usize, i64)>, vis: bool) {
             .unwrap();
         let val = *val;
         let mut pos = origpos as i64;
-        let mut cv = values.clone();
-        let guess_newpos = match pos + val {
-            x if x < 0 => (x + len * (x.abs() / len) + len) % len,
-            x => x % len,
-        };
-        if guess_newpos < origpos as i64 {
-            if vis {
-                println!(
-                    "{} => cv[{}..={}].rotate_right(1)",
-                    val, guess_newpos, origpos
-                );
-            }
-            cv[(guess_newpos as usize)..=origpos].rotate_right(1);
-        } else {
-            if vis {
-                println!(
-                    "{} => cv[{}..={}].rotate_left(1)",
-                    val, origpos, guess_newpos
-                );
-            }
-            cv[origpos..=(guess_newpos as usize)].rotate_left(1);
-        }
         if val != 0 {
             let offset = val / val.abs();
             for _ in 0..val.abs() {
@@ -96,14 +77,9 @@ fn mix(values: &mut Vec<(usize, i64)>, vis: bool) {
             }
         }
         if vis {
-            println!(
-                "moved {} from [{}] to [{}] guess={}",
-                val, origpos, pos, guess_newpos
-            );
+            println!("moved {} from [{}] to [{}]", val, origpos, pos);
             print_values(values, None);
         }
-        assert_eq!(guess_newpos, pos, "guess was wrong after move");
-        assert_eq!(*values, cv);
         if vis {
             println!();
         }
@@ -137,11 +113,11 @@ mod test {
 
     crate::test::aoc_test!(example, r"1
 2
--3
+-10
 3
 -2
 0
-4",
-        part1 => 3/*,
-        part2 => 1623178306*/);
+11",
+        part1 => 3,
+        part2 => 1623178306);
 }
