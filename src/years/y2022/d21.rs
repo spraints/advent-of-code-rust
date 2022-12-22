@@ -10,9 +10,9 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     let rules: HashMap<String, Rule> = input.lines().map(parse).collect();
     let mut memo = HashMap::new();
     solve(&rules, &mut memo, "root", true, Some("humn"));
-    if vis {
-        match rules.get("root") {
-            Some(Rule::Add(a, b)) => {
+    let res = match rules.get("root") {
+        Some(Rule::Add(a, b)) => {
+            if vis {
                 println!("{}:", a);
                 println!("  {}", substitute(a, &rules));
                 println!("  => {:?}", memo.get(a));
@@ -20,10 +20,35 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
                 println!("  {}", substitute(b, &rules));
                 println!("  => {:?}", memo.get(b));
             }
-            x => unreachable!("unexpected root: {:?}", x),
+            match (memo.get(a), memo.get(b)) {
+                (Some(Some(answer)), Some(None)) => what_is_humn(*answer, &rules, &memo, b, vis),
+                (Some(None), Some(Some(answer))) => what_is_humn(*answer, &rules, &memo, a, vis),
+                (a, b) => unreachable!("womp womp a={:?} b={:?}", a, b),
+            }
         }
+        x => unreachable!("unexpected root: {:?}", x),
+    };
+    Box::new(res)
+}
+
+fn what_is_humn(
+    answer: i64,
+    rules: &HashMap<String, Rule>,
+    memo: &HashMap<String, Option<i64>>,
+    cur: &str,
+    vis: bool,
+) -> i64 {
+    if vis {
+        println!("solving for {} = {}", cur, answer);
     }
-    Box::new("todo")
+    match rules.get(cur) {
+        Some(Rule::Add(a, b)) => todo!(),
+        Some(Rule::Sub(a, b)) => todo!(),
+        Some(Rule::Mul(a, b)) => todo!(),
+        Some(Rule::Div(a, b)) => todo!(),
+        Some(x) => unreachable!("should not have a {:?} here", x),
+        None => unreachable!("illegal reference to {}", cur),
+    }
 }
 
 fn substitute(x: &str, rules: &HashMap<String, Rule>) -> String {
@@ -47,7 +72,6 @@ fn solve(
     skip: Option<&str>,
 ) -> Option<i64> {
     if matches!(skip, Some(x) if x == target) {
-        println!(" ... skip {}", target);
         return None;
     }
     if let Some(val) = memo.get(target) {
@@ -56,13 +80,7 @@ fn solve(
     if vis {
         println!("getting {}", target);
     }
-    fn step<F: Fn(i64, i64) -> i64>(
-        s: &str,
-        op1: Option<i64>,
-        op2: Option<i64>,
-        f: F,
-    ) -> Option<i64> {
-        println!(" {} => {:?} ~ {:?}", s, op1, op2);
+    fn step<F: Fn(i64, i64) -> i64>(op1: Option<i64>, op2: Option<i64>, f: F) -> Option<i64> {
         match (op1, op2) {
             (Some(op1), Some(op2)) => Some(f(op1, op2)),
             _ => None,
@@ -71,25 +89,21 @@ fn solve(
     let res = match rules.get(target).unwrap() {
         Rule::Const(val) => Some(*val),
         Rule::Add(arg1, arg2) => step(
-            target,
             solve(rules, memo, arg1, vis, skip),
             solve(rules, memo, arg2, vis, skip),
             |a, b| a + b,
         ),
         Rule::Sub(arg1, arg2) => step(
-            target,
             solve(rules, memo, arg1, vis, skip),
             solve(rules, memo, arg2, vis, skip),
             |a, b| a - b,
         ),
         Rule::Mul(arg1, arg2) => step(
-            target,
             solve(rules, memo, arg1, vis, skip),
             solve(rules, memo, arg2, vis, skip),
             |a, b| a * b,
         ),
         Rule::Div(arg1, arg2) => step(
-            target,
             solve(rules, memo, arg1, vis, skip),
             solve(rules, memo, arg2, vis, skip),
             |a, b| a / b,
