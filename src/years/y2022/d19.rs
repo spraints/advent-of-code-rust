@@ -66,7 +66,7 @@ fn quality_level(bp: &Blueprint, minutes: usize, vis: bool) -> Quality {
                     );
                 }
                 let minerals = collect(minerals, &st.robots);
-                let mut robots = st.robots.clone();
+                let mut robots = st.robots;
                 robots[rc.produces as usize] += 1;
                 to_try.push(State {
                     elapsed: st.elapsed + 1,
@@ -80,8 +80,8 @@ fn quality_level(bp: &Blueprint, minutes: usize, vis: bool) -> Quality {
         to_try.push(State {
             elapsed: st.elapsed + 1,
             minutes: st.minutes,
-            robots: st.robots.clone(),
-            minerals: collect(st.minerals.clone(), &st.robots),
+            robots: st.robots,
+            minerals: collect(st.minerals, &st.robots),
         });
     }
 

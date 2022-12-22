@@ -74,10 +74,10 @@ impl Rock {
 
 impl Display for Rock {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        fn fmt_row(row: &Vec<Space>) -> String {
+        fn fmt_row(row: &[Space]) -> String {
             row.iter().map(|x| x.c('#')).collect()
         }
-        let rows: Vec<String> = self.0.iter().map(fmt_row).collect();
+        let rows: Vec<String> = self.0.iter().map(|r| fmt_row(r)).collect();
         write!(f, "{}", rows.join("/"))
     }
 }
@@ -203,9 +203,9 @@ fn rock_fall<'a, I: Iterator<Item = Puff>>(
                     ..state
                 };
                 if collides(cavern, rock, maybe) {
-                    return state;
+                    state
                 } else {
-                    return maybe;
+                    maybe
                 }
             }
             Puff::Right => {
@@ -217,12 +217,12 @@ fn rock_fall<'a, I: Iterator<Item = Puff>>(
                     ..state
                 };
                 if collides(cavern, rock, maybe) {
-                    return state;
+                    state
                 } else {
-                    return maybe;
+                    maybe
                 }
             }
-        };
+        }
     }
 
     fn collides(cavern: &Cavern, rock: &Rock, state: State) -> bool {

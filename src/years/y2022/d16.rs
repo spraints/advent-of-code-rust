@@ -278,15 +278,13 @@ pub fn part2_new(input: String, vis: bool) -> Box<dyn Display> {
     let all_interesting = (1 << game.interesting.len()) - 1;
     let mut cache = HashMap::new();
     for split in 0..(1 << game.interesting.len()) {
-        let my_score = cache
+        let my_score = *cache
             .entry(split)
-            .or_insert_with(|| solve1(&game, 26, split, vis))
-            .clone();
+            .or_insert_with(|| solve1(&game, 26, split, vis));
         let esplit = all_interesting & !split;
-        let elephant_score = cache
+        let elephant_score = *cache
             .entry(esplit)
-            .or_insert_with(|| solve1(&game, 26, esplit, vis))
-            .clone();
+            .or_insert_with(|| solve1(&game, 26, esplit, vis));
         best = best.max(my_score + elephant_score);
     }
     Box::new(best)
@@ -501,12 +499,11 @@ fn find_distances(v: &[Valve], vi: &HashMap<String, usize>, vis: bool) -> Vec<Ve
     for (from, valve) in v.iter().enumerate() {
         if valve.name == "AA" || valve.rate > 0 {
             for (to, dest_valve) in v.iter().enumerate() {
-                if dest_valve.rate > 0 && dest_valve.name != valve.name {
-                    if dists[from][to].is_none() {
-                        let d = Some(get_dist(from, to, v, vi, vis));
-                        dists[from][to] = d;
-                        dists[to][from] = d;
-                    }
+                if dest_valve.rate > 0 && dest_valve.name != valve.name && dists[from][to].is_none()
+                {
+                    let d = Some(get_dist(from, to, v, vi, vis));
+                    dists[from][to] = d;
+                    dists[to][from] = d;
                 }
             }
         }
@@ -571,7 +568,7 @@ fn parse_valve(line: &str) -> Valve {
     let rate = line[4]
         .strip_prefix("rate=")
         .unwrap()
-        .strip_suffix(";")
+        .strip_suffix(';')
         .unwrap()
         .parse()
         .unwrap();

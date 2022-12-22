@@ -50,7 +50,7 @@ fn real_part2_2(input: String, vis: bool, max: Coord) -> (Coord, Coord) {
         b.clear();
         a.push(0..=max);
         for s in &sensors {
-            if let Some(new) = cover(&s, y) {
+            if let Some(new) = cover(s, y) {
                 update(&a, &mut b, new);
                 if b.is_empty() {
                     continue 'y;
