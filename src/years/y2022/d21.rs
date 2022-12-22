@@ -11,19 +11,19 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     let mut memo = HashMap::new();
     solve(&rules, &mut memo, "root", true, Some("humn"));
     let res = match rules.get("root") {
-        Some(Rule::Add(a, b)) => {
+        Some(Rule::Op { arg1, arg2, .. }) => {
             if vis {
-                println!("{}:", a);
-                println!("  {}", substitute(a, &rules));
-                println!("  => {:?}", memo.get(a));
-                println!("{}:", b);
-                println!("  {}", substitute(b, &rules));
-                println!("  => {:?}", memo.get(b));
+                println!("{}:", arg1);
+                println!("  {}", substitute(arg1, &rules));
+                println!("  => {:?}", memo.get(arg1));
+                println!("{}:", arg2);
+                println!("  {}", substitute(arg2, &rules));
+                println!("  => {:?}", memo.get(arg2));
             }
-            match (memo.get(a), memo.get(b)) {
-                (Some(Some(answer)), Some(None)) => what_is_humn(*answer, &rules, &memo, b, vis),
-                (Some(None), Some(Some(answer))) => what_is_humn(*answer, &rules, &memo, a, vis),
-                (a, b) => unreachable!("womp womp a={:?} b={:?}", a, b),
+            match (memo.get(arg1), memo.get(arg2)) {
+                (Some(Some(answer)), Some(None)) => what_is_humn(*answer, &rules, &memo, arg2, vis),
+                (Some(None), Some(Some(answer))) => what_is_humn(*answer, &rules, &memo, arg1, vis),
+                (memo1, memo2) => unreachable!("womp womp a={:?} b={:?}", memo1, memo2),
             }
         }
         x => unreachable!("unexpected root: {:?}", x),
@@ -38,14 +38,31 @@ fn what_is_humn(
     cur: &str,
     vis: bool,
 ) -> i64 {
-    if vis {
-        println!("solving for {} = {}", cur, answer);
-    }
     match rules.get(cur) {
-        Some(Rule::Add(a, b)) => todo!(),
-        Some(Rule::Sub(a, b)) => todo!(),
-        Some(Rule::Mul(a, b)) => todo!(),
-        Some(Rule::Div(a, b)) => todo!(),
+        Some(Rule::Op { arg1, arg2, op }) => {
+            let m1 = memo.get(arg1);
+            let m2 = memo.get(arg2);
+            if vis {
+                println!(
+                    "solving for {} = {}({:?}) {} {}({:?})",
+                    answer, arg1, m1, op, arg2, m2
+                );
+            }
+            match (m1, m2) {
+                // Still more to do!
+                (Some(Some(arg1)), Some(None)) => {
+                    what_is_humn(op.unapply1(answer, arg1), rules, memo, arg2, vis)
+                }
+                (Some(None), Some(Some(arg2))) => {
+                    what_is_humn(op.unapply2(answer, arg2), rules, memo, arg1, vis)
+                }
+                // This is it!
+                (Some(Some(arg1)), None) if arg2 == "humn" => op.unapply1(answer, arg1),
+                (None, Some(Some(arg2))) if arg1 == "humn" => op.unapply2(answer, arg2),
+                // Nope! These shouldn't happen!
+                x => unreachable!("unexpected: {:?}", x),
+            }
+        }
         Some(x) => unreachable!("should not have a {:?} here", x),
         None => unreachable!("illegal reference to {}", cur),
     }
@@ -57,10 +74,12 @@ fn substitute(x: &str, rules: &HashMap<String, Rule>) -> String {
     }
     match rules.get(x).unwrap() {
         Rule::Const(val) => format!("{}", val),
-        Rule::Add(a, b) => format!("({} + {})", substitute(a, rules), substitute(b, rules)),
-        Rule::Sub(a, b) => format!("({} - {})", substitute(a, rules), substitute(b, rules)),
-        Rule::Mul(a, b) => format!("({} * {})", substitute(a, rules), substitute(b, rules)),
-        Rule::Div(a, b) => format!("({} / {})", substitute(a, rules), substitute(b, rules)),
+        Rule::Op { op, arg1, arg2 } => format!(
+            "({} {} {})",
+            substitute(arg1, rules),
+            op,
+            substitute(arg2, rules),
+        ),
     }
 }
 
@@ -80,33 +99,18 @@ fn solve(
     if vis {
         println!("getting {}", target);
     }
-    fn step<F: Fn(i64, i64) -> i64>(op1: Option<i64>, op2: Option<i64>, f: F) -> Option<i64> {
-        match (op1, op2) {
-            (Some(op1), Some(op2)) => Some(f(op1, op2)),
+    fn step(arg1: Option<i64>, arg2: Option<i64>, op: Op) -> Option<i64> {
+        match (arg1, arg2) {
+            (Some(arg1), Some(arg2)) => Some(op.apply(arg1, arg2)),
             _ => None,
         }
     }
     let res = match rules.get(target).unwrap() {
         Rule::Const(val) => Some(*val),
-        Rule::Add(arg1, arg2) => step(
+        Rule::Op { op, arg1, arg2 } => step(
             solve(rules, memo, arg1, vis, skip),
             solve(rules, memo, arg2, vis, skip),
-            |a, b| a + b,
-        ),
-        Rule::Sub(arg1, arg2) => step(
-            solve(rules, memo, arg1, vis, skip),
-            solve(rules, memo, arg2, vis, skip),
-            |a, b| a - b,
-        ),
-        Rule::Mul(arg1, arg2) => step(
-            solve(rules, memo, arg1, vis, skip),
-            solve(rules, memo, arg2, vis, skip),
-            |a, b| a * b,
-        ),
-        Rule::Div(arg1, arg2) => step(
-            solve(rules, memo, arg1, vis, skip),
-            solve(rules, memo, arg2, vis, skip),
-            |a, b| a / b,
+            *op,
         ),
     };
     memo.insert(target.to_string(), res);
@@ -114,26 +118,86 @@ fn solve(
 }
 
 fn parse(s: &str) -> (String, Rule) {
-    let (name, op) = s.split_once(": ").unwrap();
-    let op: Vec<&str> = op.split(' ').collect();
-    let rule = match op.get(1) {
-        None => Rule::Const(op[0].parse().unwrap()),
-        Some(&"+") => Rule::Add(op[0].to_owned(), op[2].to_owned()),
-        Some(&"-") => Rule::Sub(op[0].to_owned(), op[2].to_owned()),
-        Some(&"*") => Rule::Mul(op[0].to_owned(), op[2].to_owned()),
-        Some(&"/") => Rule::Div(op[0].to_owned(), op[2].to_owned()),
+    let (name, expr) = s.split_once(": ").unwrap();
+    let parts: Vec<&str> = expr.split(' ').collect();
+    let rule = match parts.get(1) {
+        None => Rule::Const(parts[0].parse().unwrap()),
+        Some(op) => Rule::Op {
+            op: parse_op(op),
+            arg1: parts[0].to_string(),
+            arg2: parts[2].to_string(),
+        },
         _ => unreachable!("can't parse {:?}", s),
     };
     (name.to_owned(), rule)
 }
 
+fn parse_op(s: &str) -> Op {
+    match s {
+        "+" => Op::Add,
+        "-" => Op::Sub,
+        "*" => Op::Mul,
+        "/" => Op::Div,
+        s => unreachable!("illegal op {:?}", s),
+    }
+}
+
 #[derive(Debug)]
 enum Rule {
     Const(i64),
-    Add(String, String),
-    Sub(String, String),
-    Mul(String, String),
-    Div(String, String),
+    Op { op: Op, arg1: String, arg2: String },
+}
+
+#[derive(Debug, Clone, Copy)]
+enum Op {
+    Add,
+    Sub,
+    Mul,
+    Div,
+}
+
+impl Op {
+    fn apply(&self, a: i64, b: i64) -> i64 {
+        match self {
+            Self::Add => a + b,
+            Self::Sub => a - b,
+            Self::Mul => a * b,
+            Self::Div => a / b,
+        }
+    }
+
+    fn unapply1(&self, answer: i64, arg1: &i64) -> i64 {
+        match self {
+            // arg1 + ? = answer
+            Self::Add => answer - arg1,
+            // arg1 * ? = answer
+            Self::Mul => answer / arg1,
+            // arg1 - ? = answer
+            Self::Sub => arg1 - answer,
+            _ => todo!("{} {} {} = {}", arg1, self, "?", answer),
+        }
+    }
+
+    fn unapply2(&self, answer: i64, arg2: &i64) -> i64 {
+        match self {
+            // ? + arg2 = answer
+            Self::Add => answer - arg2,
+            Self::Sub => answer + arg2,
+            Self::Mul => answer / arg2,
+            Self::Div => answer * arg2,
+        }
+    }
+}
+
+impl Display for Op {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Add => write!(f, "+"),
+            Self::Sub => write!(f, "-"),
+            Self::Mul => write!(f, "*"),
+            Self::Div => write!(f, "/"),
+        }
+    }
 }
 
 #[cfg(test)]
