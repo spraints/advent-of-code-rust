@@ -2,7 +2,8 @@ use std::{collections::HashMap, fmt::Display};
 
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     let rules: HashMap<String, Rule> = input.lines().map(parse).collect();
-    Box::new(solve(&rules, "root", vis))
+    let mut memo = HashMap::new();
+    Box::new(solve(&rules, &mut memo, "root", vis))
 }
 
 pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
@@ -34,38 +35,25 @@ fn substitute(x: &str, rules: &HashMap<String, Rule>) -> String {
     }
 }
 
-fn solve(rules: &HashMap<String, Rule>, target: &str, vis: bool) -> i64 {
-    fn resolve(
-        rules: &HashMap<String, Rule>,
-        memo: &mut HashMap<String, i64>,
-        target: &str,
-        vis: bool,
-    ) -> i64 {
-        if let Some(val) = memo.get(target) {
-            return *val;
-        }
-        if vis {
-            println!("getting {}", target);
-        }
-        match rules.get(target).unwrap() {
-            Rule::Const(val) => *val,
-            Rule::Add(arg1, arg2) => {
-                resolve(rules, memo, arg1, vis) + resolve(rules, memo, arg2, vis)
-            }
-            Rule::Sub(arg1, arg2) => {
-                resolve(rules, memo, arg1, vis) - resolve(rules, memo, arg2, vis)
-            }
-            Rule::Mul(arg1, arg2) => {
-                resolve(rules, memo, arg1, vis) * resolve(rules, memo, arg2, vis)
-            }
-            Rule::Div(arg1, arg2) => {
-                resolve(rules, memo, arg1, vis) / resolve(rules, memo, arg2, vis)
-            }
-        }
+fn solve(
+    rules: &HashMap<String, Rule>,
+    memo: &mut HashMap<String, i64>,
+    target: &str,
+    vis: bool,
+) -> i64 {
+    if let Some(val) = memo.get(target) {
+        return *val;
     }
-
-    let mut memo = HashMap::new();
-    resolve(rules, &mut memo, target, vis)
+    if vis {
+        println!("getting {}", target);
+    }
+    match rules.get(target).unwrap() {
+        Rule::Const(val) => *val,
+        Rule::Add(arg1, arg2) => solve(rules, memo, arg1, vis) + solve(rules, memo, arg2, vis),
+        Rule::Sub(arg1, arg2) => solve(rules, memo, arg1, vis) - solve(rules, memo, arg2, vis),
+        Rule::Mul(arg1, arg2) => solve(rules, memo, arg1, vis) * solve(rules, memo, arg2, vis),
+        Rule::Div(arg1, arg2) => solve(rules, memo, arg1, vis) / solve(rules, memo, arg2, vis),
+    }
 }
 
 fn parse(s: &str) -> (String, Rule) {
@@ -111,5 +99,5 @@ lgvd: ljgn * ptdq
 drzm: hmdt - zczc
 hmdt: 32",
         part1 => 152,
-        part2 => "todo");
+        part2 => 301);
 }
