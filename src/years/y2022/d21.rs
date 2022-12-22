@@ -9,7 +9,7 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
 pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     let rules: HashMap<String, Rule> = input.lines().map(parse).collect();
     let mut memo = HashMap::new();
-    solve(&rules, &mut memo, "root", true, Some("humn"));
+    solve(&rules, &mut memo, "root", vis, Some("humn"));
     let res = match rules.get("root") {
         Some(Rule::Op { arg1, arg2, .. }) => {
             if vis {
@@ -127,7 +127,6 @@ fn parse(s: &str) -> (String, Rule) {
             arg1: parts[0].to_string(),
             arg2: parts[2].to_string(),
         },
-        _ => unreachable!("can't parse {:?}", s),
     };
     (name.to_owned(), rule)
 }
