@@ -6,7 +6,32 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
 }
 
 pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
+    let rules: HashMap<String, Rule> = input.lines().map(parse).collect();
+    if vis {
+        match rules.get("root") {
+            Some(Rule::Add(a, b)) => {
+                println!("{}:", a);
+                println!("  {}", substitute(a, &rules));
+                println!("{}:", b);
+                println!("  {}", substitute(b, &rules));
+            }
+            x => unreachable!("unexpected root: {:?}", x),
+        }
+    }
     Box::new("todo")
+}
+
+fn substitute(x: &str, rules: &HashMap<String, Rule>) -> String {
+    if x == "humn" {
+        return x.to_string();
+    }
+    match rules.get(x).unwrap() {
+        Rule::Const(val) => format!("{}", val),
+        Rule::Add(a, b) => format!("({} + {})", substitute(a, rules), substitute(b, rules)),
+        Rule::Sub(a, b) => format!("({} - {})", substitute(a, rules), substitute(b, rules)),
+        Rule::Mul(a, b) => format!("({} * {})", substitute(a, rules), substitute(b, rules)),
+        Rule::Div(a, b) => format!("({} / {})", substitute(a, rules), substitute(b, rules)),
+    }
 }
 
 fn solve(rules: &HashMap<String, Rule>, target: &str, vis: bool) -> i64 {
@@ -57,6 +82,7 @@ fn parse(s: &str) -> (String, Rule) {
     (name.to_owned(), rule)
 }
 
+#[derive(Debug)]
 enum Rule {
     Const(i64),
     Add(String, String),
