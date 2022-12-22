@@ -24,8 +24,8 @@ mod d21;
 use crate::solutionset::SolutionSet;
 
 pub fn register<S: SolutionSet>(s: &mut S) {
-    s.add(2122, 21, 1, None, d21::part1);
-    s.add(2122, 21, 2, None, d21::part2);
+    s.add(2022, 21, 1, None, d21::part1);
+    s.add(2022, 21, 2, None, d21::part2);
 
     s.add(2022, 20, 1, None, d20::part1);
     s.add(2022, 20, 2, None, d20::part2);
