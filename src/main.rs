@@ -179,7 +179,7 @@ struct Cli {
     part: Option<u8>,
 
     /// Include visualizations.
-    #[arg(long)]
+    #[arg(short, long)]
     visualize: bool,
 }
 
