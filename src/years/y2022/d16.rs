@@ -314,6 +314,10 @@ fn parse(input: String, vis: bool) -> Game {
 }
 
 fn solve1(game: &Game, minutes: Flow, visited: Visited, vis: bool) -> Flow {
+    // I'd like to make this faster. Some ideas:
+    // - Scrap potential.
+    // - Memoize reward from (valve, visited, minutes_remaining).
+    // - Instead of a HashMap in part 2, just divide the max slice by 2.
     fn get_potential(game: &Game, loc: usize, visited: Visited, minutes_remaining: Flow) -> Flow {
         let avail_rate: Flow = game
             .interesting
