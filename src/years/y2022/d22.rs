@@ -84,11 +84,11 @@ fn trace_edges(board: &Board, pos: Coord, edge_len: usize) -> Colors {
     let mut n = 0;
     while let Some(pos) = todo.pop() {
         if let Some(n) = res.get(&pos) {
-            println!("SKIP {:?} ({})", pos, n);
+            //println!("SKIP {:?} ({})", pos, n);
             continue;
         }
         if get(board, pos.0, pos.1).is_none() {
-            println!("DONT LOOK {:?}", pos);
+            //println!("DONT LOOK {:?}", pos);
             continue;
         }
         let (r, c) = (pos.0 as isize, pos.1 as isize);
@@ -101,7 +101,7 @@ fn trace_edges(board: &Board, pos: Coord, edge_len: usize) -> Colors {
         let downleft = should_explore(board, &res, r + 1, c - 1);
         let left = should_explore(board, &res, r, c - 1);
         if !upleft && downright {
-            println!("DR from {:?}", pos);
+            //println!("DR from {:?}", pos);
             for r in 0..edge_len {
                 for c in 0..edge_len {
                     let ok = res.insert((pos.0 + r, pos.1 + c), n).is_none();
@@ -112,7 +112,7 @@ fn trace_edges(board: &Board, pos: Coord, edge_len: usize) -> Colors {
             todo.push((pos.0 + edge_len, pos.1));
             n += 1;
         } else if upleft && !downright {
-            println!("UL from {:?}", pos);
+            //println!("UL from {:?}", pos);
             for r in 0..edge_len {
                 for c in 0..edge_len {
                     let ok = res.insert((pos.0 - r, pos.1 - c), n).is_none();
@@ -127,7 +127,7 @@ fn trace_edges(board: &Board, pos: Coord, edge_len: usize) -> Colors {
             }
             n += 1;
         } else if !upright && downleft {
-            println!("DL from {:?}", pos);
+            //println!("DL from {:?}", pos);
             for r in 0..edge_len {
                 for c in 0..edge_len {
                     let ok = res.insert((pos.0 + r, pos.1 - c), n).is_none();
@@ -140,7 +140,7 @@ fn trace_edges(board: &Board, pos: Coord, edge_len: usize) -> Colors {
             }
             n += 1;
         } else if upright && !downleft {
-            println!("UR from {:?}", pos);
+            //println!("UR from {:?}", pos);
             for r in 0..edge_len {
                 for c in 0..edge_len {
                     let ok = res.insert((pos.0 - r, pos.1 + c), n).is_none();
@@ -157,19 +157,19 @@ fn trace_edges(board: &Board, pos: Coord, edge_len: usize) -> Colors {
         }
         if up {
             todo.push((pos.0 - 1, pos.1));
-            println!("  todo: U {:?}", todo[todo.len() - 1]);
+            //println!("  todo: U {:?}", todo[todo.len() - 1]);
         }
         if down {
             todo.push((pos.0 + 1, pos.1));
-            println!("  todo: D {:?}", todo[todo.len() - 1]);
+            //println!("  todo: D {:?}", todo[todo.len() - 1]);
         }
         if left {
             todo.push((pos.0, pos.1 - 1));
-            println!("  todo: L {:?}", todo[todo.len() - 1]);
+            //println!("  todo: L {:?}", todo[todo.len() - 1]);
         }
         if right {
             todo.push((pos.0, pos.1 + 1));
-            println!("  todo: R {:?}", todo[todo.len() - 1]);
+            //println!("  todo: R {:?}", todo[todo.len() - 1]);
         }
     }
     res
@@ -310,15 +310,55 @@ fn walk2(
         match get(board, newr, newc) {
             Some(Tile::Wall) => break,
             Some(Tile::Open) => (r, c) = (newr, newc),
-            None => todo!(
-                "suck dir={:?} dest={:?} color={}",
-                dir,
-                (newr, newc),
-                colors.get(&(r as usize, c as usize)).unwrap()
-            ),
+            None => {
+                let (newdir, (newr, newc)) = suck(
+                    edge_len,
+                    (newr, newc),
+                    dir,
+                    *colors.get(&(r as usize, c as usize)).unwrap(),
+                );
+                match get(board, newr, newc) {
+                    Some(Tile::Wall) => break,
+                    Some(Tile::Open) => {
+                        (r, c) = (newr, newc);
+                        dir = newdir;
+                    }
+                    None => unreachable!(),
+                };
+            }
         };
     }
     ((r as usize, c as usize), dir)
+}
+
+fn suck(edge_len: usize, pos: (isize, isize), dir: Dir, color: u8) -> (Dir, (isize, isize)) {
+    let (r, c) = pos;
+    if edge_len == 4 {
+        // practice
+        match (color, dir) {
+            (1, Dir::Right) => {
+                assert_eq!(c, 12);
+                assert!(r >= 4 && r <= 7);
+                (Dir::Down, (8, 19 - r))
+            }
+            (4, Dir::Down) => {
+                assert_eq!(r, 12);
+                assert!(c >= 8 && c <= 11);
+                (Dir::Up, (7, 11 - c))
+            }
+            (2, Dir::Up) => {
+                assert_eq!(r, 3);
+                assert!(c >= 4 && c <= 7);
+                (Dir::Right, (c - 4, 8))
+            }
+            x => todo!("{:?} pos={:?}", x, pos),
+        }
+    } else {
+        // real
+        match (color, dir) {
+            x => todo!("{:?} pos={:?}", x, pos),
+        }
+    }
 }
 
 fn walk(board: &Board, mut pos: Coord, dir: Dir, dist: usize) -> Coord {
@@ -333,7 +373,7 @@ fn walk(board: &Board, mut pos: Coord, dir: Dir, dist: usize) -> Coord {
 
 type Coord = (usize, usize);
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Dir {
     Right = 0,
     Down = 1,
@@ -516,5 +556,17 @@ mod test {
 
 10R5L5R10L4R5L5",
         part1 => 6032,
-        part2 => "todo");
+        part2 => 5031);
+
+    #[test]
+    fn suck() {
+        assert_eq!(super::suck(4, (4, 12), Dir::Right, 1), (Dir::Down, (8, 15)));
+        assert_eq!(super::suck(4, (7, 12), Dir::Right, 1), (Dir::Down, (8, 12)));
+
+        assert_eq!(super::suck(4, (12, 8), Dir::Down, 4), (Dir::Up, (7, 3)));
+        assert_eq!(super::suck(4, (12, 11), Dir::Down, 4), (Dir::Up, (7, 0)));
+
+        assert_eq!(super::suck(4, (3, 4), Dir::Up, 2), (Dir::Right, (0, 8)));
+        assert_eq!(super::suck(4, (3, 7), Dir::Up, 2), (Dir::Right, (3, 8)));
+    }
 }
