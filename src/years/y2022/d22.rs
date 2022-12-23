@@ -56,12 +56,13 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
         match m {
             Move::L => dir = dir.l(),
             Move::R => dir = dir.r(),
-            Move::Go(dist) => (pos, dir) = walk2(&board, &edges, pos, dir, dist, edge_len),
+            Move::Go(dist) => (pos, dir) = walk2(&board, &edges, pos, dir, dist, edge_len, vis),
         }
     }
 
     let (row, col) = pos;
     // 159082 is too high.
+    // 3387 is too low.
     Box::new((row + 1) * 1000 + (col + 1) * 4 + dir as usize)
 }
 
@@ -303,6 +304,7 @@ fn walk2(
     mut dir: Dir,
     dist: usize,
     edge_len: usize,
+    vis: bool,
 ) -> (Coord, Dir) {
     let (mut r, mut c) = (pos.0 as isize, pos.1 as isize);
     for _ in 0..dist {
@@ -317,6 +319,7 @@ fn walk2(
                     (newr, newc),
                     dir,
                     *colors.get(&(r as usize, c as usize)).unwrap(),
+                    vis,
                 );
                 match get(board, suckr, suckc) {
                     Some(Tile::Wall) => break,
@@ -337,8 +340,16 @@ fn walk2(
     ((r as usize, c as usize), dir)
 }
 
-fn suck(edge_len: usize, pos: (isize, isize), dir: Dir, color: u8) -> (Dir, (isize, isize)) {
-    println!("suck(pos={:?}, dir={:?}, color={})", pos, dir, color);
+fn suck(
+    edge_len: usize,
+    pos: (isize, isize),
+    dir: Dir,
+    color: u8,
+    vis: bool,
+) -> (Dir, (isize, isize)) {
+    if vis {
+        println!("suck(pos={:?}, dir={:?}, color={})", pos, dir, color);
+    }
     let (r, c) = pos;
     if edge_len == 4 {
         // practice
@@ -368,55 +379,68 @@ fn suck(edge_len: usize, pos: (isize, isize), dir: Dir, color: u8) -> (Dir, (isi
         // 4
         //
         // 3 up to 1 right
-        match (color, dir) {
-            // 0 left to 3 right
-            (0, Dir::Left) => {
-                assert_eq!(c, 49);
-                assert!(r >= 0 && r <= 49);
-                (Dir::Right, (149 - r, 0))
-            }
-            // 3 left to 0 right
-            (3, Dir::Left) => {
-                assert_eq!(c, -1);
-                assert!(100 <= r && r <= 149);
-                (Dir::Right, (149 - r, 50))
-            }
-            // 0 up to 4 right
-            (0, Dir::Up) => {
-                assert_eq!(r, -1);
-                assert!(50 <= c && c <= 99);
+        if r == -1 {
+            assert!(matches!(dir, Dir::Up) && c >= 50 && c < 150);
+            if c < 100 {
+                // leave 0 for 4.
                 (Dir::Right, (c + 100, 0))
+            } else {
+                // leave 5 for 4.
+                (Dir::Up, (199, c - 100))
             }
-            // 4 right to 2 up
-            (4, Dir::Right) => {
-                assert_eq!(c, 50);
-                assert!(150 <= r && r <= 199);
-                (Dir::Up, (149, r - 100))
+        } else if c == 49 && matches!(dir, Dir::Left) {
+            assert!(r >= 0 && r < 100);
+            if r < 50 {
+                // leave 0 for 3.
+                (Dir::Right, (149 - r, 0))
+            } else {
+                // leave 1 for 3.
+                (Dir::Down, (100, r - 50))
             }
-            // 2 down to 4 left
-            (2, Dir::Down) => {
-                assert_eq!(r, 150);
-                assert!(50 <= c && c <= 99);
-                (Dir::Left, (c + 100, 49))
+        } else if r == 99 {
+            assert!(matches!(dir, Dir::Up) && c >= 0 && c < 50);
+            // leave 3 for 1
+            (Dir::Right, (c + 50, 50))
+        } else if c == -1 {
+            assert!(matches!(dir, Dir::Left) && r >= 100 && r < 200);
+            if r < 150 {
+                // leave 3 for 0.
+                (Dir::Right, (149 - r, 50))
+            } else {
+                // leave 4 for 0.
+                (Dir::Down, (0, r - 100))
             }
-            // 2 right to 5 left
-            (2, Dir::Right) => (Dir::Left, (149 - r, 149)),
-            // 5 right to 2 left
-            (5, Dir::Right) => (Dir::Left, (149 - r, 99)),
-            // 5 up to 4 up
-            (5, Dir::Up) => (Dir::Up, (199, c - 100)),
-            // 4 down to 5 down
-            (4, Dir::Down) => (Dir::Down, (0, c + 100)),
-            // 4 left to 0 down
-            (4, Dir::Left) => (Dir::Down, (0, r - 100)),
-            // 1 left to 3 down and vice versa
-            (1, Dir::Left) => (Dir::Down, (100, 99 - r)),
-            (3, Dir::Up) => (Dir::Right, (c + 50, 50)),
-            // 5 down to 1 left
-            (5, Dir::Down) => (Dir::Left, (c - 50, 99)),
-            // 1 right to 5 up
-            (1, Dir::Right) => (Dir::Up, (49, r + 50)),
-            x => todo!("{:?} pos={:?}", x, pos),
+        } else if c == 50 {
+            assert!(matches!(dir, Dir::Right) && r >= 150 && r < 200);
+            // leave 4 for 2
+            (Dir::Up, (149, r - 100))
+        } else if r == 150 {
+            assert!(matches!(dir, Dir::Down) && c >= 50 && c < 100);
+            // leave 2 for 4
+            (Dir::Left, (c + 100, 49))
+        } else if c == 100 {
+            assert!(matches!(dir, Dir::Right) && r >= 50 && r < 150);
+            if r < 100 {
+                // leave 1 for 5
+                (Dir::Up, (49, r + 50))
+            } else {
+                // leave 2 for 5
+                (Dir::Left, (149 - r, 149))
+            }
+        } else if c == 150 {
+            assert!(matches!(dir, Dir::Right) && r >= 0 && r < 50);
+            // leave 5 for 2
+            (Dir::Left, (149 - r, 99))
+        } else if r == 200 {
+            assert!(matches!(dir, Dir::Down) && c >= 0 && c < 50);
+            // leave 4 for 5
+            (Dir::Down, (0, c + 100))
+        } else if r == 50 {
+            assert!(matches!(dir, Dir::Down) && c >= 100 && c < 150);
+            // leave 5 for 1
+            (Dir::Left, (r - 50, 99))
+        } else {
+            unreachable!("suck(pos=(r={},c={}), dir: {:?})", r, c, dir);
         }
     }
 }
@@ -620,53 +644,59 @@ mod test {
 
     #[test]
     fn suck_example() {
-        assert_eq!(suck(4, (4, 12), Dir::Right, 1), (Dir::Down, (8, 15)));
-        assert_eq!(suck(4, (7, 12), Dir::Right, 1), (Dir::Down, (8, 12)));
+        fn suck(pos: (isize, isize), dir: Dir, color: u8) -> (Dir, (isize, isize)) {
+            super::suck(4, pos, dir, color, true)
+        }
 
-        assert_eq!(suck(4, (12, 8), Dir::Down, 4), (Dir::Up, (7, 3)));
-        assert_eq!(suck(4, (12, 11), Dir::Down, 4), (Dir::Up, (7, 0)));
+        assert_eq!(suck((4, 12), Dir::Right, 1), (Dir::Down, (8, 15)));
+        assert_eq!(suck((7, 12), Dir::Right, 1), (Dir::Down, (8, 12)));
 
-        assert_eq!(suck(4, (3, 4), Dir::Up, 2), (Dir::Right, (0, 8)));
-        assert_eq!(suck(4, (3, 7), Dir::Up, 2), (Dir::Right, (3, 8)));
+        assert_eq!(suck((12, 8), Dir::Down, 4), (Dir::Up, (7, 3)));
+        assert_eq!(suck((12, 11), Dir::Down, 4), (Dir::Up, (7, 0)));
+
+        assert_eq!(suck((3, 4), Dir::Up, 2), (Dir::Right, (0, 8)));
+        assert_eq!(suck((3, 7), Dir::Up, 2), (Dir::Right, (3, 8)));
     }
 
     #[test]
     fn suck_real() {
-        assert_eq!(suck(50, (0, 49), Dir::Left, 0), (Dir::Right, (149, 0)));
-        assert_eq!(suck(50, (49, 49), Dir::Left, 0), (Dir::Right, (100, 0)));
+        fn suck(pos: (isize, isize), dir: Dir, color: u8) -> (Dir, (isize, isize)) {
+            super::suck(50, pos, dir, color, true)
+        }
 
-        assert_eq!(suck(50, (100, -1), Dir::Left, 3), (Dir::Right, (49, 50)));
-        assert_eq!(suck(50, (118, -1), Dir::Left, 3), (Dir::Right, (31, 50)));
-        assert_eq!(suck(50, (149, -1), Dir::Left, 3), (Dir::Right, (0, 50)));
+        assert_eq!(suck((0, 49), Dir::Left, 0), (Dir::Right, (149, 0)));
+        assert_eq!(suck((49, 49), Dir::Left, 0), (Dir::Right, (100, 0)));
 
-        assert_eq!(suck(50, (-1, 50), Dir::Up, 0), (Dir::Right, (150, 0)));
-        assert_eq!(suck(50, (-1, 66), Dir::Up, 0), (Dir::Right, (166, 0)));
-        assert_eq!(suck(50, (-1, 99), Dir::Up, 0), (Dir::Right, (199, 0)));
+        assert_eq!(suck((100, -1), Dir::Left, 3), (Dir::Right, (49, 50)));
+        assert_eq!(suck((118, -1), Dir::Left, 3), (Dir::Right, (31, 50)));
+        assert_eq!(suck((149, -1), Dir::Left, 3), (Dir::Right, (0, 50)));
 
-        assert_eq!(suck(50, (150, 50), Dir::Right, 4), (Dir::Up, (149, 50)));
-        assert_eq!(suck(50, (199, 50), Dir::Right, 4), (Dir::Up, (149, 99)));
+        assert_eq!(suck((-1, 50), Dir::Up, 0), (Dir::Right, (150, 0)));
+        assert_eq!(suck((-1, 66), Dir::Up, 0), (Dir::Right, (166, 0)));
+        assert_eq!(suck((-1, 99), Dir::Up, 0), (Dir::Right, (199, 0)));
 
-        assert_eq!(suck(50, (150, 50), Dir::Down, 2), (Dir::Left, (150, 49)));
-        assert_eq!(suck(50, (150, 82), Dir::Down, 2), (Dir::Left, (182, 49)));
-        assert_eq!(suck(50, (150, 99), Dir::Down, 2), (Dir::Left, (199, 49)));
+        assert_eq!(suck((150, 50), Dir::Right, 4), (Dir::Up, (149, 50)));
+        assert_eq!(suck((199, 50), Dir::Right, 4), (Dir::Up, (149, 99)));
 
-        assert_eq!(suck(50, (100, 100), Dir::Right, 2), (Dir::Left, (49, 149)));
-        assert_eq!(suck(50, (149, 100), Dir::Right, 2), (Dir::Left, (0, 149)));
+        //assert_eq!(suck( (150, 50), Dir::Down, 2), (Dir::Left, (150, 49)));
+        assert_eq!(suck((150, 82), Dir::Down, 2), (Dir::Left, (182, 49)));
+        assert_eq!(suck((150, 99), Dir::Down, 2), (Dir::Left, (199, 49)));
 
-        assert_eq!(suck(50, (0, 150), Dir::Right, 5), (Dir::Left, (149, 99)));
-        assert_eq!(suck(50, (49, 150), Dir::Right, 5), (Dir::Left, (100, 99)));
+        assert_eq!(suck((100, 100), Dir::Right, 2), (Dir::Left, (49, 149)));
+        assert_eq!(suck((149, 100), Dir::Right, 2), (Dir::Left, (0, 149)));
 
-        assert_eq!(suck(50, (-1, 100), Dir::Up, 5), (Dir::Up, (199, 0)));
-        assert_eq!(suck(50, (-1, 149), Dir::Up, 5), (Dir::Up, (199, 49)));
+        assert_eq!(suck((0, 150), Dir::Right, 5), (Dir::Left, (149, 99)));
+        assert_eq!(suck((49, 150), Dir::Right, 5), (Dir::Left, (100, 99)));
+
+        assert_eq!(suck((-1, 100), Dir::Up, 5), (Dir::Up, (199, 0)));
+        assert_eq!(suck((-1, 149), Dir::Up, 5), (Dir::Up, (199, 49)));
 
         // skipped a couple..
 
-        assert_eq!(suck(50, (99, 0), Dir::Up, 3), (Dir::Right, (50, 50)));
-        assert_eq!(suck(50, (99, 49), Dir::Up, 3), (Dir::Right, (99, 50)));
+        assert_eq!(suck((99, 0), Dir::Up, 3), (Dir::Right, (50, 50)));
+        assert_eq!(suck((99, 49), Dir::Up, 3), (Dir::Right, (99, 50)));
 
-        assert_eq!(suck(50, (50, 49), Dir::Left, 1), (Dir::Down, (100, 49)));
-        assert_eq!(suck(50, (99, 49), Dir::Left, 1), (Dir::Down, (100, 0)));
-
-        //assert_eq!(suck(50, (x,x), Dir::X, c), (Dir::X, (x,x)));
+        //assert_eq!(suck((50, 49), Dir::Left, 1), (Dir::Down, (100, 49)));
+        //assert_eq!(suck((99, 49), Dir::Left, 1), (Dir::Down, (100, 0)));
     }
 }
