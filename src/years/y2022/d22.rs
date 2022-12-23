@@ -13,22 +13,8 @@ pub fn part1(input: String, _vis: bool) -> Box<dyn Display> {
 
     for m in path {
         match m {
-            Move::L => {
-                dir = match dir {
-                    Dir::Up => Dir::Left,
-                    Dir::Left => Dir::Down,
-                    Dir::Down => Dir::Right,
-                    Dir::Right => Dir::Up,
-                }
-            }
-            Move::R => {
-                dir = match dir {
-                    Dir::Up => Dir::Right,
-                    Dir::Right => Dir::Down,
-                    Dir::Down => Dir::Left,
-                    Dir::Left => Dir::Up,
-                }
-            }
+            Move::L => dir = dir.l(),
+            Move::R => dir = dir.r(),
             Move::Go(dist) => pos = walk(&board, pos, dir, dist),
         }
     }
@@ -42,13 +28,14 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
 
     let board = parse_board(board);
     let path = parse_path(path);
+    let edge_len = if board.tiles.len() < 50 { 4 } else { 50 };
 
-    let pos = find_start(&board);
-    let dir = Dir::Right;
+    let mut pos = find_start(&board);
+    let mut dir = Dir::Right;
 
     let corners = find_corners(&board, pos);
     //let jumps = match_edges(&board);
-    let edges = trace_edges(&board, pos);
+    let edges = trace_edges(&board, pos, edge_len);
 
     if vis {
         for (row, tilerow) in board.tiles.iter().enumerate() {
@@ -62,20 +49,24 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
             }
             println!();
         }
+        println!("{} corners found", corners.len());
     }
 
-    Box::new(format!(
-        "start={:?} dir={:?} pathsize={}",
-        pos,
-        dir,
-        path.len()
-    ))
+    for m in path {
+        match m {
+            Move::L => dir = dir.l(),
+            Move::R => dir = dir.r(),
+            Move::Go(dist) => (pos, dir) = walk2(&board, &edges, pos, dir, dist, edge_len),
+        }
+    }
+
+    let (row, col) = pos;
+    Box::new((row + 1) * 1000 + (col + 1) * 4 + dir as usize)
 }
 
-fn trace_edges(board: &Board, pos: Coord) -> HashMap<Coord, u8> {
-    let edge_len = if board.tiles.len() < 50 { 4 } else { 50 };
-    let iedge_len = edge_len as isize;
+type Colors = HashMap<Coord, u8>;
 
+fn trace_edges(board: &Board, pos: Coord, edge_len: usize) -> Colors {
     fn should_explore<T>(
         board: &Board,
         res: &HashMap<Coord, T>,
@@ -88,7 +79,7 @@ fn trace_edges(board: &Board, pos: Coord) -> HashMap<Coord, u8> {
         }
     }
 
-    let mut res = HashMap::new();
+    let mut res = Colors::new();
     let mut todo = vec![pos];
     let mut n = 0;
     while let Some(pos) = todo.pop() {
@@ -109,18 +100,6 @@ fn trace_edges(board: &Board, pos: Coord) -> HashMap<Coord, u8> {
         let down = should_explore(board, &res, r + 1, c);
         let downleft = should_explore(board, &res, r + 1, c - 1);
         let left = should_explore(board, &res, r, c - 1);
-        if up {
-            todo.push((pos.0 - 1, pos.1));
-        }
-        if down {
-            todo.push((pos.0 + 1, pos.1));
-        }
-        if left {
-            todo.push((pos.0, pos.1 - 1));
-        }
-        if right {
-            todo.push((pos.0, pos.1 + 1));
-        }
         if !upleft && downright {
             println!("DR from {:?}", pos);
             for r in 0..edge_len {
@@ -175,6 +154,22 @@ fn trace_edges(board: &Board, pos: Coord) -> HashMap<Coord, u8> {
                 todo.push((pos.0, pos.1 - edge_len));
             }
             n += 1;
+        }
+        if up {
+            todo.push((pos.0 - 1, pos.1));
+            println!("  todo: U {:?}", todo[todo.len() - 1]);
+        }
+        if down {
+            todo.push((pos.0 + 1, pos.1));
+            println!("  todo: D {:?}", todo[todo.len() - 1]);
+        }
+        if left {
+            todo.push((pos.0, pos.1 - 1));
+            println!("  todo: L {:?}", todo[todo.len() - 1]);
+        }
+        if right {
+            todo.push((pos.0, pos.1 + 1));
+            println!("  todo: R {:?}", todo[todo.len() - 1]);
         }
     }
     res
@@ -300,6 +295,32 @@ where
     .count()
 }
 
+fn walk2(
+    board: &Board,
+    colors: &Colors,
+    pos: Coord,
+    mut dir: Dir,
+    dist: usize,
+    edge_len: usize,
+) -> (Coord, Dir) {
+    let (mut r, mut c) = (pos.0 as isize, pos.1 as isize);
+    for _ in 0..dist {
+        let (dr, dc) = dir.d();
+        let (newr, newc) = (r + dr, c + dc);
+        match get(board, newr, newc) {
+            Some(Tile::Wall) => break,
+            Some(Tile::Open) => (r, c) = (newr, newc),
+            None => todo!(
+                "suck dir={:?} dest={:?} color={}",
+                dir,
+                (newr, newc),
+                colors.get(&(r as usize, c as usize)).unwrap()
+            ),
+        };
+    }
+    ((r as usize, c as usize), dir)
+}
+
 fn walk(board: &Board, mut pos: Coord, dir: Dir, dist: usize) -> Coord {
     for _ in 0..dist {
         match dir.step(board, pos) {
@@ -323,12 +344,7 @@ enum Dir {
 impl Dir {
     fn step(&self, board: &Board, pos: Coord) -> Option<Coord> {
         let (mut pr, mut pc) = (pos.0 as isize, pos.1 as isize);
-        let (dr, dc) = match self {
-            Dir::Right => (0, 1),
-            Dir::Down => (1, 0),
-            Dir::Left => (0, -1),
-            Dir::Up => (-1, 0),
-        };
+        let (dr, dc) = self.d();
         for _no_infinite_loop in 0..(board.tiles.len() + board.tiles[0].len()) {
             let nextr = match pr + dr {
                 r if r < 0 => r + board.tiles.len() as isize,
@@ -348,6 +364,33 @@ impl Dir {
             };
         }
         unreachable!()
+    }
+
+    fn d(&self) -> (isize, isize) {
+        match self {
+            Dir::Right => (0, 1),
+            Dir::Down => (1, 0),
+            Dir::Left => (0, -1),
+            Dir::Up => (-1, 0),
+        }
+    }
+
+    fn l(&self) -> Self {
+        match self {
+            Dir::Up => Dir::Left,
+            Dir::Left => Dir::Down,
+            Dir::Down => Dir::Right,
+            Dir::Right => Dir::Up,
+        }
+    }
+
+    fn r(&self) -> Self {
+        match self {
+            Dir::Up => Dir::Right,
+            Dir::Right => Dir::Down,
+            Dir::Down => Dir::Left,
+            Dir::Left => Dir::Up,
+        }
     }
 }
 
