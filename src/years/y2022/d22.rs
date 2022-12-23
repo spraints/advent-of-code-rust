@@ -53,6 +53,9 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     }
 
     for m in path {
+        if vis {
+            println!("going {:?} from {:?}, next step is {:?}.", dir, pos, m);
+        }
         match m {
             Move::L => dir = dir.l(),
             Move::R => dir = dir.r(),
@@ -85,7 +88,7 @@ fn trace_edges(board: &Board, pos: Coord, edge_len: usize) -> Colors {
     let mut todo = vec![pos];
     let mut n = 0;
     while let Some(pos) = todo.pop() {
-        if let Some(n) = res.get(&pos) {
+        if let Some(_n) = res.get(&pos) {
             //println!("SKIP {:?} ({})", pos, n);
             continue;
         }
@@ -311,7 +314,12 @@ fn walk2(
         let (dr, dc) = dir.d();
         let (newr, newc) = (r + dr, c + dc);
         match get(board, newr, newc) {
-            Some(Tile::Wall) => break,
+            Some(Tile::Wall) => {
+                if vis {
+                    println!("  ran into a wall at ({},{})", newr, newc);
+                }
+                break;
+            }
             Some(Tile::Open) => (r, c) = (newr, newc),
             None => {
                 let (suckdir, (suckr, suckc)) = suck(
@@ -322,7 +330,15 @@ fn walk2(
                     vis,
                 );
                 match get(board, suckr, suckc) {
-                    Some(Tile::Wall) => break,
+                    Some(Tile::Wall) => {
+                        if vis {
+                            println!(
+                                "  ran into a wall while trying to move {:?} through ({},{})",
+                                suckdir, suckr, suckc
+                            );
+                        }
+                        break;
+                    }
                     Some(Tile::Open) => {
                         (r, c) = (suckr, suckc);
                         dir = suckdir;
@@ -337,6 +353,9 @@ fn walk2(
             }
         };
     }
+    if vis {
+        println!(" -> ({},{}) going {:?}", r, c, dir);
+    }
     ((r as usize, c as usize), dir)
 }
 
@@ -345,11 +364,11 @@ fn suck(
     pos: (isize, isize),
     dir: Dir,
     color: u8,
-    vis: bool,
+    _vis: bool,
 ) -> (Dir, (isize, isize)) {
-    if vis {
-        println!("suck(pos={:?}, dir={:?}, color={})", pos, dir, color);
-    }
+    //if vis {
+    //    println!("suck(pos={:?}, dir={:?}, color={})", pos, dir, color);
+    //}
     let (r, c) = pos;
     if edge_len == 4 {
         // practice
@@ -583,6 +602,7 @@ impl Display for Board {
 
 type Path = Vec<Move>;
 
+#[derive(Debug)]
 enum Move {
     Go(usize),
     R,
