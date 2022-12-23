@@ -77,7 +77,6 @@ impl Dir {
                 c if c < 0 => c + board.tiles[0].len() as isize,
                 c => c % board.tiles[0].len() as isize,
             };
-            println!("({}, {}) ... {:?} ... ({}, {})", pr, pc, self, nextr, nextc);
             match board
                 .tiles
                 .get(nextr as usize)
