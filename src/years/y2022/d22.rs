@@ -1,6 +1,8 @@
+use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
+use std::ops::{Add, Sub};
 
-pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
+pub fn part1(input: String, _vis: bool) -> Box<dyn Display> {
     let (board, path) = input.split_once("\n\n").unwrap();
 
     let board = parse_board(board);
@@ -36,7 +38,266 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
 }
 
 pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
+    let (board, path) = input.split_once("\n\n").unwrap();
+
+    let board = parse_board(board);
+    let path = parse_path(path);
+
+    let pos = find_start(&board);
+    let dir = Dir::Right;
+
+    let corners = find_corners(&board, pos);
+    //let jumps = match_edges(&board);
+    let edges = trace_edges(&board, pos);
+
+    if vis {
+        for (row, tilerow) in board.tiles.iter().enumerate() {
+            for (col, tile) in tilerow.iter().enumerate() {
+                match (tile, edges.get(&(row, col))) {
+                    (None, None) => print!(" "),
+                    (Some(t), None) => print!("{}", t),
+                    (Some(_), Some(n)) => print!("{}", n),
+                    x => unreachable!("{:?}", x),
+                };
+            }
+            println!();
+        }
+    }
+
+    Box::new(format!(
+        "start={:?} dir={:?} pathsize={}",
+        pos,
+        dir,
+        path.len()
+    ))
+}
+
+fn trace_edges(board: &Board, pos: Coord) -> HashMap<Coord, u8> {
+    let edge_len = if board.tiles.len() < 50 { 4 } else { 50 };
+    let iedge_len = edge_len as isize;
+
+    fn should_explore<T>(
+        board: &Board,
+        res: &HashMap<Coord, T>,
+        row: impl TryInto<usize>,
+        col: impl TryInto<usize>,
+    ) -> bool {
+        match (row.try_into(), col.try_into()) {
+            (Ok(row), Ok(col)) => !res.contains_key(&(row, col)) && get(board, row, col).is_some(),
+            _ => false,
+        }
+    }
+
+    let mut res = HashMap::new();
+    let mut todo = vec![pos];
+    let mut n = 0;
+    while let Some(pos) = todo.pop() {
+        if let Some(n) = res.get(&pos) {
+            println!("SKIP {:?} ({})", pos, n);
+            continue;
+        }
+        if get(board, pos.0, pos.1).is_none() {
+            println!("DONT LOOK {:?}", pos);
+            continue;
+        }
+        let (r, c) = (pos.0 as isize, pos.1 as isize);
+        let upleft = should_explore(board, &res, r - 1, c - 1);
+        let up = should_explore(board, &res, r - 1, c);
+        let upright = should_explore(board, &res, r - 1, c + 1);
+        let right = should_explore(board, &res, r, c + 1);
+        let downright = should_explore(board, &res, r + 1, c + 1);
+        let down = should_explore(board, &res, r + 1, c);
+        let downleft = should_explore(board, &res, r + 1, c - 1);
+        let left = should_explore(board, &res, r, c - 1);
+        if up {
+            todo.push((pos.0 - 1, pos.1));
+        }
+        if down {
+            todo.push((pos.0 + 1, pos.1));
+        }
+        if left {
+            todo.push((pos.0, pos.1 - 1));
+        }
+        if right {
+            todo.push((pos.0, pos.1 + 1));
+        }
+        if !upleft && downright {
+            println!("DR from {:?}", pos);
+            for r in 0..edge_len {
+                for c in 0..edge_len {
+                    let ok = res.insert((pos.0 + r, pos.1 + c), n).is_none();
+                    assert!(ok);
+                }
+            }
+            todo.push((pos.0, pos.1 + edge_len));
+            todo.push((pos.0 + edge_len, pos.1));
+            n += 1;
+        } else if upleft && !downright {
+            println!("UL from {:?}", pos);
+            for r in 0..edge_len {
+                for c in 0..edge_len {
+                    let ok = res.insert((pos.0 - r, pos.1 - c), n).is_none();
+                    assert!(ok);
+                }
+            }
+            if pos.0 >= edge_len {
+                todo.push((pos.0 - edge_len, pos.1));
+            }
+            if pos.1 >= edge_len {
+                todo.push((pos.0, pos.1 - edge_len));
+            }
+            n += 1;
+        } else if !upright && downleft {
+            println!("DL from {:?}", pos);
+            for r in 0..edge_len {
+                for c in 0..edge_len {
+                    let ok = res.insert((pos.0 + r, pos.1 - c), n).is_none();
+                    assert!(ok);
+                }
+            }
+            todo.push((pos.0 + edge_len, pos.1));
+            if pos.1 >= edge_len {
+                todo.push((pos.0, pos.1 - edge_len));
+            }
+            n += 1;
+        } else if upright && !downleft {
+            println!("UR from {:?}", pos);
+            for r in 0..edge_len {
+                for c in 0..edge_len {
+                    let ok = res.insert((pos.0 - r, pos.1 + c), n).is_none();
+                    assert!(ok);
+                }
+            }
+            if pos.0 >= edge_len {
+                todo.push((pos.0 - edge_len, pos.1));
+            }
+            if pos.0 >= edge_len {
+                todo.push((pos.0, pos.1 - edge_len));
+            }
+            n += 1;
+        }
+    }
+    res
+}
+
+//fn match_edges(board: &Board) -> HashMap<(isize, isize), Coord> {
+//    let mut pos = find_start(board);
+//    let mut dir = Dir::Right;
+//    let mut res = HashMap::new();
+//    while !res.contains(&pos) {
+//        j
+//    }
+//}
+
+fn find_corners(board: &Board, pos: Coord) -> HashSet<Coord> {
+    let mut to_visit = vec![pos];
+    let mut corners = HashSet::new();
+
+    while let Some(pos) = to_visit.pop() {
+        if !corners.insert(pos) {
+            continue;
+        }
+        let (row, col) = (pos.0 as isize, pos.1 as isize);
+        match (
+            get(board, row - 1, col),
+            get(board, row, col - 1),
+            get(board, row + 1, col),
+            get(board, row, col + 1),
+        ) {
+            (Some(_up), Some(_left), None, None) => {
+                to_visit.push(find_edge(board, (row, col), (-1, 0)));
+                to_visit.push(find_edge(board, (row, col), (0, -1)));
+            }
+            (None, Some(_left), Some(_down), None) => {
+                to_visit.push(find_edge(board, (row, col), (0, -1)));
+                to_visit.push(find_edge(board, (row, col), (1, 0)));
+            }
+            (None, None, Some(_down), Some(_right)) => {
+                to_visit.push(find_edge(board, (row, col), (1, 0)));
+                to_visit.push(find_edge(board, (row, col), (0, 1)));
+            }
+            (Some(_up), None, None, Some(_right)) => {
+                to_visit.push(find_edge(board, (row, col), (0, 1)));
+                to_visit.push(find_edge(board, (row, col), (-1, 0)));
+            }
+            (Some(_up), Some(_left), Some(_down), Some(_right)) => {
+                match (
+                    get(board, row - 1, col - 1),
+                    get(board, row - 1, col + 1),
+                    get(board, row + 1, col - 1),
+                    get(board, row + 1, col + 1),
+                ) {
+                    (None, Some(_ur), Some(_dl), Some(_dr)) => {
+                        to_visit.push(find_edge(board, (row, col), (-1, 0)));
+                        to_visit.push(find_edge(board, (row, col), (0, -1)));
+                    }
+                    (Some(_ul), None, Some(_dl), Some(_dr)) => {
+                        to_visit.push(find_edge(board, (row, col), (-1, 0)));
+                        to_visit.push(find_edge(board, (row, col), (0, 1)));
+                    }
+                    (Some(_ul), Some(_ur), None, Some(_dr)) => {
+                        to_visit.push(find_edge(board, (row, col), (1, 0)));
+                        to_visit.push(find_edge(board, (row, col), (0, -1)));
+                    }
+                    (Some(_ul), Some(_ur), Some(_dl), None) => {
+                        to_visit.push(find_edge(board, (row, col), (1, 0)));
+                        to_visit.push(find_edge(board, (row, col), (0, 1)));
+                    }
+                    (ul, ur, dl, dr) => {
+                        unreachable!("ul={:?} ur={:?} dl={:?} dr={:?}", ul, ur, dl, dr)
+                    }
+                };
+            }
+            (u, l, d, r) => unreachable!(
+                "shouldn't be able to go l={:?} r={:?} u={:?} d={:?} from {:?}",
+                l, r, u, d, pos
+            ),
+        }
+    }
+
+    corners
+}
+
+fn find_edge(board: &Board, mut pos: (isize, isize), step: (isize, isize)) -> Coord {
+    loop {
+        let next = (pos.0 + step.0, pos.1 + step.1);
+        match get(board, next.0, next.1) {
+            None => return (pos.0 as usize, pos.1 as usize),
+            Some(_) => {
+                if count_neighbors(board, next.0, next.1) == 4 {
+                    return (next.0 as usize, next.1 as usize);
+                } else {
+                    pos = next;
+                }
+            }
+        };
+    }
+}
+
+fn get(board: &Board, row: impl TryInto<usize>, col: impl TryInto<usize>) -> Option<Tile> {
+    match (row.try_into(), col.try_into()) {
+        (Ok(row), Ok(col)) => board
+            .tiles
+            .get(row)
+            .and_then(|r| r.get(col))
+            .and_then(|t| *t),
+        _ => None,
+    }
+}
+
+fn count_neighbors<C>(board: &Board, row: C, col: C) -> usize
+where
+    C: TryInto<usize> + Sub<isize, Output = C> + Add<isize, Output = C> + Copy,
+{
+    [
+        get(board, row + 1, col),
+        get(board, row, col + 1),
+        get(board, row - 1, col),
+        get(board, row, col - 1),
+    ]
+    .iter()
+    .filter(|x| x.is_some())
+    .count()
 }
 
 fn walk(board: &Board, mut pos: Coord, dir: Dir, dist: usize) -> Coord {
@@ -77,12 +338,8 @@ impl Dir {
                 c if c < 0 => c + board.tiles[0].len() as isize,
                 c => c % board.tiles[0].len() as isize,
             };
-            match board
-                .tiles
-                .get(nextr as usize)
-                .and_then(|r| r.get(nextc as usize))
-            {
-                None | Some(Tile::None) => {
+            match get(board, nextr, nextc) {
+                None => {
                     pr = nextr;
                     pc = nextc;
                 }
@@ -95,14 +352,26 @@ impl Dir {
 }
 
 struct Board {
-    tiles: Vec<Vec<Tile>>,
+    tiles: Vec<Vec<Option<Tile>>>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 enum Tile {
-    None,
     Open,
     Wall,
+}
+
+impl Display for Tile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Tile::Open => '.',
+                Tile::Wall => '#',
+            }
+        )
+    }
 }
 
 fn find_start(board: &Board) -> Coord {
@@ -110,18 +379,18 @@ fn find_start(board: &Board) -> Coord {
         0,
         board.tiles[0]
             .iter()
-            .position(|x| matches!(x, Tile::Open))
+            .position(|x| matches!(x, Some(Tile::Open)))
             .unwrap(),
     )
 }
 
 fn parse_board(input: &str) -> Board {
-    fn parse_line(s: &str) -> Vec<Tile> {
+    fn parse_line(s: &str) -> Vec<Option<Tile>> {
         s.chars()
             .map(|c| match c {
-                ' ' => Tile::None,
-                '.' => Tile::Open,
-                '#' => Tile::Wall,
+                ' ' => None,
+                '.' => Some(Tile::Open),
+                '#' => Some(Tile::Wall),
                 _ => unreachable!(),
             })
             .collect()
@@ -134,15 +403,10 @@ impl Display for Board {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for r in &self.tiles {
             for t in r {
-                write!(
-                    f,
-                    "{}",
-                    match t {
-                        Tile::None => ' ',
-                        Tile::Open => '.',
-                        Tile::Wall => '#',
-                    }
-                )?;
+                match t {
+                    None => write!(f, " "),
+                    Some(t) => write!(f, "{}", t),
+                }?;
             }
             writeln!(f)?;
         }
