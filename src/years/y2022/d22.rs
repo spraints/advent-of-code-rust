@@ -329,6 +329,9 @@ fn walk2(
                     *colors.get(&(r as usize, c as usize)).unwrap(),
                     vis,
                 );
+                if vis {
+                    println!("  jump from ({},{}) to ({},{})", newr, newc, suckr, suckc);
+                }
                 match get(board, suckr, suckc) {
                     Some(Tile::Wall) => {
                         if vis {
