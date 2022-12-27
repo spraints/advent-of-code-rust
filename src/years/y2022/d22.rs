@@ -1,6 +1,5 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt::Display;
-use std::ops::{Add, Sub};
 
 pub fn part1(input: String, _vis: bool) -> Box<dyn Display> {
     let (board, path) = input.split_once("\n\n").unwrap();
@@ -28,14 +27,16 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
 
     let board = parse_board(board);
     let path = parse_path(path);
-    let edge_len = if board.tiles.len() < 50 { 4 } else { 50 };
+    let mode = if board.tiles.len() < 50 {
+        WhichBoard::Example
+    } else {
+        WhichBoard::Puzzle
+    };
 
     let mut pos = find_start(&board);
     let mut dir = Dir::Right;
 
-    let corners = find_corners(&board, pos);
-    //let jumps = match_edges(&board);
-    let edges = trace_edges(&board, pos, edge_len);
+    let edges = trace_edges(&board, pos, mode);
 
     if vis {
         for (row, tilerow) in board.tiles.iter().enumerate() {
@@ -49,7 +50,6 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
             }
             println!();
         }
-        println!("{} corners found", corners.len());
     }
 
     for m in path {
@@ -59,7 +59,7 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
         match m {
             Move::L => dir = dir.l(),
             Move::R => dir = dir.r(),
-            Move::Go(dist) => (pos, dir) = walk2(&board, &edges, pos, dir, dist, edge_len, vis),
+            Move::Go(dist) => (pos, dir) = walk2(&board, &edges, pos, dir, dist, mode, vis),
         }
     }
 
@@ -71,7 +71,7 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
 
 type Colors = HashMap<Coord, u8>;
 
-fn trace_edges(board: &Board, pos: Coord, edge_len: usize) -> Colors {
+fn trace_edges(board: &Board, pos: Coord, mode: WhichBoard) -> Colors {
     fn should_explore<T>(
         board: &Board,
         res: &HashMap<Coord, T>,
@@ -83,6 +83,11 @@ fn trace_edges(board: &Board, pos: Coord, edge_len: usize) -> Colors {
             _ => false,
         }
     }
+
+    let edge_len = match mode {
+        WhichBoard::Example => 4,
+        WhichBoard::Puzzle => 50,
+    };
 
     let mut res = Colors::new();
     let mut todo = vec![pos];
@@ -180,100 +185,6 @@ fn trace_edges(board: &Board, pos: Coord, edge_len: usize) -> Colors {
     res
 }
 
-//fn match_edges(board: &Board) -> HashMap<(isize, isize), Coord> {
-//    let mut pos = find_start(board);
-//    let mut dir = Dir::Right;
-//    let mut res = HashMap::new();
-//    while !res.contains(&pos) {
-//        j
-//    }
-//}
-
-fn find_corners(board: &Board, pos: Coord) -> HashSet<Coord> {
-    let mut to_visit = vec![pos];
-    let mut corners = HashSet::new();
-
-    while let Some(pos) = to_visit.pop() {
-        if !corners.insert(pos) {
-            continue;
-        }
-        let (row, col) = (pos.0 as isize, pos.1 as isize);
-        match (
-            get(board, row - 1, col),
-            get(board, row, col - 1),
-            get(board, row + 1, col),
-            get(board, row, col + 1),
-        ) {
-            (Some(_up), Some(_left), None, None) => {
-                to_visit.push(find_edge(board, (row, col), (-1, 0)));
-                to_visit.push(find_edge(board, (row, col), (0, -1)));
-            }
-            (None, Some(_left), Some(_down), None) => {
-                to_visit.push(find_edge(board, (row, col), (0, -1)));
-                to_visit.push(find_edge(board, (row, col), (1, 0)));
-            }
-            (None, None, Some(_down), Some(_right)) => {
-                to_visit.push(find_edge(board, (row, col), (1, 0)));
-                to_visit.push(find_edge(board, (row, col), (0, 1)));
-            }
-            (Some(_up), None, None, Some(_right)) => {
-                to_visit.push(find_edge(board, (row, col), (0, 1)));
-                to_visit.push(find_edge(board, (row, col), (-1, 0)));
-            }
-            (Some(_up), Some(_left), Some(_down), Some(_right)) => {
-                match (
-                    get(board, row - 1, col - 1),
-                    get(board, row - 1, col + 1),
-                    get(board, row + 1, col - 1),
-                    get(board, row + 1, col + 1),
-                ) {
-                    (None, Some(_ur), Some(_dl), Some(_dr)) => {
-                        to_visit.push(find_edge(board, (row, col), (-1, 0)));
-                        to_visit.push(find_edge(board, (row, col), (0, -1)));
-                    }
-                    (Some(_ul), None, Some(_dl), Some(_dr)) => {
-                        to_visit.push(find_edge(board, (row, col), (-1, 0)));
-                        to_visit.push(find_edge(board, (row, col), (0, 1)));
-                    }
-                    (Some(_ul), Some(_ur), None, Some(_dr)) => {
-                        to_visit.push(find_edge(board, (row, col), (1, 0)));
-                        to_visit.push(find_edge(board, (row, col), (0, -1)));
-                    }
-                    (Some(_ul), Some(_ur), Some(_dl), None) => {
-                        to_visit.push(find_edge(board, (row, col), (1, 0)));
-                        to_visit.push(find_edge(board, (row, col), (0, 1)));
-                    }
-                    (ul, ur, dl, dr) => {
-                        unreachable!("ul={:?} ur={:?} dl={:?} dr={:?}", ul, ur, dl, dr)
-                    }
-                };
-            }
-            (u, l, d, r) => unreachable!(
-                "shouldn't be able to go l={:?} r={:?} u={:?} d={:?} from {:?}",
-                l, r, u, d, pos
-            ),
-        }
-    }
-
-    corners
-}
-
-fn find_edge(board: &Board, mut pos: (isize, isize), step: (isize, isize)) -> Coord {
-    loop {
-        let next = (pos.0 + step.0, pos.1 + step.1);
-        match get(board, next.0, next.1) {
-            None => return (pos.0 as usize, pos.1 as usize),
-            Some(_) => {
-                if count_neighbors(board, next.0, next.1) == 4 {
-                    return (next.0 as usize, next.1 as usize);
-                } else {
-                    pos = next;
-                }
-            }
-        };
-    }
-}
-
 fn get(board: &Board, row: impl TryInto<usize>, col: impl TryInto<usize>) -> Option<Tile> {
     match (row.try_into(), col.try_into()) {
         (Ok(row), Ok(col)) => board
@@ -285,28 +196,13 @@ fn get(board: &Board, row: impl TryInto<usize>, col: impl TryInto<usize>) -> Opt
     }
 }
 
-fn count_neighbors<C>(board: &Board, row: C, col: C) -> usize
-where
-    C: TryInto<usize> + Sub<isize, Output = C> + Add<isize, Output = C> + Copy,
-{
-    [
-        get(board, row + 1, col),
-        get(board, row, col + 1),
-        get(board, row - 1, col),
-        get(board, row, col - 1),
-    ]
-    .iter()
-    .filter(|x| x.is_some())
-    .count()
-}
-
 fn walk2(
     board: &Board,
     colors: &Colors,
     pos: Coord,
     mut dir: Dir,
     dist: usize,
-    edge_len: usize,
+    mode: WhichBoard,
     vis: bool,
 ) -> (Coord, Dir) {
     let (mut r, mut c) = (pos.0 as isize, pos.1 as isize);
@@ -323,7 +219,7 @@ fn walk2(
             Some(Tile::Open) => (r, c) = (newr, newc),
             None => {
                 let (suckdir, (suckr, suckc)) = suck(
-                    edge_len,
+                    mode,
                     (newr, newc),
                     dir,
                     *colors.get(&(r as usize, c as usize)).unwrap(),
@@ -363,106 +259,106 @@ fn walk2(
 }
 
 fn suck(
-    edge_len: usize,
+    mode: WhichBoard,
     pos: (isize, isize),
     dir: Dir,
     color: u8,
     _vis: bool,
 ) -> (Dir, (isize, isize)) {
-    //if vis {
-    //    println!("suck(pos={:?}, dir={:?}, color={})", pos, dir, color);
-    //}
     let (r, c) = pos;
-    if edge_len == 4 {
-        // practice
-        match (color, dir) {
-            (1, Dir::Right) => {
-                assert_eq!(c, 12);
-                assert!(r >= 4 && r <= 7);
-                (Dir::Down, (8, 19 - r))
+    match mode {
+        WhichBoard::Example => {
+            // practice
+            match (color, dir) {
+                (1, Dir::Right) => {
+                    assert_eq!(c, 12);
+                    assert!(r >= 4 && r <= 7);
+                    (Dir::Down, (8, 19 - r))
+                }
+                (4, Dir::Down) => {
+                    assert_eq!(r, 12);
+                    assert!(c >= 8 && c <= 11);
+                    (Dir::Up, (7, 11 - c))
+                }
+                (2, Dir::Up) => {
+                    assert_eq!(r, 3);
+                    assert!(c >= 4 && c <= 7);
+                    (Dir::Right, (c - 4, 8))
+                }
+                x => todo!("{:?} pos={:?}", x, pos),
             }
-            (4, Dir::Down) => {
-                assert_eq!(r, 12);
-                assert!(c >= 8 && c <= 11);
-                (Dir::Up, (7, 11 - c))
-            }
-            (2, Dir::Up) => {
-                assert_eq!(r, 3);
-                assert!(c >= 4 && c <= 7);
-                (Dir::Right, (c - 4, 8))
-            }
-            x => todo!("{:?} pos={:?}", x, pos),
         }
-    } else {
-        // real
-        //  05
-        //  1
-        // 32
-        // 4
-        //
-        // 3 up to 1 right
-        if r == -1 {
-            assert!(matches!(dir, Dir::Up) && c >= 50 && c < 150);
-            if c < 100 {
-                // leave 0 for 4.
-                (Dir::Right, (c + 100, 0))
+        WhichBoard::Puzzle => {
+            // real
+            //  05
+            //  1
+            // 32
+            // 4
+            //
+            // 3 up to 1 right
+            if r == -1 {
+                assert!(matches!(dir, Dir::Up) && c >= 50 && c < 150);
+                if c < 100 {
+                    // leave 0 for 4.
+                    (Dir::Right, (c + 100, 0))
+                } else {
+                    // leave 5 for 4.
+                    (Dir::Up, (199, c - 100))
+                }
+            } else if c == 49 && matches!(dir, Dir::Left) {
+                assert!(r >= 0 && r < 100);
+                if r < 50 {
+                    // leave 0 for 3.
+                    (Dir::Right, (149 - r, 0))
+                } else {
+                    // leave 1 for 3.
+                    (Dir::Down, (100, r - 50))
+                }
+            } else if r == 99 {
+                assert!(matches!(dir, Dir::Up) && c >= 0 && c < 50);
+                // leave 3 for 1
+                (Dir::Right, (c + 50, 50))
+            } else if c == -1 {
+                assert!(matches!(dir, Dir::Left) && r >= 100 && r < 200);
+                if r < 150 {
+                    // leave 3 for 0.
+                    (Dir::Right, (149 - r, 50))
+                } else {
+                    // leave 4 for 0.
+                    (Dir::Down, (0, r - 100))
+                }
+            } else if c == 50 {
+                assert!(matches!(dir, Dir::Right) && r >= 150 && r < 200);
+                // leave 4 for 2
+                (Dir::Up, (149, r - 100))
+            } else if r == 150 {
+                assert!(matches!(dir, Dir::Down) && c >= 50 && c < 100);
+                // leave 2 for 4
+                (Dir::Left, (c + 100, 49))
+            } else if c == 100 {
+                assert!(matches!(dir, Dir::Right) && r >= 50 && r < 150);
+                if r < 100 {
+                    // leave 1 for 5
+                    (Dir::Up, (49, r + 50))
+                } else {
+                    // leave 2 for 5
+                    (Dir::Left, (149 - r, 149))
+                }
+            } else if c == 150 {
+                assert!(matches!(dir, Dir::Right) && r >= 0 && r < 50);
+                // leave 5 for 2
+                (Dir::Left, (149 - r, 99))
+            } else if r == 200 {
+                assert!(matches!(dir, Dir::Down) && c >= 0 && c < 50);
+                // leave 4 for 5
+                (Dir::Down, (0, c + 100))
+            } else if r == 50 {
+                assert!(matches!(dir, Dir::Down) && c >= 100 && c < 150);
+                // leave 5 for 1
+                (Dir::Left, (r - 50, 99))
             } else {
-                // leave 5 for 4.
-                (Dir::Up, (199, c - 100))
+                unreachable!("suck(pos=(r={},c={}), dir: {:?})", r, c, dir);
             }
-        } else if c == 49 && matches!(dir, Dir::Left) {
-            assert!(r >= 0 && r < 100);
-            if r < 50 {
-                // leave 0 for 3.
-                (Dir::Right, (149 - r, 0))
-            } else {
-                // leave 1 for 3.
-                (Dir::Down, (100, r - 50))
-            }
-        } else if r == 99 {
-            assert!(matches!(dir, Dir::Up) && c >= 0 && c < 50);
-            // leave 3 for 1
-            (Dir::Right, (c + 50, 50))
-        } else if c == -1 {
-            assert!(matches!(dir, Dir::Left) && r >= 100 && r < 200);
-            if r < 150 {
-                // leave 3 for 0.
-                (Dir::Right, (149 - r, 50))
-            } else {
-                // leave 4 for 0.
-                (Dir::Down, (0, r - 100))
-            }
-        } else if c == 50 {
-            assert!(matches!(dir, Dir::Right) && r >= 150 && r < 200);
-            // leave 4 for 2
-            (Dir::Up, (149, r - 100))
-        } else if r == 150 {
-            assert!(matches!(dir, Dir::Down) && c >= 50 && c < 100);
-            // leave 2 for 4
-            (Dir::Left, (c + 100, 49))
-        } else if c == 100 {
-            assert!(matches!(dir, Dir::Right) && r >= 50 && r < 150);
-            if r < 100 {
-                // leave 1 for 5
-                (Dir::Up, (49, r + 50))
-            } else {
-                // leave 2 for 5
-                (Dir::Left, (149 - r, 149))
-            }
-        } else if c == 150 {
-            assert!(matches!(dir, Dir::Right) && r >= 0 && r < 50);
-            // leave 5 for 2
-            (Dir::Left, (149 - r, 99))
-        } else if r == 200 {
-            assert!(matches!(dir, Dir::Down) && c >= 0 && c < 50);
-            // leave 4 for 5
-            (Dir::Down, (0, c + 100))
-        } else if r == 50 {
-            assert!(matches!(dir, Dir::Down) && c >= 100 && c < 150);
-            // leave 5 for 1
-            (Dir::Left, (r - 50, 99))
-        } else {
-            unreachable!("suck(pos=(r={},c={}), dir: {:?})", r, c, dir);
         }
     }
 }
@@ -538,6 +434,14 @@ impl Dir {
             Dir::Left => Dir::Up,
         }
     }
+}
+
+#[derive(Clone, Copy)]
+enum WhichBoard {
+    /// Example input.
+    Example,
+    /// My actual input.
+    Puzzle,
 }
 
 struct Board {
@@ -668,7 +572,7 @@ mod test {
     #[test]
     fn suck_example() {
         fn suck(pos: (isize, isize), dir: Dir, color: u8) -> (Dir, (isize, isize)) {
-            super::suck(4, pos, dir, color, true)
+            super::suck(WhichBoard::Example, pos, dir, color, true)
         }
 
         assert_eq!(suck((4, 12), Dir::Right, 1), (Dir::Down, (8, 15)));
@@ -684,7 +588,7 @@ mod test {
     #[test]
     fn suck_real() {
         fn suck(pos: (isize, isize), dir: Dir, color: u8) -> (Dir, (isize, isize)) {
-            super::suck(50, pos, dir, color, true)
+            super::suck(WhichBoard::Puzzle, pos, dir, color, true)
         }
 
         assert_eq!(suck((0, 49), Dir::Left, 0), (Dir::Right, (149, 0)));
