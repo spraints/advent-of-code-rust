@@ -25,7 +25,7 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     let mut moves = ['n', 's', 'w', 'e'];
 
     for round in 0..10 {
-        occupied = play_round(occupied, &moves);
+        occupied = play_round(occupied, &moves).0;
         moves.rotate_left(1);
         if vis {
             println!();
@@ -39,27 +39,59 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
 }
 
 pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
+    let mut occupied: HashSet<Coord> = input
+        .lines()
+        .enumerate()
+        .flat_map(|(r, line)| {
+            line.chars()
+                .enumerate()
+                .filter(|(_, ch)| *ch == '#')
+                .map(move |(c, _)| (r as isize, c as isize))
+        })
+        .collect();
+
+    let mut moves = ['n', 's', 'w', 'e'];
+
+    for round in 0.. {
+        if vis && round % 100 == 0 {
+            print!(".");
+        }
+        let (new_field, any_moved) = play_round(occupied, &moves);
+        if !any_moved {
+            if vis {
+                println!();
+            }
+            return Box::new(round + 1);
+        }
+        occupied = new_field;
+        moves.rotate_left(1);
+    }
+    unreachable!()
 }
 
-fn play_round(init: HashSet<Coord>, moves: &[char]) -> HashSet<Coord> {
+fn play_round(init: HashSet<Coord>, moves: &[char]) -> (HashSet<Coord>, bool) {
     let moves = init
         .iter()
         .map(|elf| (elf.clone(), maybe_move(&init, elf, moves)));
     let mut res: HashMap<Coord, Coord> = HashMap::new();
     let mut off_limits = HashSet::new();
+    let mut count = 0;
     for (from, to) in moves {
         if off_limits.contains(&to) {
             if let Some(move_back) = res.remove(&to) {
+                count -= 1;
                 res.insert(move_back, move_back);
             }
             res.insert(from, from);
         } else {
+            if from != to {
+                count += 1;
+            }
             off_limits.insert(to);
             res.insert(to, from);
         }
     }
-    res.keys().copied().collect()
+    (res.keys().copied().collect(), count > 0)
 }
 
 fn maybe_move(field: &HashSet<Coord>, elf: &Coord, moves: &[char]) -> Coord {
@@ -139,5 +171,5 @@ mod test {
 ##.#.##
 .#..#..",
         part1 => 110,
-        part2 => "todo");
+        part2 => 20);
 }
