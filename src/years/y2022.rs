@@ -22,10 +22,14 @@ mod d20;
 mod d21;
 mod d22;
 mod d23;
+mod d24;
 
 use crate::solutionset::SolutionSet;
 
 pub fn register<S: SolutionSet>(s: &mut S) {
+    s.add(2022, 24, 1, None, d24::part1);
+    s.add(2022, 24, 2, None, d24::part2);
+
     s.add(2022, 23, 1, None, d23::part1);
     s.add(2022, 23, 2, None, d23::part2);
 
