@@ -4,18 +4,17 @@ use std::{
     fmt::Display,
 };
 
+const MOVES: [(isize, isize); 5] = [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)];
+
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     let board = parse_input(&input);
     let you_start = (0, board[0].iter().position(|sq| *sq == EMPTY).unwrap());
     let bottom_row = board.len() - 1;
 
-    const MOVES: [(isize, isize); 5] = [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)];
-
     if vis {
         println!("Initial state:");
         show_state(&board, &you_start, 0);
 
-        let you = (you_start.0 + 1, you_start.1);
         println!();
         println!("Minute 1 (after waiting):");
         show_state(&board, &you_start, 1);
@@ -66,7 +65,70 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
 }
 
 pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
+    let board = parse_input(&input);
+    let you_start = (0, board[0].iter().position(|sq| *sq == EMPTY).unwrap());
+    let bottom_row = board.len() - 1;
+    let you_finish = (
+        bottom_row,
+        board[bottom_row]
+            .iter()
+            .position(|sq| *sq == EMPTY)
+            .unwrap(),
+    );
+
+    let elapsed = go(&board, 0, you_start, you_finish);
+    if vis {
+        println!("got to the end after {} minutes", elapsed);
+    }
+    let elapsed = go(&board, elapsed, you_finish, you_start);
+    if vis {
+        println!("got back to the start after {} minutes", elapsed);
+    }
+    let elapsed = go(&board, elapsed, you_start, you_finish);
+    if vis {
+        println!("got back to the end after {} minutes", elapsed);
+    }
+
+    Box::new(elapsed)
+}
+
+fn go(board: &Board, elapsed: usize, start: Coord, finish: Coord) -> usize {
+    let mut tried = HashSet::new();
+    let mut todo = BinaryHeap::new();
+    todo.push(Reverse(State {
+        elapsed,
+        pos: start,
+    }));
+
+    while let Some(Reverse(st)) = todo.pop() {
+        let State { elapsed, pos } = st;
+        if tried.contains(&(pos, elapsed)) {
+            continue;
+        }
+        tried.insert((pos, elapsed));
+
+        if pos == finish {
+            return elapsed;
+        }
+
+        let elapsed = elapsed + 1;
+        let (r, c) = (pos.0 as isize, pos.1 as isize);
+        for (dr, dc) in &MOVES {
+            let nr = r + dr;
+            let nc = c + dc;
+            if nr >= 0 && nc >= 0 {
+                let pos = (nr as usize, nc as usize);
+                if pos.0 < board.len() && pos.1 <= board[0].len() {
+                    if is_empty(&board, elapsed, pos) {
+                        let next = State { pos, elapsed };
+                        todo.push(Reverse(next));
+                    }
+                }
+            }
+        }
+    }
+
+    unreachable!()
 }
 
 #[derive(PartialOrd, Ord, PartialEq, Eq, Debug)]
@@ -211,5 +273,5 @@ mod test {
 #<^v^^>#
 ######.#",
         part1 => 18,
-        part2 => "todo");
+        part2 => 54);
 }
