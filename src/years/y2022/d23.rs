@@ -22,8 +22,11 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
         print_field(&occupied);
     }
 
+    let mut moves = ['n', 's', 'w', 'e'];
+
     for round in 0..10 {
-        occupied = play_round(occupied);
+        occupied = play_round(occupied, &moves);
+        moves.rotate_left(1);
         if vis {
             println!();
             println!("after round {}", round + 1);
@@ -39,8 +42,10 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     Box::new("todo")
 }
 
-fn play_round(init: HashSet<Coord>) -> HashSet<Coord> {
-    let moves = init.iter().map(|elf| (elf.clone(), maybe_move(&init, elf)));
+fn play_round(init: HashSet<Coord>, moves: &[char]) -> HashSet<Coord> {
+    let moves = init
+        .iter()
+        .map(|elf| (elf.clone(), maybe_move(&init, elf, moves)));
     let mut res: HashMap<Coord, Coord> = HashMap::new();
     let mut off_limits = HashSet::new();
     for (from, to) in moves {
@@ -57,7 +62,7 @@ fn play_round(init: HashSet<Coord>) -> HashSet<Coord> {
     res.keys().copied().collect()
 }
 
-fn maybe_move(field: &HashSet<Coord>, elf: &Coord) -> Coord {
+fn maybe_move(field: &HashSet<Coord>, elf: &Coord, moves: &[char]) -> Coord {
     let (r, c) = (elf.0, elf.1);
     let n = field.contains(&(r - 1, c));
     let ne = field.contains(&(r - 1, c + 1));
@@ -68,19 +73,34 @@ fn maybe_move(field: &HashSet<Coord>, elf: &Coord) -> Coord {
     let w = field.contains(&(r, c - 1));
     let nw = field.contains(&(r - 1, c - 1));
     if !n && !ne && !e && !se && !s && !sw && !w && !nw {
-        (r, c)
-    } else if !nw && !n && !ne {
-        (r - 1, c)
-    } else if !sw && !s && !se {
-        (r + 1, c)
-    } else if !nw && !w && !sw {
-        (r, c - 1)
-    } else if !ne && !e && !se {
-        (r, c + 1)
-    } else {
-        // unreachable!()
-        (r, c)
+        return (r, c);
     }
+    for m in moves {
+        match m {
+            'n' => {
+                if !nw && !n && !ne {
+                    return (r - 1, c);
+                }
+            }
+            's' => {
+                if !sw && !s && !se {
+                    return (r + 1, c);
+                }
+            }
+            'e' => {
+                if !ne && !e && !se {
+                    return (r, c + 1);
+                }
+            }
+            'w' => {
+                if !nw && !w && !sw {
+                    return (r, c - 1);
+                }
+            }
+            _ => unreachable!(),
+        };
+    }
+    (r, c)
 }
 
 fn extents(field: &HashSet<Coord>) -> (isize, isize, isize, isize) {
