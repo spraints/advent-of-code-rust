@@ -1,18 +1,41 @@
-use std::fmt::Display;
+use std::{
+    collections::{BinaryHeap, HashSet},
+    fmt::Display,
+};
 
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     let board = parse_input(&input);
-    let mut you = (0, board[0].iter().position(|sq| *sq == EMPTY).unwrap());
+    let you_start = (0, board[0].iter().position(|sq| *sq == EMPTY).unwrap());
+
     if vis {
         println!("Initial state:");
-        show_state(&board, &you, 0);
-    }
+        show_state(&board, &you_start, 0);
 
-    you = (1, 1);
-    if vis {
+        let you = (you_start.0 + 1, you_start.1);
         println!();
         println!("Minute 1:");
         show_state(&board, &you, 1);
+    }
+
+    let mut tried = HashSet::new();
+    let mut todo = BinaryHeap::new();
+    todo.push(State {
+        elapsed: 0,
+        pos: you_start,
+    });
+
+    while let Some(st) = todo.pop() {
+        let State { elapsed, pos } = st;
+        if tried.contains(&(pos, elapsed)) {
+            continue;
+        }
+        tried.insert((pos, elapsed));
+
+        todo!("try waiting, if possible");
+        todo!("try moving down, if possible");
+        todo!("try moving up, if possible");
+        todo!("try moving left, if possible");
+        todo!("try moving right, if possible");
     }
 
     Box::new("todo")
@@ -20,6 +43,12 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
 
 pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     Box::new("todo")
+}
+
+#[derive(PartialOrd, Ord, PartialEq, Eq)]
+struct State {
+    elapsed: usize,
+    pos: Coord,
 }
 
 type Coord = (usize, usize);
@@ -63,7 +92,7 @@ fn render(board: &Board, you: &Coord, elapsed: usize, pos: Coord) -> char {
         if *you == pos {
             return EXPEDITION;
         } else {
-            return WALL;
+            return board[r][c];
         }
     }
 
