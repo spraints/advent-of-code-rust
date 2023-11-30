@@ -23,8 +23,27 @@ fn decode(line: &str) -> usize {
     }) as usize
 }
 
-fn encode(num: usize) -> usize {
-    num
+fn encode(mut num: usize) -> String {
+    let mut res = Vec::new();
+    while num > 0 {
+        let rem = num % 5;
+        num /= 5;
+        match rem {
+            0 => res.push('0'),
+            1 => res.push('1'),
+            2 => res.push('2'),
+            3 => {
+                num += 1;
+                res.push('=')
+            }
+            4 => {
+                num += 1;
+                res.push('-')
+            }
+            _ => unreachable!(),
+        };
+    }
+    res.iter().rev().collect()
 }
 
 #[cfg(test)]
