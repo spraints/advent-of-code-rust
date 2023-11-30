@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
+pub fn part1(input: String, _vis: bool) -> Box<dyn Display> {
     let (board, path) = input.split_once("\n\n").unwrap();
 
     let board = parse_board(board);
@@ -35,7 +35,7 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     Box::new((row + 1) * 1000 + (col + 1) * 4 + dir as usize)
 }
 
-pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
+pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
     Box::new("todo")
 }
 
