@@ -5,7 +5,7 @@ pub fn set_token(token: String) -> anyhow::Result<()> {
     let cfg_dir = cfg_file
         .parent()
         .ok_or_else(|| anyhow::anyhow!("expected {cfg_file:?} to be in a directory"))?;
-    std::fs::create_dir_all(&cfg_dir)?;
+    std::fs::create_dir_all(cfg_dir)?;
     std::fs::write(&cfg_file, token)
         .or_else(|e| anyhow::bail!("error writing token to {cfg_file:?}: {e:?}"))?;
     println!("wrote token to {:?}", cfg_file);

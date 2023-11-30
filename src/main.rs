@@ -37,14 +37,12 @@ extern crate advent_of_code_registry;
 
 fn main() {
     let cli = Cli::parse();
-    let res = match cli.set_token {
+    if let Err(e) = match cli.set_token {
         Some(token) => set_token(token),
         None => do_run(cli),
-    };
-    match res {
-        Err(e) => eprintln!("error: {e}"),
-        _ => (),
-    };
+    } {
+        eprintln!("error: {e}");
+    }
 }
 
 fn do_run(cli: Cli) -> anyhow::Result<()> {

@@ -174,12 +174,7 @@ fn top(cavern: &Cavern) -> BF {
         .fold(0, |bf, (i, cr)| bf | (asbf(cr) << (i * CAVERN_WIDTH)))
 }
 
-fn rock_fall<'a, I: Iterator<Item = Puff>>(
-    cavern: &mut Cavern,
-    rock: &Rock,
-    puffs: &'a mut I,
-    vis: bool,
-) {
+fn rock_fall<I: Iterator<Item = Puff>>(cavern: &mut Cavern, rock: &Rock, puffs: &mut I, vis: bool) {
     let need = 4 - empty_space(cavern);
     if vis {
         println!("add {} rows to cavern", need);
