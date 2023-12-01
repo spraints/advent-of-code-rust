@@ -40,67 +40,46 @@ fn get_cal2(mut line: &str, vis: bool) -> u32 {
     while line != "" {
         if line.starts_with("0") {
             numbers.push(0);
-            line = &line[1..];
         } else if line.starts_with("zero") {
             numbers.push(0);
-            line = &line[4..];
         } else if line.starts_with("1") {
             numbers.push(1);
-            line = &line[1..];
         } else if line.starts_with("one") {
             numbers.push(1);
-            line = &line[3..];
         } else if line.starts_with("2") {
             numbers.push(2);
-            line = &line[1..];
         } else if line.starts_with("two") {
             numbers.push(2);
-            line = &line[3..];
         } else if line.starts_with("3") {
             numbers.push(3);
-            line = &line[1..];
         } else if line.starts_with("three") {
             numbers.push(3);
-            line = &line[5..];
         } else if line.starts_with("4") {
             numbers.push(4);
-            line = &line[1..];
         } else if line.starts_with("four") {
             numbers.push(4);
-            line = &line[4..];
         } else if line.starts_with("5") {
             numbers.push(5);
-            line = &line[1..];
         } else if line.starts_with("five") {
             numbers.push(5);
-            line = &line[4..];
         } else if line.starts_with("6") {
             numbers.push(6);
-            line = &line[1..];
         } else if line.starts_with("six") {
             numbers.push(6);
-            line = &line[3..];
         } else if line.starts_with("7") {
             numbers.push(7);
-            line = &line[1..];
         } else if line.starts_with("seven") {
             numbers.push(7);
-            line = &line[5..];
         } else if line.starts_with("8") {
             numbers.push(8);
-            line = &line[1..];
         } else if line.starts_with("eight") {
             numbers.push(8);
-            line = &line[5..];
         } else if line.starts_with("9") {
             numbers.push(9);
-            line = &line[1..];
         } else if line.starts_with("nine") {
             numbers.push(9);
-            line = &line[4..];
-        } else {
-            line = &line[1..];
         }
+        line = &line[1..];
     }
     if vis {
         println!("{orig} => {:?}", numbers);
