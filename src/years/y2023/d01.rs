@@ -1,6 +1,79 @@
 use std::fmt::Display;
 
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
+    let key = [
+        ("0", 0),
+        ("1", 1),
+        ("2", 2),
+        ("3", 3),
+        ("4", 4),
+        ("5", 5),
+        ("6", 6),
+        ("7", 7),
+        ("8", 8),
+        ("9", 9),
+    ];
+    Box::new(
+        input
+            .lines()
+            .map(|line| get_cal_new(line, &key, vis))
+            .sum::<u32>(),
+    )
+}
+
+pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
+    let key = [
+        ("0", 0),
+        ("1", 1),
+        ("2", 2),
+        ("3", 3),
+        ("4", 4),
+        ("5", 5),
+        ("6", 6),
+        ("7", 7),
+        ("8", 8),
+        ("9", 9),
+        ("zero", 0),
+        ("one", 1),
+        ("two", 2),
+        ("three", 3),
+        ("four", 4),
+        ("five", 5),
+        ("six", 6),
+        ("seven", 7),
+        ("eight", 8),
+        ("nine", 9),
+    ];
+    Box::new(
+        input
+            .lines()
+            .map(|line| get_cal_new(line, &key, vis))
+            .sum::<u32>(),
+    )
+}
+
+fn get_cal_new(line: &str, key: &[(&'static str, u32)], vis: bool) -> u32 {
+    let mut first = None;
+    let mut last = None;
+    for k in key {
+        first = match (line.find(k.0), first) {
+            (Some(i), None) => Some((i, k.1)),
+            (Some(i), Some((j, _))) if i < j => Some((i, k.1)),
+            (_, x) => x,
+        };
+        last = match (line.rfind(k.0), last) {
+            (Some(i), None) => Some((i, k.1)),
+            (Some(i), Some((j, _))) if i > j => Some((i, k.1)),
+            (_, x) => x,
+        };
+    }
+    if vis {
+        println!("{line} => {first:?} {last:?}");
+    }
+    first.unwrap().1 * 10 + last.unwrap().1
+}
+
+pub fn orig_part1(input: String, vis: bool) -> Box<dyn Display> {
     let vals: Vec<u32> = input.lines().map(|line| get_cal(line, vis)).collect();
     if vis {
         println!("{:?}", vals);
@@ -9,7 +82,7 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     Box::new(sum)
 }
 
-pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
+pub fn orig_part2(input: String, vis: bool) -> Box<dyn Display> {
     let vals: Vec<u32> = input.lines().map(|line| get_cal2(line, vis)).collect();
     if vis {
         println!("{:?}", vals);
@@ -95,7 +168,8 @@ mod test {
 pqr3stu8vwx
 a1b2c3d4e5f
 treb7uchet",
-        part1 => 142);
+        part1 => 142,
+        orig_part1 => 142);
 
     crate::test::aoc_test!(part2_example, r"two1nine
 eightwothree
@@ -104,5 +178,6 @@ xtwone3four
 4nineeightseven2
 zoneight234
 7pqrstsixteen",
-        part2 => 281);
+        part2 => 281,
+        orig_part2 => 281);
 }
