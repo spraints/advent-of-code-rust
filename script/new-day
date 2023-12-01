@@ -1,0 +1,74 @@
+#!/usr/bin/env ruby
+
+year = Time.now.year
+day = nil
+
+while arg = ARGV.shift
+  case arg
+  when "--year"
+    year = ARGV.shift.to_i
+  when /\A[0-9]+\z/
+    day = arg.to_i
+  else
+    puts "Usage: #{$0} [--year YEAR] DAY"
+    exit 1
+  end
+end
+
+years_file = "src/years.rs"
+years_dir = "src/years"
+year_file = "src/years/y#{year}.rs"
+year_dir = "src/years/y#{year}"
+day_file = "#{year_dir}/d#{'%02d' % day}.rs"
+
+dirty_files = `git status --porcelain`.lines.map { |s| s[3..-1].strip } # "?? script/\n" => "script/"
+
+if dirty_files.include?(day_file)
+  puts "ERROR: #{day_file} has uncommitted changes!"
+else
+  system "mkdir", "-p", year_dir
+  system "cp", "-v", "boilerplate.rs", day_file
+  system "git", "add", "-N", day_file
+end
+
+if dirty_files.include?(year_file)
+  puts "ERROR: #{year_file} has uncommitted changes!"
+else
+  puts "Generate #{year_file}"
+  days = Dir["#{year_dir}/*.rs"].map { |d| File.basename(d, ".rs") }.sort_by { |m| m[1..-1].to_i }
+  File.open(year_file, "w") do |yf|
+    days.each do |d|
+      yf.puts "mod #{d};"
+    end
+    yf.puts "",
+      "use crate::solutionset::SolutionSet;",
+      "",
+      "pub fn register<S: SolutionSet>(s: &mut S) {"
+    first = true
+    days.each do |d|
+      if first
+        first = false
+      else
+        yf.puts ""
+      end
+      yf.puts "    s.add(#{year}, #{d[1..-1].to_i}, 1, None, #{d}::part1);"
+      yf.puts "    s.add(#{year}, #{d[1..-1].to_i}, 2, None, #{d}::part2);"
+    end
+    yf.puts "}"
+  end
+  system "git", "add", "-N", year_file
+end
+
+puts "Generate #{years_file}"
+File.open(years_file, "w") do |yf|
+  year_mods = Dir["#{years_dir}/*.rs"].map { |f| File.basename(f, ".rs") }.sort
+  yf.puts "use crate::solutionset::SolutionSet;", ""
+  year_mods.each do |ym|
+    yf.puts "pub mod #{File.basename(ym, ".rs")};"
+  end
+  yf.puts "", "pub fn register<S: SolutionSet>(runner: &mut S) {"
+  year_mods.each do |ym|
+    yf.puts "    #{ym}::register(runner);"
+  end
+  yf.puts "}"
+end

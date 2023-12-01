@@ -63,8 +63,7 @@ fn do_run(cli: Cli) -> anyhow::Result<()> {
      *   #[aoc(year = 2021, day = 1, part = 1, label = "optional extra string")]
      *   pub fn day1part1(...
      */
-    years::y2021::register(&mut runner);
-    years::y2022::register(&mut runner);
+    years::register(&mut runner);
     runner.run(cli)
 }
 
