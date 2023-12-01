@@ -5,6 +5,7 @@ use std::{
     io::Write,
 };
 
+#[allow(dead_code)]
 fn write_dot(valves: &[Valve]) -> std::io::Result<()> {
     let mut f = std::fs::File::create("d16.dot")?;
     writeln!(f, "digraph G {{")?;
@@ -119,6 +120,7 @@ fn solve(input: String, vis: bool, minutes: Flow, actors: usize) -> Flow {
     let dists = find_distances(&valves, &vindices, vis);
 
     if vis {
+        #[cfg(not(test))]
         write_dot(&valves).unwrap();
     }
 
