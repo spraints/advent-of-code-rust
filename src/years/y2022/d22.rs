@@ -258,6 +258,7 @@ fn walk2(
     ((r as usize, c as usize), dir)
 }
 
+#[allow(clippy::manual_range_contains)]
 fn suck(
     mode: WhichBoard,
     pos: (isize, isize),

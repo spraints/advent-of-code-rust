@@ -1,11 +1,11 @@
 use std::fmt::Display;
 
-pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
+pub fn part1(input: String, _vis: bool) -> Box<dyn Display> {
     let total = input.lines().map(decode).sum();
     Box::new(encode(total))
 }
 
-pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
+pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
     Box::new("todo")
 }
 

@@ -70,9 +70,7 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
 }
 
 fn play_round(init: HashSet<Coord>, moves: &[char]) -> (HashSet<Coord>, bool) {
-    let moves = init
-        .iter()
-        .map(|elf| (elf.clone(), maybe_move(&init, elf, moves)));
+    let moves = init.iter().map(|elf| (*elf, maybe_move(&init, elf, moves)));
     let mut res: HashMap<Coord, Coord> = HashMap::new();
     let mut off_limits = HashSet::new();
     let mut count = 0;

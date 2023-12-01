@@ -48,14 +48,12 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
             let nc = c + dc;
             if nr >= 0 && nc >= 0 {
                 let pos = (nr as usize, nc as usize);
-                if pos.0 < board.len() && pos.1 <= board[0].len() {
-                    if is_empty(&board, elapsed, pos) {
-                        let next = State { pos, elapsed };
-                        if vis {
-                            println!(" -> {:?}", next);
-                        }
-                        todo.push(Reverse(next));
+                if pos.0 < board.len() && pos.1 <= board[0].len() && is_empty(&board, elapsed, pos) {
+                    let next = State { pos, elapsed };
+                    if vis {
+                        println!(" -> {:?}", next);
                     }
+                    todo.push(Reverse(next));
                 }
             }
         }
@@ -118,11 +116,9 @@ fn go(board: &Board, elapsed: usize, start: Coord, finish: Coord) -> usize {
             let nc = c + dc;
             if nr >= 0 && nc >= 0 {
                 let pos = (nr as usize, nc as usize);
-                if pos.0 < board.len() && pos.1 <= board[0].len() {
-                    if is_empty(&board, elapsed, pos) {
-                        let next = State { pos, elapsed };
-                        todo.push(Reverse(next));
-                    }
+                if pos.0 < board.len() && pos.1 <= board[0].len() && is_empty(board, elapsed, pos) {
+                    let next = State { pos, elapsed };
+                    todo.push(Reverse(next));
                 }
             }
         }
