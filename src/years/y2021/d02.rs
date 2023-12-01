@@ -31,7 +31,7 @@ pub fn part2(input: String, _vis: bool) -> Box<dyn Display> {
 }
 
 fn parse(s: &str) -> Vec<Command> {
-    s.lines().map(|line| parse_line(line)).collect()
+    s.lines().map(parse_line).collect()
 }
 
 fn parse_line(s: &str) -> Command {

@@ -97,8 +97,8 @@ fn get_cal(line: &str, vis: bool) -> u32 {
         if vis {
             println!("{c}");
         }
-        if c >= '0' && c <= '9' {
-            numbers.push((c as u32) - ('0' as u32));
+        if let Some(d) = c.to_digit(10) {
+            numbers.push(d);
         }
     }
     if vis {
@@ -110,46 +110,26 @@ fn get_cal(line: &str, vis: bool) -> u32 {
 fn get_cal2(mut line: &str, vis: bool) -> u32 {
     let orig = line;
     let mut numbers = Vec::new();
-    while line != "" {
-        if line.starts_with("0") {
+    while !line.is_empty() {
+        if line.starts_with('0') || line.starts_with("zero") {
             numbers.push(0);
-        } else if line.starts_with("zero") {
-            numbers.push(0);
-        } else if line.starts_with("1") {
+        } else if line.starts_with('1') || line.starts_with("one") {
             numbers.push(1);
-        } else if line.starts_with("one") {
-            numbers.push(1);
-        } else if line.starts_with("2") {
+        } else if line.starts_with('2') || line.starts_with("two") {
             numbers.push(2);
-        } else if line.starts_with("two") {
-            numbers.push(2);
-        } else if line.starts_with("3") {
+        } else if line.starts_with('3') || line.starts_with("three") {
             numbers.push(3);
-        } else if line.starts_with("three") {
-            numbers.push(3);
-        } else if line.starts_with("4") {
+        } else if line.starts_with('4') || line.starts_with("four") {
             numbers.push(4);
-        } else if line.starts_with("four") {
-            numbers.push(4);
-        } else if line.starts_with("5") {
+        } else if line.starts_with('5') || line.starts_with("five") {
             numbers.push(5);
-        } else if line.starts_with("five") {
-            numbers.push(5);
-        } else if line.starts_with("6") {
+        } else if line.starts_with('6') || line.starts_with("six") {
             numbers.push(6);
-        } else if line.starts_with("six") {
-            numbers.push(6);
-        } else if line.starts_with("7") {
+        } else if line.starts_with('7') || line.starts_with("seven") {
             numbers.push(7);
-        } else if line.starts_with("seven") {
-            numbers.push(7);
-        } else if line.starts_with("8") {
+        } else if line.starts_with('8') || line.starts_with("eight") {
             numbers.push(8);
-        } else if line.starts_with("eight") {
-            numbers.push(8);
-        } else if line.starts_with("9") {
-            numbers.push(9);
-        } else if line.starts_with("nine") {
+        } else if line.starts_with('9') || line.starts_with("nine") {
             numbers.push(9);
         }
         line = &line[1..];
