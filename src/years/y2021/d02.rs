@@ -10,11 +10,24 @@ pub fn part1(input: String, _vis: bool) -> Box<dyn Display> {
             Command::Up(n) => depth -= n,
         };
     }
-    Box::new(format!("{}", depth * pos))
+    Box::new(depth * pos)
 }
 
-pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
+pub fn part2(input: String, _vis: bool) -> Box<dyn Display> {
+    let mut depth = 0;
+    let mut pos = 0;
+    let mut aim = 0;
+    for c in parse(&input) {
+        match c {
+            Command::Forward(n) => {
+                pos += n;
+                depth += aim * n;
+            }
+            Command::Down(n) => aim += n,
+            Command::Up(n) => aim -= n,
+        };
+    }
+    Box::new(depth * pos)
 }
 
 fn parse(s: &str) -> Vec<Command> {
@@ -49,6 +62,6 @@ forward 8
 up 3
 down 8
 forward 2",
-        part1 => "150",
-        part2 => "todo");
+        part1 => 150,
+        part2 => 900);
 }
