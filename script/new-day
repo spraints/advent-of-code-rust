@@ -19,7 +19,8 @@ years_file = "src/years.rs"
 years_dir = "src/years"
 year_file = "src/years/y#{year}.rs"
 year_dir = "src/years/y#{year}"
-day_file = "#{year_dir}/d#{'%02d' % day}.rs"
+day_mod = "d#{'%02d' % day}"
+day_file = "#{year_dir}/#{day_mod}.rs"
 
 dirty_files = `git status --porcelain`.lines.map { |s| s[3..-1].strip } # "?? script/\n" => "script/"
 
@@ -36,6 +37,7 @@ if dirty_files.include?(year_file)
 else
   puts "Generate #{year_file}"
   days = Dir["#{year_dir}/*.rs"].map { |d| File.basename(d, ".rs") }.sort_by { |m| m[1..-1].to_i }
+  registrations = File.read(year_file).lines.grep(/s.add/)
   File.open(year_file, "w") do |yf|
     days.each do |d|
       yf.puts "mod #{d};"
@@ -43,18 +45,11 @@ else
     yf.puts "",
       "use crate::solutionset::SolutionSet;",
       "",
-      "pub fn register<S: SolutionSet>(s: &mut S) {"
-    first = true
-    days.each do |d|
-      if first
-        first = false
-      else
-        yf.puts ""
-      end
-      yf.puts "    s.add(#{year}, #{d[1..-1].to_i}, 1, None, #{d}::part1);"
-      yf.puts "    s.add(#{year}, #{d[1..-1].to_i}, 2, None, #{d}::part2);"
-    end
-    yf.puts "}"
+      "pub fn register<S: SolutionSet>(s: &mut S) {",
+      registrations,
+      "    s.add(#{year}, #{day}, 1, None, #{day_mod}::part1);",
+      "    s.add(#{year}, #{day}, 2, None, #{day_mod}::part2);",
+      "}"
   end
   system "git", "add", "-N", year_file
 end
