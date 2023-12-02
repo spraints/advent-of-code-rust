@@ -1,3 +1,4 @@
+use std::cmp::max;
 use std::fmt::Display;
 
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
@@ -58,8 +59,23 @@ fn parse_move(m: &str, vis: bool) -> (u32, u32, u32) {
     res
 }
 
-pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
+pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
+    let games = input.lines().map(|l| parse_game(l, false));
+    let mut res = 0;
+    for (_, moves) in games {
+        if vis {
+            println!("{moves:?}");
+        }
+        let mut cubes = (0, 0, 0);
+        for m in moves {
+            cubes = (max(cubes.0, m.0), max(cubes.1, m.1), max(cubes.2, m.2));
+        }
+        if vis {
+            println!(" ==> {cubes:?}");
+        }
+        res += cubes.0 * cubes.1 * cubes.2;
+    }
+    Box::new(res)
 }
 
 #[cfg(test)]
@@ -72,5 +88,5 @@ Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red
 Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
 Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green",
         part1 => 8,
-        part2 => "todo");
+        part2 => 2286);
 }
