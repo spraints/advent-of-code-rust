@@ -12,4 +12,5 @@ chrono = "*"
 clap = { version = "*", features = ["derive"] }
 hex = "*"
 platform-dirs = "*"
+regex = "*"
 reqwest = { version = "*", features = ["blocking"] }
