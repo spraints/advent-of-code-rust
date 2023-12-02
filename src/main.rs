@@ -14,6 +14,7 @@
 
 mod curday;
 mod input;
+mod registry;
 mod solutionset;
 mod solver;
 mod token;

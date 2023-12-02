@@ -43,12 +43,13 @@ else
       yf.puts "mod #{d};"
     end
     yf.puts "",
+      "use crate::registry::aoc_part;",
       "use crate::solutionset::SolutionSet;",
       "",
       "pub fn register<S: SolutionSet>(s: &mut S) {",
       registrations,
-      "    s.add(#{year}, #{day}, 1, None, #{day_mod}::part1);",
-      "    s.add(#{year}, #{day}, 2, None, #{day_mod}::part2);",
+      "    aoc_part!(s, #{year}, #{day}, 1, #{day_mod}::part1);",
+      "    aoc_part!(s, #{year}, #{day}, 2, #{day_mod}::part2);",
       "}"
   end
   system "git", "add", "-N", year_file
