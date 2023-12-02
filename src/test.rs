@@ -42,3 +42,22 @@ macro_rules! aoc_tests {
 }
 
 pub(crate) use aoc_tests;
+
+// Test macro examples:
+//   const TEST_INPUT: &'static str = "input";
+//   aoc_test!(part1, TEST_INPUT, 7);
+// result:
+//   #[test]
+//   fn part1() {
+//     dotest(7, TEST_INPUT, super::part1);
+//   }
+macro_rules! aoc_test {
+    ($f:ident, $input:expr, $res:expr) => {
+        #[test]
+        fn $f() {
+            crate::test::dotest2($res, $input, super::$f, stringify!($f));
+        }
+    };
+}
+
+pub(crate) use aoc_test;
