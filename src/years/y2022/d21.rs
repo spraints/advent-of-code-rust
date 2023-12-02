@@ -203,7 +203,7 @@ impl Display for Op {
 mod test {
     use super::*;
 
-    crate::test::aoc_test!(example, r"root: pppw + sjmn
+    crate::test::aoc_tests!(example, r"root: pppw + sjmn
 dbpl: 5
 cczh: sllz + lgvd
 zczc: 2

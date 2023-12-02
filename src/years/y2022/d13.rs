@@ -203,7 +203,7 @@ impl Display for Packet {
 mod test {
     use super::*;
 
-    crate::test::aoc_test!(example, r"[1,1,3,1,1]
+    crate::test::aoc_tests!(example, r"[1,1,3,1,1]
 [1,1,5,1,1]
 
 [[1],[2,3,4]]

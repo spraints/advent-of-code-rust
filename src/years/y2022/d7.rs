@@ -129,7 +129,7 @@ impl<'a> Iterator for DirIter<'a> {
 mod test {
     use super::*;
 
-    crate::test::aoc_test!(example, r"$ cd /
+    crate::test::aoc_tests!(example, r"$ cd /
 $ ls
 dir a
 14848514 b.txt

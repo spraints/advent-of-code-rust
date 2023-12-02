@@ -167,11 +167,11 @@ fn parse(line: &str) -> P {
 mod test {
     use super::*;
 
-    crate::test::aoc_test!(smol, r"1,1,1
+    crate::test::aoc_tests!(smol, r"1,1,1
 2,1,1",
         part1 => 10);
 
-    crate::test::aoc_test!(example, r"2,2,2
+    crate::test::aoc_tests!(example, r"2,2,2
 1,2,2
 3,2,2
 2,1,2

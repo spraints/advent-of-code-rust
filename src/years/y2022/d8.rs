@@ -117,7 +117,7 @@ fn parse(input: &str) -> Vec<Vec<i8>> {
 mod test {
     use super::*;
 
-    crate::test::aoc_test!(example, r"30373
+    crate::test::aoc_tests!(example, r"30373
 25512
 65332
 33549

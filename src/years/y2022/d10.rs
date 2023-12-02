@@ -52,7 +52,7 @@ pub fn part2(input: String, _vis: bool) -> Box<dyn Display> {
 mod test {
     use super::*;
 
-    crate::test::aoc_test!(example, EX,
+    crate::test::aoc_tests!(example, EX,
         part1 => 13140,
         part2 => r"
 ##..##..##..##..##..##..##..##..##..##..

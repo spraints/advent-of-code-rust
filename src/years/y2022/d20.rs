@@ -127,7 +127,7 @@ mod test {
         assert_eq!(-2, -32 % 5);
     }
 
-    crate::test::aoc_test!(example, r"1
+    crate::test::aoc_tests!(example, r"1
 2
 -3
 3

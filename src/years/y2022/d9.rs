@@ -92,7 +92,7 @@ fn parse(line: &str) -> ((isize, isize), usize) {
 mod test {
     use super::*;
 
-    crate::test::aoc_test!(example, r"R 4
+    crate::test::aoc_tests!(example, r"R 4
 U 4
 L 3
 D 1
@@ -103,7 +103,7 @@ R 2",
         part1 => 13,
         part2 => 1);
 
-    crate::test::aoc_test!(longer, r"R 5
+    crate::test::aoc_tests!(longer, r"R 5
 U 8
 L 8
 D 3

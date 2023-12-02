@@ -133,7 +133,7 @@ fn parse_monkeys(input: &str) -> Vec<Monkey> {
 mod test {
     use super::*;
 
-    crate::test::aoc_test!(example, r"Monkey 0:
+    crate::test::aoc_tests!(example, r"Monkey 0:
   Starting items: 79, 98
   Operation: new = old * 19
   Test: divisible by 23

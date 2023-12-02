@@ -56,7 +56,7 @@ enum Command {
 mod test {
     use super::*;
 
-    crate::test::aoc_test!(example, r"forward 5
+    crate::test::aoc_tests!(example, r"forward 5
 down 5
 forward 8
 up 3

@@ -518,7 +518,7 @@ fn parse_path(s: &str) -> Path {
 mod test {
     use super::*;
 
-    crate::test::aoc_test!(example, r"        ...#
+    crate::test::aoc_tests!(example, r"        ...#
         .#..
         #...
         ....

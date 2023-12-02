@@ -50,7 +50,7 @@ fn encode(mut num: usize) -> String {
 mod test {
     use super::*;
 
-    crate::test::aoc_test!(example, r"1=-0-2
+    crate::test::aoc_tests!(example, r"1=-0-2
 12111
 2=0=
 21

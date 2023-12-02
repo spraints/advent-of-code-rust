@@ -32,7 +32,7 @@ where
 //     dotest(7, "input", part1);
 //     dotest(14, "input", part2);
 //   }
-macro_rules! aoc_test {
+macro_rules! aoc_tests {
     ($name:ident, $input:expr, $($f:ident => $res:expr),*) => {
         #[test]
         fn $name() {
@@ -41,4 +41,4 @@ macro_rules! aoc_test {
     };
 }
 
-pub(crate) use aoc_test;
+pub(crate) use aoc_tests;

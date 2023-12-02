@@ -144,14 +144,14 @@ fn get_cal2(mut line: &str, vis: bool) -> u32 {
 mod test {
     use super::*;
 
-    crate::test::aoc_test!(example, r"1abc2
+    crate::test::aoc_tests!(example, r"1abc2
 pqr3stu8vwx
 a1b2c3d4e5f
 treb7uchet",
         part1 => 142,
         orig_part1 => 142);
 
-    crate::test::aoc_test!(part2_example, r"two1nine
+    crate::test::aoc_tests!(part2_example, r"two1nine
 eightwothree
 abcone2threexyz
 xtwone3four

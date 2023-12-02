@@ -121,17 +121,17 @@ fn find_tag2(input: &str, size: usize, vis: bool) -> Box<dyn Display> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test::aoc_test;
+    use crate::test::aoc_tests;
 
-    aoc_test!(a, "mjqjpqmgbljsphdztnvjfqwrcgsmlb", part1 => 7, part2 => 19);
-    aoc_test!(b, "bvwbjplbgvbhsrlpgdmjqwftvncz", part1 => 5, part2 => 23);
-    aoc_test!(c, "nppdvjthqldpwncqszvftbrmjlhg", part1 => 6, part2 => 23);
-    aoc_test!(d, "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg", part1 => 10, part2 => 29);
-    aoc_test!(e, "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw", part1 => 11, part2 => 26);
+    aoc_tests!(a, "mjqjpqmgbljsphdztnvjfqwrcgsmlb", part1 => 7, part2 => 19);
+    aoc_tests!(b, "bvwbjplbgvbhsrlpgdmjqwftvncz", part1 => 5, part2 => 23);
+    aoc_tests!(c, "nppdvjthqldpwncqszvftbrmjlhg", part1 => 6, part2 => 23);
+    aoc_tests!(d, "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg", part1 => 10, part2 => 29);
+    aoc_tests!(e, "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw", part1 => 11, part2 => 26);
 
-    aoc_test!(alt_a, "mjqjpqmgbljsphdztnvjfqwrcgsmlb", part1_alt => 7, part2_alt => 19);
-    aoc_test!(alt_b, "bvwbjplbgvbhsrlpgdmjqwftvncz", part1_alt => 5, part2_alt => 23);
-    aoc_test!(alt_c, "nppdvjthqldpwncqszvftbrmjlhg", part1_alt => 6, part2_alt => 23);
-    aoc_test!(alt_d, "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg", part1_alt => 10, part2_alt => 29);
-    aoc_test!(alt_e, "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw", part1_alt => 11, part2_alt => 26);
+    aoc_tests!(alt_a, "mjqjpqmgbljsphdztnvjfqwrcgsmlb", part1_alt => 7, part2_alt => 19);
+    aoc_tests!(alt_b, "bvwbjplbgvbhsrlpgdmjqwftvncz", part1_alt => 5, part2_alt => 23);
+    aoc_tests!(alt_c, "nppdvjthqldpwncqszvftbrmjlhg", part1_alt => 6, part2_alt => 23);
+    aoc_tests!(alt_d, "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg", part1_alt => 10, part2_alt => 29);
+    aoc_tests!(alt_e, "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw", part1_alt => 11, part2_alt => 26);
 }

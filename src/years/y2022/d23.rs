@@ -161,7 +161,7 @@ fn print_field(field: &HashSet<Coord>) {
 mod test {
     use super::*;
 
-    crate::test::aoc_test!(example, r"....#..
+    crate::test::aoc_tests!(example, r"....#..
 ..###.#
 #...#.#
 .#...##

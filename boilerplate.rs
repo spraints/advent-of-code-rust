@@ -17,7 +17,7 @@ pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
 mod test {
     use super::*;
 
-    crate::test::aoc_test!(example, r"",
+    crate::test::aoc_tests!(example, r"",
         part1 => "todo",
         part2 => "todo");
 }

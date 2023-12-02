@@ -329,7 +329,7 @@ impl<T: Copy> Iterator for Forever<T> {
 mod test {
     use super::*;
 
-    crate::test::aoc_test!(example, r">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>",
+    crate::test::aoc_tests!(example, r">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>",
         part1 => 3068,
         part2 => 1514285714288usize);
 }

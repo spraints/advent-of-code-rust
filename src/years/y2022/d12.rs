@@ -148,7 +148,7 @@ impl PartialOrd for State {
 mod test {
     use super::*;
 
-    crate::test::aoc_test!(example, r"Sabqponm
+    crate::test::aoc_tests!(example, r"Sabqponm
 abcryxxl
 accszExk
 acctuvwj

@@ -150,7 +150,7 @@ fn parse_rock(line: &str) -> Vec<Coord> {
 mod test {
     use super::*;
 
-    crate::test::aoc_test!(example, r"498,4 -> 498,6 -> 496,6
+    crate::test::aoc_tests!(example, r"498,4 -> 498,6 -> 496,6
 503,4 -> 502,4 -> 502,9 -> 494,9",
         part1 => 24,
         part2 => 93);
