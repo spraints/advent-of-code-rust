@@ -1,6 +1,45 @@
 use std::cmp::max;
 use std::fmt::Display;
 
+use itertools::Itertools;
+
+pub fn part1_iterate(input: String, vis: bool) -> Box<dyn Display> {
+    let mut res = 0;
+
+    'lineloop: for line in input.lines() {
+        let mut tokens = line.split(' ');
+
+        assert_eq!(Some("Game"), tokens.next());
+        let id: u32 = tokens
+            .next()
+            .unwrap()
+            .trim_end_matches(':')
+            .parse()
+            .unwrap();
+
+        for (n, l) in tokens.tuples() {
+            let n: u32 = n.parse().unwrap();
+            if n > match l.trim_end_matches(&[',', ';']) {
+                "red" => 12,
+                "green" => 13,
+                "blue" => 14,
+                _ => panic!("illegal! {n} {l}"),
+            } {
+                if vis {
+                    println!("{line}: too many {l}: {n}");
+                }
+                continue 'lineloop;
+            }
+        }
+
+        if vis {
+            println!("{line}: ok!");
+        }
+        res += id;
+    }
+    Box::new(res)
+}
+
 pub fn part1_regexp(input: String, vis: bool) -> Box<dyn Display> {
     let mut res = 0;
     for (id, moves) in parse_games(&input, vis) {
@@ -169,6 +208,7 @@ Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
 Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green",
         part1 => 8,
         part1_regexp => 8,
+        part1_iterate => 8,
         part2 => 2286,
         part2_regexp => 2286);
 }

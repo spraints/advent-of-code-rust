@@ -11,6 +11,7 @@ anyhow = "*"
 chrono = "*"
 clap = { version = "*", features = ["derive"] }
 hex = "*"
+itertools = "*"
 platform-dirs = "*"
 regex = "*"
 reqwest = { version = "*", features = ["blocking"] }
