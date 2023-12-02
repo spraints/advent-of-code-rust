@@ -40,6 +40,33 @@ pub fn part1_iterate(input: String, vis: bool) -> Box<dyn Display> {
     Box::new(res)
 }
 
+pub fn part2_iterate(input: String, vis: bool) -> Box<dyn Display> {
+    let mut res = 0;
+
+    for line in input.lines() {
+        let tokens = line.split(' ').skip(2);
+
+        let mut red = 0;
+        let mut green = 0;
+        let mut blue = 0;
+
+        for (n, l) in tokens.tuples() {
+            let n: u32 = n.parse().unwrap();
+            match l.trim_end_matches(&[',', ';']) {
+                "red" => red = max(red, n),
+                "green" => green = max(green, n),
+                "blue" => blue = max(blue, n),
+                _ => panic!("illegal! {n} {l}"),
+            };
+        }
+        if vis {
+            println!("{line} => red={red} green={green} blue={blue}");
+        }
+        res += red * green * blue;
+    }
+    Box::new(res)
+}
+
 pub fn part1_regexp(input: String, vis: bool) -> Box<dyn Display> {
     let mut res = 0;
     for (id, moves) in parse_games(&input, vis) {
@@ -210,5 +237,6 @@ Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green",
         part1_regexp => 8,
         part1_iterate => 8,
         part2 => 2286,
-        part2_regexp => 2286);
+        part2_regexp => 2286,
+        part2_iterate => 2286);
 }
