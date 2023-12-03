@@ -1,3 +1,4 @@
+use std::cmp::{max, min};
 use std::collections::HashSet;
 use std::fmt::Display;
 
@@ -47,8 +48,45 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     Box::new(sum)
 }
 
-pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
+pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
+    let things = parse(&input);
+
+    let mut sum = 0;
+
+    for g in &things {
+        if matches!(g.th, TH::Symbol('*')) {
+            if vis {
+                println!("GEAR! {}, {}", g.row, g.col);
+            }
+            let min_row = if g.row > 0 { g.row - 1 } else { g.row };
+            let max_row = g.row + 1;
+            let min_col = if g.col > 0 { g.col - 1 } else { g.col };
+            let max_col = g.col + 1;
+            let row_range = min_row..=max_row;
+            //let col_range = min_col..=max_col;
+            let ns: Vec<u32> = things
+                .iter()
+                .filter_map(|t| match t.th {
+                    TH::Number(n) => {
+                        if row_range.contains(&t.row)
+                            && max(t.col, min_col) <= min(t.col + t.len - 1, max_col)
+                        {
+                            Some(n)
+                        } else {
+                            None
+                        }
+                    }
+                    _ => None,
+                })
+                .collect();
+            if ns.len() == 2 {
+                let ratio: u32 = ns.iter().product();
+                sum += ratio;
+            }
+        }
+    }
+
+    Box::new(sum)
 }
 
 fn parse(input: &str) -> Vec<Thing> {
@@ -104,5 +142,5 @@ mod test {
 .664.598..";
 
     crate::test::aoc_test!(part1, TEST_INPUT, 4361);
-    crate::test::aoc_test!(part2, TEST_INPUT, "todo");
+    crate::test::aoc_test!(part2, TEST_INPUT, 467835);
 }
