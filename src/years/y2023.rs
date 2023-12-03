@@ -1,6 +1,8 @@
 mod d01;
 mod d02;
+mod d03;
 
+use crate::registry::aoc_part;
 use crate::solutionset::SolutionSet;
 
 pub fn register<S: SolutionSet>(s: &mut S) {
@@ -14,4 +16,6 @@ pub fn register<S: SolutionSet>(s: &mut S) {
     s.add(2023, 2, 2, None, d02::part2);
     s.add(2023, 2, 2, Some("regexp"), d02::part2_regexp);
     s.add(2023, 2, 2, Some("itertools"), d02::part2_iterate);
+    aoc_part!(s, 2023, 3, 1, d03::part1);
+    aoc_part!(s, 2023, 3, 2, d03::part2);
 }
