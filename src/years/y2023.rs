@@ -18,4 +18,5 @@ pub fn register<S: SolutionSet>(s: &mut S) {
     s.add(2023, 2, 2, Some("itertools"), d02::part2_iterate);
     aoc_part!(s, 2023, 3, 1, d03::part1);
     aoc_part!(s, 2023, 3, 2, d03::part2);
+    aoc_part!(s, 2023, 3, 2, d03::part2_from_oliver);
 }

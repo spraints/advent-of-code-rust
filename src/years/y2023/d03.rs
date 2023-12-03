@@ -1,5 +1,5 @@
 use std::cmp::{max, min};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 
 // Handy references:
@@ -89,6 +89,44 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     Box::new(sum)
 }
 
+pub fn part2_from_oliver(input: String, _vis: bool) -> Box<dyn Display> {
+    let things = parse(&input);
+
+    let mut stars = HashSet::new();
+    for t in &things {
+        if matches!(t.th, TH::Symbol('*')) {
+            stars.insert((t.row, t.col));
+        }
+    }
+    let mut star_neighbors: HashMap<(usize, usize), Vec<u32>> = HashMap::new();
+
+    for t in &things {
+        if let TH::Number(n) = t.th {
+            let min_row = if t.row > 0 { t.row - 1 } else { t.row };
+            let max_row = t.row + 1;
+            let min_col = if t.col > 0 { t.col - 1 } else { t.col };
+            let max_col = t.col + t.len;
+            for r in min_row..=max_row {
+                for c in min_col..=max_col {
+                    if stars.contains(&(r, c)) {
+                        let list = star_neighbors.entry((r, c)).or_default();
+                        list.push(n);
+                    }
+                }
+            }
+        }
+    }
+
+    let mut sum = 0;
+    for neighbors in star_neighbors.values() {
+        if neighbors.len() == 2 {
+            let ratio: u32 = neighbors.iter().product();
+            sum += ratio;
+        }
+    }
+    Box::new(sum)
+}
+
 fn parse(input: &str) -> Vec<Thing> {
     let n_re = regex::Regex::new("[0-9]+").unwrap();
     let sym_re = regex::Regex::new("[^0-9.]").unwrap();
@@ -143,4 +181,5 @@ mod test {
 
     crate::test::aoc_test!(part1, TEST_INPUT, 4361);
     crate::test::aoc_test!(part2, TEST_INPUT, 467835);
+    crate::test::aoc_test!(part2_from_oliver, TEST_INPUT, 467835);
 }
