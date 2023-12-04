@@ -1,4 +1,7 @@
-use std::{collections::HashSet, fmt::Display};
+use std::{
+    collections::{HashSet, VecDeque},
+    fmt::Display,
+};
 
 // Handy references:
 // - https://doc.rust-lang.org/std/iter/trait.Iterator.html
@@ -33,8 +36,46 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     Box::new(score)
 }
 
-pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
+pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
+    let mut score = 0;
+    let mut wins = VecDeque::new();
+    for line in input.lines() {
+        let copies = 1 + wins.pop_front().unwrap_or(0);
+        if vis {
+            println!("{copies} copies of {line:?}");
+        }
+        score += copies;
+
+        let (_, vals) = line.split_once(':').unwrap();
+        let (winning, mine) = vals.split_once('|').unwrap();
+        let winning: HashSet<u32> = winning
+            .trim()
+            .split(' ')
+            .filter(|s| !s.is_empty())
+            .map(|s| s.parse().unwrap())
+            .collect();
+        let mine: HashSet<u32> = mine
+            .trim()
+            .split(' ')
+            .filter(|s| !s.is_empty())
+            .map(|s| s.parse().unwrap())
+            .collect();
+
+        let n = winning.intersection(&mine).count();
+        if n > 0 {
+            if vis {
+                println!("--> {copies} more copies of the next {n} cards!");
+            }
+            for i in 0..n {
+                if wins.len() > i {
+                    wins[i] += copies;
+                } else {
+                    wins.push_back(copies);
+                }
+            }
+        }
+    }
+    Box::new(score)
 }
 
 #[cfg(test)]
@@ -47,5 +88,5 @@ Card 5: 87 83 26 28 32 | 88 30 70 12 93 22 82 36
 Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11";
 
     crate::test::aoc_test!(part1, TEST_INPUT, 13);
-    crate::test::aoc_test!(part2, TEST_INPUT, "todo");
+    crate::test::aoc_test!(part2, TEST_INPUT, 30);
 }
