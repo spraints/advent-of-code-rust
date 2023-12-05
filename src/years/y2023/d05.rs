@@ -121,7 +121,7 @@ fn parse(input: &str) -> Data {
     for line in lines {
         match map_start.captures(line) {
             Some(c) => {
-                if ranges.len() > 0 {
+                if !ranges.is_empty() {
                     ranges.sort_by_key(|r| r.src);
                     maps.insert(map_name.to_owned(), Map { ranges });
                     ranges = Vec::new();
@@ -142,7 +142,7 @@ fn parse(input: &str) -> Data {
             }
         }
     }
-    if ranges.len() > 0 {
+    if !ranges.is_empty() {
         ranges.sort_by_key(|r| r.src);
         maps.insert(map_name.to_owned(), Map { ranges });
     }
@@ -164,17 +164,14 @@ impl Map {
     fn map(&self, source: u128) -> u128 {
         match self.find(source) {
             None => source,
-            Some(range) => range.dest + source - range.src,
+            Some(range) => range.dest + (source - range.src),
         }
     }
 
     fn find(&self, source: u128) -> Option<&Range> {
-        for range in &self.ranges {
-            if range.src <= source && range.src + range.range > source {
-                return Some(range);
-            }
-        }
-        None
+        self.ranges
+            .iter()
+            .find(|range| range.src <= source && range.src + range.range > source)
     }
 
     fn map_range(&self, new_ranges: &mut Vec<(u128, u128)>, range: (u128, u128)) {

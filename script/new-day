@@ -37,7 +37,7 @@ if dirty_files.include?(year_file)
 else
   puts "Generate #{year_file}"
   days = Dir["#{year_dir}/*.rs"].map { |d| File.basename(d, ".rs") }.sort_by { |m| m[1..-1].to_i }
-  registrations = File.read(year_file).lines.grep(/s.add/)
+  registrations = File.read(year_file).lines.grep(/s.add|aoc_part/)
   File.open(year_file, "w") do |yf|
     days.each do |d|
       yf.puts "mod #{d};"

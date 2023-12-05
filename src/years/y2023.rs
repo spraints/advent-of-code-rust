@@ -18,6 +18,11 @@ pub fn register<S: SolutionSet>(s: &mut S) {
     s.add(2023, 2, 2, None, d02::part2);
     s.add(2023, 2, 2, Some("regexp"), d02::part2_regexp);
     s.add(2023, 2, 2, Some("itertools"), d02::part2_iterate);
+    aoc_part!(s, 2023, 3, 1, d03::part1);
+    aoc_part!(s, 2023, 3, 2, d03::part2);
+    aoc_part!(s, 2023, 3, 2, d03::part2_from_oliver);
+    aoc_part!(s, 2023, 4, 1, d04::part1);
+    aoc_part!(s, 2023, 4, 2, d04::part2);
     aoc_part!(s, 2023, 5, 1, d05::part1);
     aoc_part!(s, 2023, 5, 2, d05::part2);
 }
