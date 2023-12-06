@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 year = Time.now.year
-day = nil
+day = Time.now.day
 
 while arg = ARGV.shift
   case arg
@@ -10,7 +10,7 @@ while arg = ARGV.shift
   when /\A[0-9]+\z/
     day = arg.to_i
   else
-    puts "Usage: #{$0} [--year YEAR] DAY"
+    puts "Usage: #{$0} [--year YEAR] [DAY]"
     exit 1
   end
 end
