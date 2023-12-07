@@ -31,7 +31,7 @@ fn score(race: &Race, vis: bool) -> u64 {
     // b = time
     // c = -best
     // x = (-b +/- sqrt(b^2 - 4ac)) / 2a
-    let a = -1 as f64;
+    let a = -1.0;
     let b = race.time as f64;
     let c = -1.0 * (race.best as f64);
     let s = (b * b - 4.0 * a * c).sqrt();
