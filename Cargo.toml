@@ -12,6 +12,7 @@ chrono = "*"
 clap = { version = "*", features = ["derive"] }
 hex = "*"
 itertools = "*"
+num = "*"
 platform-dirs = "*"
 regex = "*"
 reqwest = { version = "*", features = ["blocking"] }

@@ -1,5 +1,7 @@
 use std::{collections::HashMap, fmt::Display};
 
+use num::integer::lcm;
+
 // Handy references:
 // - https://doc.rust-lang.org/std/iter/trait.Iterator.html
 // - https://docs.rs/itertools/0.8.2/itertools/trait.Itertools.html
@@ -46,7 +48,7 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     if vis {
         println!("{solves:?}");
     }
-    let res: u128 = solves.iter().map(|(_, n)| n).product();
+    let res: u128 = solves.iter().map(|(_, n)| *n).reduce(lcm).unwrap();
     Box::new(res)
 }
 
