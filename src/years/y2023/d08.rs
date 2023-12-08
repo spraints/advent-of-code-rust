@@ -8,63 +8,46 @@ use std::{collections::HashMap, fmt::Display};
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     let (directions, map) = parse(input, vis);
 
-    let mut cur: &str = "AAA";
-    let mut steps: u32 = 0;
+    let z = regex::Regex::new("ZZZ").unwrap();
+    Box::new(solve(&directions, &map, "AAA", &z))
+}
+
+fn solve(
+    directions: &[Dir],
+    map: &HashMap<String, (String, String)>,
+    start: &str,
+    fin: &regex::Regex,
+) -> u128 {
+    let mut cur = start;
+    let mut steps: u128 = 0;
     loop {
-        for dir in &directions {
+        for dir in directions {
             steps += 1;
             let (l, r) = map.get(cur).unwrap();
             cur = match dir {
                 Dir::L => l,
                 Dir::R => r,
             };
-            if cur == "ZZZ" {
-                return Box::new(steps);
+            if fin.is_match(cur) {
+                return steps;
             }
-            //if steps > 100 {
-            //    panic!("not found");
-            //}
         }
     }
 }
 
 pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     let (directions, map) = parse(input, vis);
-    let mut cur: Vec<&str> = map
+    let fin = regex::Regex::new("Z$").unwrap();
+    let solves: Vec<(&str, u128)> = map
         .keys()
         .filter(|s| s.ends_with("A"))
-        .map(|s| s.as_str())
+        .map(|start| (start.as_str(), solve(&directions, &map, start, &fin)))
         .collect();
-    let tracks = cur.len();
     if vis {
-        println!("start => {cur:?}");
+        println!("{solves:?}");
     }
-    let mut steps = 0;
-    loop {
-        for dir in &directions {
-            steps += 1;
-            let mut done = true;
-            for i in 0..tracks {
-                let (l, r) = map.get(cur[i]).unwrap();
-                cur[i] = match dir {
-                    Dir::L => l,
-                    Dir::R => r,
-                };
-                if !cur[i].ends_with("Z") {
-                    done = false;
-                }
-            }
-            if vis {
-                println!("[{steps}] (done? {done}) => {cur:?}");
-            }
-            if done {
-                return Box::new(steps);
-            }
-            //if steps > 100 {
-            //    panic!("not found");
-            //}
-        }
-    }
+    let res: u128 = solves.iter().map(|(_, n)| n).product();
+    Box::new(res)
 }
 
 fn parse(input: String, vis: bool) -> (Vec<Dir>, HashMap<String, (String, String)>) {
