@@ -19,13 +19,12 @@ pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
 }
 
 fn next_number(numbers: &Vec<u64>, vis: bool) -> u64 {
-    let diffs: Vec<u64> = numbers.windows(2).map(|x| x[1] - x[0]).collect();
-    let all_zeroes = diffs.iter().all(|a| *a == 0);
-
-    let next_num = if all_zeroes {
+    let next_num = if numbers.iter().all(|a| *a == 0) {
         0
     } else {
-        diffs.last().unwrap() + next_number(&diffs, vis)
+        let diffs: Vec<u64> = numbers.windows(2).map(|x| x[1] - x[0]).collect();
+
+        numbers.last().unwrap() + next_number(&diffs, vis)
     };
 
     if vis {
@@ -38,7 +37,7 @@ fn next_number(numbers: &Vec<u64>, vis: bool) -> u64 {
 fn nums(line: &str) -> Vec<u64> {
     line.trim()
         .split_whitespace()
-        .map(|s| s.parse().unwrap())
+        .map(|s| s.parse().expect(&format!("should be a number {s:?}")))
         .collect()
 }
 
