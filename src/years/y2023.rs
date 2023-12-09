@@ -6,6 +6,7 @@ mod d05;
 mod d06;
 mod d07;
 mod d08;
+mod d09;
 
 use crate::registry::aoc_part;
 use crate::solutionset::SolutionSet;
@@ -34,4 +35,6 @@ pub fn register<S: SolutionSet>(s: &mut S) {
     aoc_part!(s, 2023, 7, 2, d07::part2);
     aoc_part!(s, 2023, 8, 1, d08::part1);
     aoc_part!(s, 2023, 8, 2, d08::part2);
+    aoc_part!(s, 2023, 9, 1, d09::part1);
+    aoc_part!(s, 2023, 9, 2, d09::part2);
 }
