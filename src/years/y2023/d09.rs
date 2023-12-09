@@ -18,11 +18,11 @@ pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
     Box::new("todo")
 }
 
-fn next_number(numbers: &Vec<u64>, vis: bool) -> u64 {
+fn next_number(numbers: &Vec<i64>, vis: bool) -> i64 {
     let next_num = if numbers.iter().all(|a| *a == 0) {
         0
     } else {
-        let diffs: Vec<u64> = numbers.windows(2).map(|x| x[1] - x[0]).collect();
+        let diffs: Vec<i64> = numbers.windows(2).map(|x| x[1] - x[0]).collect();
 
         numbers.last().unwrap() + next_number(&diffs, vis)
     };
@@ -34,7 +34,7 @@ fn next_number(numbers: &Vec<u64>, vis: bool) -> u64 {
     next_num
 }
 
-fn nums(line: &str) -> Vec<u64> {
+fn nums(line: &str) -> Vec<i64> {
     line.trim()
         .split_whitespace()
         .map(|s| s.parse().expect(&format!("should be a number {s:?}")))
