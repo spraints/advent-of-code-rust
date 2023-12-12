@@ -85,7 +85,6 @@ impl Runner {
         let token = get_token()?;
         let now = aoc_now();
         cli.set_today(&now);
-        let mut any = false;
 
         fn res(cli: &Cli, res: Box<dyn Display>) -> Box<dyn Display> {
             if cli.no_spoilers {
@@ -95,6 +94,8 @@ impl Runner {
             }
         }
 
+        let start_all = std::time::Instant::now();
+        let mut count = 0;
         for solver in self.solvers {
             let Solver {
                 year,
@@ -108,7 +109,7 @@ impl Runner {
                     println!("{}: Dec {:02}: part {}: (future)", year, day, part,);
                     continue;
                 }
-                any = true;
+                count += 1;
                 let input = get_input(year, day, &token)?;
                 let now = std::time::Instant::now();
                 let result = f(input, self.visualize);
@@ -127,8 +128,12 @@ impl Runner {
                 );
             }
         }
-        if !any {
+        if count == 0 {
             println!("No matches found! {:?}", cli);
+        } else {
+            let elapsed = start_all.elapsed();
+            let avg = elapsed / count;
+            println!("total time: {elapsed:.2?} / avg: {avg:.2?}");
         }
         Ok(())
     }
