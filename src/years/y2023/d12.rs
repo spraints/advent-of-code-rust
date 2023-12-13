@@ -12,23 +12,58 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
 
 fn solve(line: &str, vis: bool) -> usize {
     let (conditions, counts) = line.trim().split_once(' ').unwrap();
-    let conditions: Vec<Cond> = conditions.chars().map(Cond::from).collect();
+    let mut conditions: Vec<Cond> = conditions.chars().map(Cond::from).collect();
     let counts: Vec<u16> = counts.split(',').map(|n| n.parse().unwrap()).collect();
-    let mut solutions = Vec::new();
-    find_solutions(
-        &conditions,
-        &counts,
-        false,
-        String::with_capacity(conditions.len()),
-        &mut solutions,
-    );
     if vis {
         println!("> {line}");
-        for sol in &solutions {
-            println!("  {sol}");
+    }
+    try_each(0, &mut conditions, &counts, vis)
+}
+
+fn try_each(i: usize, conditions: &mut [Cond], counts: &[u16], vis: bool) -> usize {
+    match conditions.get(i).cloned() {
+        None => {
+            if get_counts(conditions) == counts {
+                if vis {
+                    println!("{}", Cond::str(conditions));
+                }
+                1
+            } else {
+                0
+            }
+        }
+        Some(Cond::Ok) | Some(Cond::Broken) => try_each(i + 1, conditions, counts, vis),
+        Some(Cond::Unknown) => {
+            let mut res = 0;
+            conditions[i] = Cond::Ok;
+            res += try_each(i + 1, conditions, counts, vis);
+            conditions[i] = Cond::Broken;
+            res += try_each(i + 1, conditions, counts, vis);
+            conditions[i] = Cond::Unknown;
+            res
         }
     }
-    solutions.len()
+}
+
+fn get_counts(conditions: &[Cond]) -> Vec<u16> {
+    let mut broken_len = 0;
+    let mut res = Vec::new();
+    for c in conditions {
+        match c {
+            Cond::Unknown => panic!("no unknowns allowed! {conditions:?}"),
+            Cond::Ok => {
+                if broken_len > 0 {
+                    res.push(broken_len);
+                    broken_len = 0;
+                }
+            }
+            Cond::Broken => broken_len += 1,
+        };
+    }
+    if broken_len > 0 {
+        res.push(broken_len);
+    }
+    res
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -36,6 +71,20 @@ enum Cond {
     Unknown,
     Ok,
     Broken,
+}
+
+impl Cond {
+    fn str(conditions: &[Self]) -> String {
+        let mut res = String::with_capacity(conditions.len());
+        for (i, c) in conditions.iter().enumerate() {
+            res.push(match c {
+                Self::Unknown => '?',
+                Self::Ok => '.',
+                Self::Broken => '#',
+            });
+        }
+        res
+    }
 }
 
 impl From<char> for Cond {
@@ -47,39 +96,6 @@ impl From<char> for Cond {
             _ => panic!("illegal condition {c:?}"),
         }
     }
-}
-
-fn find_solutions(
-    conditions: &[Cond],
-    counts: &[u16],
-    in_broken_chunk: bool,
-    prev: String,
-    solutions: &mut Vec<String>,
-) {
-    fn ext(prev: &String, ch: char) -> String {
-        let mut s = prev.clone();
-        s.push(ch);
-        s
-    }
-    match (conditions.is_empty(), counts.is_empty()) {
-        (true, false) | (false, true) => (),
-        (true, true) => solutions.push(prev),
-        (false, false) => {
-            let mut c = counts.clone();
-            match (conditions[0], counts[0], in_broken_chunk) {
-                (Cond::Unknown, 0, true) => find_solutions(&conditions[1..], &counts[1..], false, ext(&prev, '.'),solutions),
-                (Cond::Unknown, n, false) => {
-                    find_solutions(&conditions[1..], counts, false, ext(&prev, '.'),solutions),
-                    c[0] = n - 1;
-                    find_solutions(&conditions[1..], &c, true, ext(&prev, '.'),solutions),
-                    find_solutions(&k
-            Cond::Unknown => {
-                if in_brok
-            },
-            Cond::Ok => todo!(),
-            Cond::Broken => todo!(),
-        },
-    };
 }
 
 pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
