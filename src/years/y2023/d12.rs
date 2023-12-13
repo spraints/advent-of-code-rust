@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fmt::Display;
 
 // Handy references:
@@ -6,12 +7,36 @@ use std::fmt::Display;
 // - https://docs.rs/regex/latest/regex/struct.Regex.html
 
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
-    let res: usize = input.lines().map(|line| solve(line, vis)).sum();
+    let res: usize = input.lines().map(|line| solve(line, vis, 1)).sum();
     Box::new(res)
 }
 
-fn solve(line: &str, vis: bool) -> usize {
+pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
+    let res: usize = input.lines().map(|line| solve(line, vis, 5)).sum();
+    Box::new(res)
+}
+
+fn solve(line: &str, vis: bool, mult: usize) -> usize {
     let (conditions, counts) = line.trim().split_once(' ').unwrap();
+
+    fn r(s: &str, c: char, mult: usize) -> Cow<'_, str> {
+        match mult {
+            0 => "".into(),
+            1 => s.into(),
+            _ => {
+                let mut res = String::with_capacity(s.len() * mult + mult);
+                res.push_str(s);
+                for i in 1..mult {
+                    res.push(c);
+                    res.push_str(s);
+                }
+                res.into()
+            }
+        }
+    }
+    let conditions = r(conditions, '?', mult);
+    let counts = r(counts, ',', mult);
+
     let mut conditions: Vec<Cond> = conditions.chars().map(Cond::from).collect();
     let counts: Vec<u16> = counts.split(',').map(|n| n.parse().unwrap()).collect();
     if vis {
@@ -98,10 +123,6 @@ impl From<char> for Cond {
     }
 }
 
-pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
-}
-
 #[cfg(test)]
 mod test {
     const TEST_INPUT: &'static str = r"???.### 1,1,3
@@ -112,5 +133,5 @@ mod test {
 ?###???????? 3,2,1";
 
     crate::test::aoc_test!(part1, TEST_INPUT, 21);
-    crate::test::aoc_test!(part2, TEST_INPUT, "todo");
+    crate::test::aoc_test!(part2, TEST_INPUT, 525152);
 }
