@@ -17,6 +17,10 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
 }
 
 fn solve(line: &str, vis: bool, mult: usize) -> usize {
+    if vis {
+        println!("{line}");
+    }
+
     let (conditions, counts) = line.trim().split_once(' ').unwrap();
 
     fn r(s: &str, c: char, mult: usize) -> Cow<'_, str> {
@@ -36,58 +40,80 @@ fn solve(line: &str, vis: bool, mult: usize) -> usize {
     }
     let conditions = r(conditions, '?', mult);
     let counts = r(counts, ',', mult);
-
-    let mut conditions: Vec<Cond> = conditions.chars().map(Cond::from).collect();
-    let counts: Vec<u16> = counts.split(',').map(|n| n.parse().unwrap()).collect();
-    if vis {
-        println!("> {line}");
+    if vis && mult > 1 {
+        println!("++ {conditions}");
+        println!("## {counts}");
     }
-    try_each(0, &mut conditions, &counts, vis)
+
+    let conditions: Vec<Cond> = conditions.chars().map(Cond::from).collect();
+    let counts: Vec<u16> = counts.split(',').map(|n| n.parse().unwrap()).collect();
+
+    let res = s2(&conditions, &counts, false);
+    if vis {
+        println!("  >> {res}");
+    }
+    res
 }
 
-fn try_each(i: usize, conditions: &mut [Cond], counts: &[u16], vis: bool) -> usize {
-    match conditions.get(i).cloned() {
-        None => {
-            if get_counts(conditions) == counts {
-                if vis {
-                    println!("{}", Cond::str(conditions));
-                }
+fn s2(conditions: &[Cond], counts: &[u16], in_broken: bool) -> usize {
+    let res = match (conditions.is_empty(), counts.is_empty()) {
+        (true, true) => 1,
+        (true, false) => {
+            if counts.iter().all(|x| *x == 0) {
                 1
             } else {
                 0
             }
         }
-        Some(Cond::Ok) | Some(Cond::Broken) => try_each(i + 1, conditions, counts, vis),
-        Some(Cond::Unknown) => {
-            let mut res = 0;
-            conditions[i] = Cond::Ok;
-            res += try_each(i + 1, conditions, counts, vis);
-            conditions[i] = Cond::Broken;
-            res += try_each(i + 1, conditions, counts, vis);
-            conditions[i] = Cond::Unknown;
-            res
+        (false, true) => {
+            if conditions.iter().all(|x| !matches!(x, Cond::Broken)) {
+                1
+            } else {
+                0
+            }
         }
-    }
+        (false, false) => match (in_broken, conditions[0], counts[0]) {
+            // It's not possible to be at count==0 without being in a broken region.
+            (false, _, 0) => panic!("illegal!!"),
+            // If this block is OK and the previous one was too, just keep going.
+            (false, Cond::Ok, _) => s2(&conditions[1..], counts, false),
+            // If this block is OK and the previous one wasn't, then the current count should be 0.
+            // Keep going.
+            (true, Cond::Ok, 0) => s2(&conditions[1..], &counts[1..], false),
+            // If this block is OK and the previous one wasn't and we're still expecting more
+            // broken ones, stop this branch of the search.
+            (true, Cond::Ok, 1_u16..=u16::MAX) => 0,
+            // If this block is broken and the current count is 0, we're over budget, stop this
+            // branch of the search.
+            (true, Cond::Broken, 0) => 0,
+            // If this block is broken, reduce the current count and look for more.
+            (_, Cond::Broken, n @ 1_u16..=u16::MAX) => {
+                s2(&conditions[1..], &c(n - 1, &counts[1..]), true)
+            }
+            // If this block is unknown and the previous one was broken and the count is 0, this
+            // one must be OK.
+            (true, Cond::Unknown, 0) => s2(&conditions[1..], &counts[1..], false),
+            // If this block is unknown and the previous one was broken and there are still more
+            // broken ones needed, this one must be broken.
+            (true, Cond::Unknown, n) => s2(&conditions[1..], &c(n - 1, &counts[1..]), true),
+            // If this block is unknown and the previous one wasn't, this can either be broken or
+            // not.
+            (false, Cond::Unknown, n) => {
+                // Pretend that it is Ok.
+                s2(&conditions[1..], &counts, false)
+                    // Pretend that it is not Ok.
+                    + s2(&conditions[1..], &c(n - 1, &counts[1..]), true)
+            }
+        },
+    };
+    //println!("maybe? {} {counts:?} => {res}", Cond::str(conditions));
+    res
 }
 
-fn get_counts(conditions: &[Cond]) -> Vec<u16> {
-    let mut broken_len = 0;
-    let mut res = Vec::new();
-    for c in conditions {
-        match c {
-            Cond::Unknown => panic!("no unknowns allowed! {conditions:?}"),
-            Cond::Ok => {
-                if broken_len > 0 {
-                    res.push(broken_len);
-                    broken_len = 0;
-                }
-            }
-            Cond::Broken => broken_len += 1,
-        };
-    }
-    if broken_len > 0 {
-        res.push(broken_len);
-    }
+fn c(val: u16, vals: &[u16]) -> Vec<u16> {
+    let mut res = Vec::with_capacity(vals.len() + 1);
+    res.push(val);
+    res.extend_from_slice(vals);
     res
 }
 
@@ -101,12 +127,12 @@ enum Cond {
 impl Cond {
     fn str(conditions: &[Self]) -> String {
         let mut res = String::with_capacity(conditions.len());
-        for (i, c) in conditions.iter().enumerate() {
+        for c in conditions {
             res.push(match c {
                 Self::Unknown => '?',
                 Self::Ok => '.',
                 Self::Broken => '#',
-            });
+            })
         }
         res
     }
@@ -134,4 +160,6 @@ mod test {
 
     crate::test::aoc_test!(part1, TEST_INPUT, 21);
     crate::test::aoc_test!(part2, TEST_INPUT, 525152);
+
+    crate::test::aoc_test!(part2, short, r".# 1", 1);
 }
