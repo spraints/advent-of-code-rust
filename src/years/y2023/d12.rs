@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::fmt::Display;
 
 // Handy references:
@@ -48,14 +49,21 @@ fn solve(line: &str, vis: bool, mult: usize) -> usize {
     let conditions: Vec<Cond> = conditions.chars().map(Cond::from).collect();
     let counts: Vec<u16> = counts.split(',').map(|n| n.parse().unwrap()).collect();
 
-    let res = s2(&conditions, &counts, false);
+    let mut memo = HashMap::new();
+
+    let res = s2(&conditions, &counts, false, &mut memo);
     if vis {
         println!("  >> {res}");
     }
     res
 }
 
-fn s2(conditions: &[Cond], counts: &[u16], in_broken: bool) -> usize {
+fn s2(
+    conditions: &[Cond],
+    counts: &[u16],
+    in_broken: bool,
+    memo: &mut HashMap<(Vec<Cond>, Vec<u16>, bool), usize>,
+) -> usize {
     let res = match (conditions.is_empty(), counts.is_empty()) {
         (true, true) => 1,
         (true, false) => {
@@ -72,39 +80,49 @@ fn s2(conditions: &[Cond], counts: &[u16], in_broken: bool) -> usize {
                 0
             }
         }
-        (false, false) => match (in_broken, conditions[0], counts[0]) {
-            // It's not possible to be at count==0 without being in a broken region.
-            (false, _, 0) => panic!("illegal!!"),
-            // If this block is OK and the previous one was too, just keep going.
-            (false, Cond::Ok, _) => s2(&conditions[1..], counts, false),
-            // If this block is OK and the previous one wasn't, then the current count should be 0.
-            // Keep going.
-            (true, Cond::Ok, 0) => s2(&conditions[1..], &counts[1..], false),
-            // If this block is OK and the previous one wasn't and we're still expecting more
-            // broken ones, stop this branch of the search.
-            (true, Cond::Ok, 1_u16..=u16::MAX) => 0,
-            // If this block is broken and the current count is 0, we're over budget, stop this
-            // branch of the search.
-            (true, Cond::Broken, 0) => 0,
-            // If this block is broken, reduce the current count and look for more.
-            (_, Cond::Broken, n @ 1_u16..=u16::MAX) => {
-                s2(&conditions[1..], &c(n - 1, &counts[1..]), true)
+        (false, false) => {
+            let k = (conditions.to_vec(), counts.to_vec(), in_broken);
+            if let Some(v) = memo.get(&k) {
+                return *v;
             }
-            // If this block is unknown and the previous one was broken and the count is 0, this
-            // one must be OK.
-            (true, Cond::Unknown, 0) => s2(&conditions[1..], &counts[1..], false),
-            // If this block is unknown and the previous one was broken and there are still more
-            // broken ones needed, this one must be broken.
-            (true, Cond::Unknown, n) => s2(&conditions[1..], &c(n - 1, &counts[1..]), true),
-            // If this block is unknown and the previous one wasn't, this can either be broken or
-            // not.
-            (false, Cond::Unknown, n) => {
-                // Pretend that it is Ok.
-                s2(&conditions[1..], &counts, false)
+            let res = match (in_broken, conditions[0], counts[0]) {
+                // It's not possible to be at count==0 without being in a broken region.
+                (false, _, 0) => panic!("illegal!!"),
+                // If this block is OK and the previous one was too, just keep going.
+                (false, Cond::Ok, _) => s2(&conditions[1..], counts, false, memo),
+                // If this block is OK and the previous one wasn't, then the current count should be 0.
+                // Keep going.
+                (true, Cond::Ok, 0) => s2(&conditions[1..], &counts[1..], false, memo),
+                // If this block is OK and the previous one wasn't and we're still expecting more
+                // broken ones, stop this branch of the search.
+                (true, Cond::Ok, 1_u16..=u16::MAX) => 0,
+                // If this block is broken and the current count is 0, we're over budget, stop this
+                // branch of the search.
+                (true, Cond::Broken, 0) => 0,
+                // If this block is broken, reduce the current count and look for more.
+                (_, Cond::Broken, n @ 1_u16..=u16::MAX) => {
+                    s2(&conditions[1..], &c(n - 1, &counts[1..]), true, memo)
+                }
+                // If this block is unknown and the previous one was broken and the count is 0, this
+                // one must be OK.
+                (true, Cond::Unknown, 0) => s2(&conditions[1..], &counts[1..], false, memo),
+                // If this block is unknown and the previous one was broken and there are still more
+                // broken ones needed, this one must be broken.
+                (true, Cond::Unknown, n) => {
+                    s2(&conditions[1..], &c(n - 1, &counts[1..]), true, memo)
+                }
+                // If this block is unknown and the previous one wasn't, this can either be broken or
+                // not.
+                (false, Cond::Unknown, n) => {
+                    // Pretend that it is Ok.
+                    s2(&conditions[1..], &counts, false, memo)
                     // Pretend that it is not Ok.
-                    + s2(&conditions[1..], &c(n - 1, &counts[1..]), true)
-            }
-        },
+                    + s2(&conditions[1..], &c(n - 1, &counts[1..]), true, memo)
+                }
+            };
+            memo.insert(k, res);
+            res
+        }
     };
     //println!("maybe? {} {counts:?} => {res}", Cond::str(conditions));
     res
@@ -117,7 +135,7 @@ fn c(val: u16, vals: &[u16]) -> Vec<u16> {
     res
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 enum Cond {
     Unknown,
     Ok,
