@@ -115,7 +115,7 @@ fn s2(
                 // not.
                 (false, Cond::Unknown, n) => {
                     // Pretend that it is Ok.
-                    s2(&conditions[1..], &counts, false, memo)
+                    s2(&conditions[1..], counts, false, memo)
                     // Pretend that it is not Ok.
                     + s2(&conditions[1..], &c(n - 1, &counts[1..]), true, memo)
                 }
