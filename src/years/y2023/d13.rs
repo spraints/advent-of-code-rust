@@ -12,7 +12,7 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
             println!("{pattern}");
         }
         let pattern: Vec<&[u8]> = pattern.lines().map(|l| l.trim().as_bytes()).collect();
-        for row in 0..pattern.len() {
+        for row in 0..pattern.len() - 1 {
             if is_v(&pattern, row) {
                 let row = row + 1;
                 if vis {
@@ -21,7 +21,7 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
                 res += row * 100;
             }
         }
-        for col in 0..pattern[0].len() {
+        for col in 0..pattern[0].len() - 1 {
             if is_h(&pattern, col) {
                 let col = col + 1;
                 if vis {
@@ -41,17 +41,13 @@ pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
 fn is_v(pattern: &[&[u8]], row: usize) -> bool {
     // 0..=row is one size, row+1..pattern.len() is the other side.
     let (top, bottom) = pattern.split_at(row + 1);
-    !top.is_empty()
-        && !bottom.is_empty()
-        && zip(top.iter().rev(), bottom.iter()).all(|(a, b)| a == b)
+    zip(top.iter().rev(), bottom.iter()).all(|(a, b)| a == b)
 }
 
 fn is_h(pattern: &[&[u8]], col: usize) -> bool {
     pattern.iter().all(|row| {
         let (left, right) = row.split_at(col + 1);
-        !left.is_empty()
-            && !right.is_empty()
-            && zip(left.iter().rev(), right.iter()).all(|(a, b)| a == b)
+        zip(left.iter().rev(), right.iter()).all(|(a, b)| a == b)
     })
 }
 
