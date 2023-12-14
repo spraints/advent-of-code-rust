@@ -34,12 +34,41 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     Box::new(res)
 }
 
-pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
+pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
+    let mut res = 0;
+    for pattern in input.split("\n\n") {
+        if vis {
+            println!("{pattern}");
+        }
+        let pattern: Vec<&[u8]> = pattern.lines().map(|l| l.trim().as_bytes()).collect();
+        for row in 0..pattern.len() - 1 {
+            if is_smudged_v(&pattern, row) && !is_v(&pattern, row) {
+                let row = row + 1;
+                if vis {
+                    println!(" v {row}");
+                }
+                res += row * 100;
+            }
+        }
+        for col in 0..pattern[0].len() - 1 {
+            if is_smudged_h(&pattern, col) && !is_h(&pattern, col) {
+                let col = col + 1;
+                if vis {
+                    println!(" > {col}");
+                }
+                res += col;
+            }
+        }
+    }
+    Box::new(res)
 }
 
 fn is_v(pattern: &[&[u8]], row: usize) -> bool {
     v_mismatches(pattern, row) == 0
+}
+
+fn is_smudged_v(pattern: &[&[u8]], row: usize) -> bool {
+    v_mismatches(pattern, row) == 1
 }
 
 fn v_mismatches(pattern: &[&[u8]], row: usize) -> usize {
@@ -52,6 +81,10 @@ fn v_mismatches(pattern: &[&[u8]], row: usize) -> usize {
 
 fn is_h(pattern: &[&[u8]], col: usize) -> bool {
     h_mismatches(pattern, col) == 0
+}
+
+fn is_smudged_h(pattern: &[&[u8]], col: usize) -> bool {
+    h_mismatches(pattern, col) == 1
 }
 
 fn h_mismatches(pattern: &[&[u8]], col: usize) -> usize {
@@ -85,5 +118,5 @@ mod test {
 #....#..#";
 
     crate::test::aoc_test!(part1, TEST_INPUT, 405);
-    crate::test::aoc_test!(part2, TEST_INPUT, "todo");
+    crate::test::aoc_test!(part2, TEST_INPUT, 400);
 }
