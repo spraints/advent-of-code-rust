@@ -39,16 +39,31 @@ pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
 }
 
 fn is_v(pattern: &[&[u8]], row: usize) -> bool {
+    v_mismatches(pattern, row) == 0
+}
+
+fn v_mismatches(pattern: &[&[u8]], row: usize) -> usize {
     // 0..=row is one size, row+1..pattern.len() is the other side.
     let (top, bottom) = pattern.split_at(row + 1);
-    zip(top.iter().rev(), bottom.iter()).all(|(a, b)| a == b)
+    zip(top.iter().rev(), bottom.iter())
+        .map(|(a, b)| zip(a.iter(), b.iter()).filter(|(a, b)| a != b).count())
+        .sum()
 }
 
 fn is_h(pattern: &[&[u8]], col: usize) -> bool {
-    pattern.iter().all(|row| {
-        let (left, right) = row.split_at(col + 1);
-        zip(left.iter().rev(), right.iter()).all(|(a, b)| a == b)
-    })
+    h_mismatches(pattern, col) == 0
+}
+
+fn h_mismatches(pattern: &[&[u8]], col: usize) -> usize {
+    pattern
+        .iter()
+        .map(|row| {
+            let (left, right) = row.split_at(col + 1);
+            zip(left.iter().rev(), right.iter())
+                .filter(|(a, b)| a != b)
+                .count()
+        })
+        .sum()
 }
 
 #[cfg(test)]
