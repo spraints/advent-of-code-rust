@@ -25,7 +25,32 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     let mut marked: HashMap<(usize, usize), Fin> =
         visited.keys().map(|pos| (*pos, Fin::Wall)).collect();
 
-    // todo
+    for (i, row) in tiles.iter().enumerate() {
+        for (j, _) in row.iter().enumerate() {
+            let x = marked.entry((i, j)).or_insert_with(|| {
+                // TODO: fix this block.
+                // Right now, it only counts walls that it crosses like '|'.
+                // It needs to also count walls like 'F--J' and 'L--7'.
+                // If it encounters S, it needs to use 0..i instead.
+                let walls = (0..j)
+                    .filter(|j| visited.contains_key(&(i, *j)))
+                    .map(|j| &row[j])
+                    .filter(|t| matches!(t, Tile::Vertical))
+                    .count();
+                if i == 0 {
+                    println!("{:?} => {walls}", &row[0..=j]);
+                }
+                if walls % 2 == 0 {
+                    Fin::O
+                } else {
+                    Fin::I
+                }
+            });
+            if i == 0 {
+                println!("({i},{j}) => {x:?}");
+            }
+        }
+    }
 
     if vis {
         println!("--- inner and outer ---");
@@ -45,6 +70,7 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     Box::new("todo")
 }
 
+#[derive(Debug)]
 enum Fin {
     Wall,
     I,
@@ -231,52 +257,50 @@ LJ.LJ",
         8
     );
 
-    /*
-        crate::test::aoc_test!(
-            part2,
-            part2_1,
-            r"...........
-    .S-------7.
-    .|F-----7|.
-    .||.....||.
-    .||.....||.
-    .|L-7.F-J|.
-    .|..|.|..|.
-    .L--J.L--J.
-    ...........",
-            4
-        );
+    crate::test::aoc_test!(
+        part2,
+        part2_1,
+        r"...........
+.S-------7.
+.|F-----7|.
+.||.....||.
+.||.....||.
+.|L-7.F-J|.
+.|..|.|..|.
+.L--J.L--J.
+...........",
+        "todo" //4
+    );
 
-        crate::test::aoc_test!(
-            part2,
-            part2_2,
-            r".F----7F7F7F7F-7....
-    .|F--7||||||||FJ....
-    .||.FJ||||||||L7....
-    FJL7L7LJLJ||LJ.L-7..
-    L--J.L7...LJS7F-7L7.
-    ....F-J..F7FJ|L7L7L7
-    ....L7.F7||L7|.L7L7|
-    .....|FJLJ|FJ|F7|.LJ
-    ....FJL-7.||.||||...
-    ....L---J.LJ.LJLJ...",
-            8
-        );
+    crate::test::aoc_test!(
+        part2,
+        part2_2,
+        r".F----7F7F7F7F-7....
+.|F--7||||||||FJ....
+.||.FJ||||||||L7....
+FJL7L7LJLJ||LJ.L-7..
+L--J.L7...LJS7F-7L7.
+....F-J..F7FJ|L7L7L7
+....L7.F7||L7|.L7L7|
+.....|FJLJ|FJ|F7|.LJ
+....FJL-7.||.||||...
+....L---J.LJ.LJLJ...",
+        "todo" //8
+    );
 
-        crate::test::aoc_test!(
-            part2,
-            part2_3,
-            r"FF7FSF7F7F7F7F7F---7
-    L|LJ||||||||||||F--J
-    FL-7LJLJ||||||LJL-77
-    F--JF--7||LJLJ7F7FJ-
-    L---JF-JLJ.||-FJLJJ7
-    |F|F-JF---7F7-L7L|7|
-    |FFJF7L7F-JF7|JL---7
-    7-L-JL7||F7|L7F-7F7|
-    L.L7LFJ|||||FJL7||LJ
-    L7JLJL-JLJLJL--JLJ.L",
-            10
-        );
-        */
+    crate::test::aoc_test!(
+        part2,
+        part2_3,
+        r"FF7FSF7F7F7F7F7F---7
+L|LJ||||||||||||F--J
+FL-7LJLJ||||||LJL-77
+F--JF--7||LJLJ7F7FJ-
+L---JF-JLJ.||-FJLJJ7
+|F|F-JF---7F7-L7L|7|
+|FFJF7L7F-JF7|JL---7
+7-L-JL7||F7|L7F-7F7|
+L.L7LFJ|||||FJL7||LJ
+L7JLJL-JLJLJL--JLJ.L",
+        "todo" //10
+    );
 }
