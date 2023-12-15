@@ -94,7 +94,7 @@ impl Runner {
             }
         }
 
-        let start_all = std::time::Instant::now();
+        let mut total_time = std::time::Duration::ZERO;
         let mut count = 0;
         for solver in self.solvers {
             let Solver {
@@ -114,6 +114,7 @@ impl Runner {
                 let now = std::time::Instant::now();
                 let result = f(input, self.visualize);
                 let elapsed = now.elapsed();
+                total_time += elapsed;
                 println!(
                     "{}: Dec {:02}: part {}: {} ({:.2?}){}",
                     year,
@@ -131,9 +132,8 @@ impl Runner {
         if count == 0 {
             println!("No matches found! {:?}", cli);
         } else {
-            let elapsed = start_all.elapsed();
-            let avg = elapsed / count;
-            println!("total time: {elapsed:.2?} / avg: {avg:.2?}");
+            let avg = total_time / count;
+            println!("total time: {total_time:.2?} / avg: {avg:.2?}");
         }
         Ok(())
     }
