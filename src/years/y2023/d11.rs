@@ -6,12 +6,20 @@ use std::{collections::HashSet, fmt::Display};
 // - https://docs.rs/regex/latest/regex/struct.Regex.html
 
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
+    solve(input, vis, 2)
+}
+
+pub fn part2(input: String, _vis: bool) -> Box<dyn Display> {
+    solve(input, false, 1000000)
+}
+
+fn solve(input: String, vis: bool, expansion: usize) -> Box<dyn Display> {
     let universe = parse(&input);
     if vis {
         println!("INPUT:");
         println!("{universe}");
     }
-    let universe = expand(universe);
+    let universe = expand(universe, expansion);
     if vis {
         println!("EXPANDED:");
         println!("{universe}");
@@ -29,10 +37,6 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     Box::new(total_dist)
 }
 
-pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
-}
-
 fn distance(g1: &(usize, usize), g2: &(usize, usize)) -> usize {
     let (i1, j1) = g1;
     let (i2, j2) = g2;
@@ -46,7 +50,7 @@ fn distance(g1: &(usize, usize), g2: &(usize, usize)) -> usize {
     diff(i1, i2) + diff(j1, j2)
 }
 
-fn expand(universe: Universe) -> Universe {
+fn expand(universe: Universe, expansion: usize) -> Universe {
     let mut empty_rows: HashSet<usize> = (0..universe.rows).collect();
     let mut empty_cols: HashSet<usize> = (0..universe.cols).collect();
     for (i, j) in &universe.galaxies {
@@ -54,11 +58,13 @@ fn expand(universe: Universe) -> Universe {
         empty_cols.remove(&j);
     }
 
+    let offoff = expansion - 1;
+
     let mut row_offsets = Vec::with_capacity(universe.rows);
     let mut cur_row_offset = 0;
     for i in 0..universe.rows {
         if empty_rows.contains(&i) {
-            cur_row_offset += 1;
+            cur_row_offset += offoff;
         }
         row_offsets.push(cur_row_offset);
     }
@@ -67,7 +73,7 @@ fn expand(universe: Universe) -> Universe {
     let mut cur_col_offset = 0;
     for i in 0..universe.cols {
         if empty_cols.contains(&i) {
-            cur_col_offset += 1;
+            cur_col_offset += offoff;
         }
         col_offsets.push(cur_col_offset);
     }
@@ -143,5 +149,5 @@ mod test {
 #...#.....";
 
     crate::test::aoc_test!(part1, TEST_INPUT, 374);
-    crate::test::aoc_test!(part2, TEST_INPUT, "todo");
+    //crate::test::aoc_test!(part2, TEST_INPUT, "todo");
 }
