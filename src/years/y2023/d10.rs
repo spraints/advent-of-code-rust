@@ -1,5 +1,5 @@
 use std::collections::{HashMap, VecDeque};
-use std::fmt::Display;
+use std::fmt::{Display, Write};
 
 // Handy references:
 // - https://doc.rust-lang.org/std/iter/trait.Iterator.html
@@ -55,7 +55,7 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
                 } else {
                     // Check the tiles above.
                     let above = tiles[0..i].iter().map(|row| row[j]);
-                    for (_, t) in above
+                    for (ii, t) in above
                         .enumerate()
                         .filter(|(i, t)| visited.contains_key(&(*i, j)) && *t != Tile::Vertical)
                     {
@@ -65,11 +65,17 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
                             (Some(Tile::SW), Tile::NE) | (Some(Tile::SE), Tile::NW) => {
                                 (None, count + 1)
                             }
-                            (Some(Tile::SE), Tile::NE) | (Some(Tile::SW), Tile::SE) => {
+                            (Some(Tile::SE), Tile::NE) | (Some(Tile::SW), Tile::NW) => {
                                 (None, count)
                             }
                             _ => {
-                                panic!("illegal {t:?} after {last_t:?}")
+                                let mut details = String::new();
+                                for (i, row) in tiles[0..i].iter().enumerate() {
+                                    let t = row[j];
+                                    let v = visited.get(&(i, j));
+                                    writeln!(&mut details, "({i},{j}) {t:?} {v:?}").unwrap();
+                                }
+                                panic!("({ii},{j}) illegal {t:?} after {last_t:?}\n{details}")
                             }
                         }
                     }
