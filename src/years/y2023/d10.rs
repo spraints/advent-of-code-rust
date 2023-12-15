@@ -27,28 +27,71 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
 
     for (i, row) in tiles.iter().enumerate() {
         for (j, _) in row.iter().enumerate() {
-            let x = marked.entry((i, j)).or_insert_with(|| {
-                // TODO: fix this block.
-                // Right now, it only counts walls that it crosses like '|'.
-                // It needs to also count walls like 'F--J' and 'L--7'.
-                // If it encounters S, it needs to use 0..i instead.
-                let walls = (0..j)
-                    .filter(|j| visited.contains_key(&(i, *j)))
-                    .map(|j| &row[j])
-                    .filter(|t| matches!(t, Tile::Vertical))
-                    .count();
-                if i == 0 {
-                    println!("{:?} => {walls}", &row[0..=j]);
+            marked.entry((i, j)).or_insert_with(|| {
+                let mut last_t = None;
+                let mut count = 0;
+                let left = &row[0..j];
+                if !left.contains(&Tile::Start) {
+                    // Check the tiles to the left.
+                    for (_, t) in left
+                        .into_iter()
+                        .enumerate()
+                        .filter(|(j, t)| visited.contains_key(&(i, *j)) && **t != Tile::Horizontal)
+                    {
+                        (last_t, count) = match (last_t, t) {
+                            (None, Tile::Vertical) => (None, count + 1),
+                            (None, Tile::NE) | (None, Tile::SE) => (Some(*t), count),
+                            (Some(Tile::NE), Tile::SW) | (Some(Tile::SE), Tile::NW) => {
+                                (None, count + 1)
+                            }
+                            (Some(Tile::NE), Tile::NW) | (Some(Tile::SE), Tile::SW) => {
+                                (None, count)
+                            }
+                            _ => {
+                                panic!("illegal {t:?} after {last_t:?}")
+                            }
+                        }
+                    }
+                } else {
+                    // Check the tiles above.
+                    let above = tiles[0..i].iter().map(|row| row[j]);
+                    for (_, t) in above
+                        .enumerate()
+                        .filter(|(i, t)| visited.contains_key(&(*i, j)) && *t != Tile::Vertical)
+                    {
+                        (last_t, count) = match (last_t, t) {
+                            (None, Tile::Horizontal) => (None, count + 1),
+                            (None, Tile::SW) | (None, Tile::SE) => (Some(t), count),
+                            (Some(Tile::SW), Tile::NE) | (Some(Tile::SE), Tile::NW) => {
+                                (None, count + 1)
+                            }
+                            (Some(Tile::SE), Tile::NE) | (Some(Tile::SW), Tile::SE) => {
+                                (None, count)
+                            }
+                            _ => {
+                                panic!("illegal {t:?} after {last_t:?}")
+                            }
+                        }
+                    }
                 }
-                if walls % 2 == 0 {
+                // // TODO: fix this block.
+                // // Right now, it only counts walls that it crosses like '|'.
+                // // It needs to also count walls like 'F--J' and 'L--7'.
+                // // If it encounters S, it needs to use 0..i instead.
+                // let walls = (0..j)
+                //     .filter(|j| visited.contains_key(&(i, *j)))
+                //     .map(|j| &row[j])
+                //     .filter(|t| matches!(t, Tile::Vertical))
+                //     .count();
+                // if i == 0 {
+                //     println!("{:?} => {walls}", &row[0..=j]);
+                // }
+                if count % 2 == 0 {
                     Fin::O
                 } else {
                     Fin::I
                 }
             });
-            if i == 0 {
-                println!("({i},{j}) => {x:?}");
-            }
         }
     }
 
@@ -67,7 +110,8 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
         }
     }
 
-    Box::new("todo")
+    let res: usize = marked.values().filter(|v| matches!(v, Fin::I)).count();
+    Box::new(res)
 }
 
 #[derive(Debug)]
@@ -205,7 +249,7 @@ fn parse(input: &str) -> Vec<Vec<Tile>> {
     input.lines().map(parse_line).collect()
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum Tile {
     Vertical,   // |
     Horizontal, // -
@@ -269,7 +313,7 @@ LJ.LJ",
 .|..|.|..|.
 .L--J.L--J.
 ...........",
-        "todo" //4
+        4
     );
 
     crate::test::aoc_test!(
@@ -285,7 +329,7 @@ L--J.L7...LJS7F-7L7.
 .....|FJLJ|FJ|F7|.LJ
 ....FJL-7.||.||||...
 ....L---J.LJ.LJLJ...",
-        "todo" //8
+        8
     );
 
     crate::test::aoc_test!(
@@ -301,6 +345,6 @@ L---JF-JLJ.||-FJLJJ7
 7-L-JL7||F7|L7F-7F7|
 L.L7LFJ|||||FJL7||LJ
 L7JLJL-JLJLJL--JLJ.L",
-        "todo" //10
+        10
     );
 }
