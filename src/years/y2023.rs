@@ -8,6 +8,7 @@ mod d07;
 mod d08;
 mod d09;
 mod d10;
+mod d11;
 mod d12;
 mod d13;
 
@@ -46,4 +47,6 @@ pub fn register<S: SolutionSet>(s: &mut S) {
     aoc_part!(s, 2023, 12, 2, d12::part2);
     aoc_part!(s, 2023, 13, 1, d13::part1);
     aoc_part!(s, 2023, 13, 2, d13::part2);
+    aoc_part!(s, 2023, 11, 1, d11::part1);
+    aoc_part!(s, 2023, 11, 2, d11::part2);
 }
