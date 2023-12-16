@@ -8,9 +8,9 @@ use std::fmt::Display;
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     Box::new(
         input
+            .trim()
             .split(',')
             .map(|step| {
-                let step = step.trim();
                 let h = hash(step.as_bytes(), false);
                 if vis {
                     println!("{step:?} -> {h}");
@@ -38,7 +38,7 @@ fn hash(input: &[u8], vis: bool) -> u8 {
 
 #[cfg(test)]
 mod test {
-    const TEST_INPUT: &'static str = "rn=1,cm-,qp=3,cm=2,qp-,pc=4,ot=9,ab=5,pc-,pc=6,ot=7";
+    const TEST_INPUT: &'static str = "rn=1,cm-,qp=3,cm=2,qp-,pc=4,ot=9,ab=5,pc-,pc=6,ot=7\n";
 
     crate::test::aoc_test!(part1, TEST_INPUT, 1320);
     crate::test::aoc_test!(part2, TEST_INPUT, "todo");
