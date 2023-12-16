@@ -10,9 +10,10 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
         input
             .split(',')
             .map(|step| {
+                let step = step.trim();
                 let h = hash(step.as_bytes(), false);
                 if vis {
-                    println!("{step} -> {h}");
+                    println!("{step:?} -> {h}");
                 }
                 h as u64
             })
