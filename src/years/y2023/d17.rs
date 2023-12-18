@@ -45,7 +45,7 @@ pub fn part1(input: String, _vis: bool) -> Box<dyn Display> {
             _ => (),
         };
 
-        for st in &parsed.neighbors(pos, next_dir, cost, 3) {
+        for st in &parsed.neighbors(pos, next_dir, cost, 1, 3) {
             let e = dist.entry((st.pos, st.next_dir)).or_insert_with(|| {
                 to_visit.push(*st);
                 st.cost
@@ -60,8 +60,55 @@ pub fn part1(input: String, _vis: bool) -> Box<dyn Display> {
     panic!("no path found!")
 }
 
-pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
+pub fn part2(input: String, _vis: bool) -> Box<dyn Display> {
+    let parsed = parse(&input);
+
+    // solve with Dijkstra's algorithm where nodes are the individual squares
+    // and edges are sets of 1..3 blocks plus a left or right turn.
+
+    let mut dist = HashMap::new(); // assume infinity.
+    let mut to_visit = BinaryHeap::new();
+    dist.insert(((0, 0), Dir::Start), 0);
+    to_visit.push(State {
+        cost: 0,
+        pos: (0, 0),
+        next_dir: Dir::Right,
+    });
+    to_visit.push(State {
+        cost: 0,
+        pos: (0, 0),
+        next_dir: Dir::Down,
+    });
+
+    let dest = (parsed.height - 1, parsed.width - 1);
+
+    while let Some(State {
+        cost,
+        pos,
+        next_dir,
+    }) = to_visit.pop()
+    {
+        if pos == dest {
+            return Box::new(cost);
+        }
+        match dist.get(&(pos, next_dir)) {
+            Some(d) if *d < cost => continue,
+            _ => (),
+        };
+
+        for st in &parsed.neighbors(pos, next_dir, cost, 4, 10) {
+            let e = dist.entry((st.pos, st.next_dir)).or_insert_with(|| {
+                to_visit.push(*st);
+                st.cost
+            });
+            if *e > st.cost {
+                *e = st.cost;
+                to_visit.push(*st);
+            }
+        }
+    }
+
+    panic!("no path found!")
 }
 
 fn parse(input: &str) -> Parsed {
@@ -96,10 +143,11 @@ impl Parsed {
         pos: (usize, usize),
         dir: Dir,
         start_cost: u64,
+        min_run: usize,
         max_run: usize,
     ) -> Vec<State> {
         let mut res = Vec::new();
-        self._neighbors(pos, dir, start_cost, max_run, false, &mut res);
+        self._neighbors(pos, dir, start_cost, min_run, max_run, &mut res);
         res
     }
 
@@ -108,17 +156,18 @@ impl Parsed {
         pos: (usize, usize),
         dir: Dir,
         start_cost: u64,
+        min_run: usize,
         max_run: usize,
-        can_end: bool,
         res: &mut Vec<State>,
     ) {
+        let nmr = if min_run > 0 { min_run - 1 } else { 0 };
         if max_run > 0 {
             if let Some((i, j)) = self.step(pos, dir) {
                 let cost = self.costs[i][j];
-                self._neighbors((i, j), dir, start_cost + cost, max_run - 1, true, res);
+                self._neighbors((i, j), dir, start_cost + cost, nmr, max_run - 1, res);
             }
         }
-        if can_end {
+        if min_run == 0 {
             res.push(State {
                 pos,
                 cost: start_cost,
@@ -213,5 +262,5 @@ mod test {
 4322674655533";
 
     crate::test::aoc_test!(part1, TEST_INPUT, 102);
-    crate::test::aoc_test!(part2, TEST_INPUT, "todo");
+    crate::test::aoc_test!(part2, TEST_INPUT, 94);
 }
