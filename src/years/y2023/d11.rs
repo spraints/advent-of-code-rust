@@ -54,8 +54,8 @@ fn expand(universe: Universe, expansion: usize) -> Universe {
     let mut empty_rows: HashSet<usize> = (0..universe.rows).collect();
     let mut empty_cols: HashSet<usize> = (0..universe.cols).collect();
     for (i, j) in &universe.galaxies {
-        empty_rows.remove(&i);
-        empty_cols.remove(&j);
+        empty_rows.remove(i);
+        empty_cols.remove(j);
     }
 
     let offoff = expansion - 1;

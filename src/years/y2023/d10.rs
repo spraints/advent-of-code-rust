@@ -34,7 +34,7 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
                 if !left.contains(&Tile::Start) {
                     // Check the tiles to the left.
                     for (_, t) in left
-                        .into_iter()
+                        .iter()
                         .enumerate()
                         .filter(|(j, t)| visited.contains_key(&(i, *j)) && **t != Tile::Horizontal)
                     {
@@ -128,7 +128,7 @@ enum Fin {
 }
 
 fn trace(tiles: &[Vec<Tile>], vis: bool) -> HashMap<(usize, usize), u64> {
-    let start = find_start(&tiles);
+    let start = find_start(tiles);
     if vis {
         println!("start = {start:?}");
     }
@@ -141,12 +141,12 @@ fn trace(tiles: &[Vec<Tile>], vis: bool) -> HashMap<(usize, usize), u64> {
             None => break,
             Some(pos) => {
                 let n_dist = 1 + visited.get(&pos).unwrap();
-                let ns = neighbors(&tiles, &pos);
+                let ns = neighbors(tiles, &pos);
                 if vis {
                     println!("{pos:?} --> ({n_dist})  {ns:?}");
                 }
                 for n in ns {
-                    let e = visited.entry(n.clone()).or_insert(n_dist);
+                    let e = visited.entry(n).or_insert(n_dist);
                     if *e >= n_dist {
                         *e = n_dist;
                         positions.push_back(n);
@@ -168,7 +168,7 @@ fn neighbors(tiles: &[Vec<Tile>], pos: &(usize, usize)) -> Vec<(usize, usize)> {
         //println!("looking for start neighbors in {choices:?}");
         choices
             .into_iter()
-            .filter(|p| neighbors(tiles, &p).contains(start))
+            .filter(|p| neighbors(tiles, p).contains(start))
             .collect()
     }
     let t = &tiles[pos.0][pos.1];
@@ -213,10 +213,10 @@ fn neighbors(tiles: &[Vec<Tile>], pos: &(usize, usize)) -> Vec<(usize, usize)> {
         Tile::Ground => Vec::new(),
         Tile::Start => match pos {
             (0, 0) => vec![(0, 1), (1, 0)],
-            (0, j) => st(&tiles, pos, vec![(1, *j), (0, *j - 1), (0, *j + 1)]),
-            (i, 0) => st(&tiles, pos, vec![(*i, 1), (*i - 1, 0), (*i + 1, 0)]),
+            (0, j) => st(tiles, pos, vec![(1, *j), (0, *j - 1), (0, *j + 1)]),
+            (i, 0) => st(tiles, pos, vec![(*i, 1), (*i - 1, 0), (*i + 1, 0)]),
             (i, j) => st(
-                &tiles,
+                tiles,
                 pos,
                 vec![(*i - 1, *j), (*i + 1, *j), (*i, *j - 1), (*i, *j + 1)],
             ),

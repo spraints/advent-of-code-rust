@@ -46,13 +46,11 @@ pub fn part2(input: String, _vis: bool) -> Box<dyn Display> {
                 }
             };
         }
-        if i < CYCLES {
-            continue;
-        } else if i == CYCLES {
-            return Box::new(load(g));
-        } else {
-            panic!("huh?!?! {i} vs {CYCLES}");
-        }
+        match i {
+            i if i < CYCLES => continue,
+            CYCLES => return Box::new(load(g)),
+            _ => panic!("huh?!?! {i} vs {CYCLES}"),
+        };
     }
 }
 
@@ -126,11 +124,11 @@ fn tilt_west(g: Parsed) -> Parsed {
     while moved {
         moved = false;
         for j in 1..width {
-            for i in 0..height {
-                if matches!((platform[i][j - 1], platform[i][j]), ('.', 'O')) {
+            for row in platform.iter_mut() {
+                if matches!((row[j - 1], row[j]), ('.', 'O')) {
                     moved = true;
-                    platform[i][j - 1] = 'O';
-                    platform[i][j] = '.';
+                    row[j - 1] = 'O';
+                    row[j] = '.';
                 }
             }
         }
@@ -152,11 +150,11 @@ fn tilt_east(g: Parsed) -> Parsed {
     while moved {
         moved = false;
         for j in (1..width).rev() {
-            for i in 0..height {
-                if matches!((platform[i][j - 1], platform[i][j]), ('O', '.')) {
+            for row in platform.iter_mut() {
+                if matches!((row[j - 1], row[j]), ('O', '.')) {
                     moved = true;
-                    platform[i][j - 1] = '.';
-                    platform[i][j] = 'O';
+                    row[j - 1] = '.';
+                    row[j] = 'O';
                 }
             }
         }

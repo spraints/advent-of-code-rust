@@ -42,7 +42,7 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     let fin = regex::Regex::new("Z$").unwrap();
     let solves: Vec<(&str, u128)> = map
         .keys()
-        .filter(|s| s.ends_with("A"))
+        .filter(|s| s.ends_with('A'))
         .map(|start| (start.as_str(), solve(&directions, &map, start, &fin)))
         .collect();
     if vis {

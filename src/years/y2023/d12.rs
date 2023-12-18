@@ -31,7 +31,7 @@ fn solve(line: &str, vis: bool, mult: usize) -> usize {
             _ => {
                 let mut res = String::with_capacity(s.len() * mult + mult);
                 res.push_str(s);
-                for i in 1..mult {
+                for _ in 1..mult {
                     res.push(c);
                     res.push_str(s);
                 }
@@ -124,7 +124,6 @@ fn s2(
             res
         }
     };
-    //println!("maybe? {} {counts:?} => {res}", Cond::str(conditions));
     res
 }
 
@@ -140,20 +139,6 @@ enum Cond {
     Unknown,
     Ok,
     Broken,
-}
-
-impl Cond {
-    fn str(conditions: &[Self]) -> String {
-        let mut res = String::with_capacity(conditions.len());
-        for c in conditions {
-            res.push(match c {
-                Self::Unknown => '?',
-                Self::Ok => '.',
-                Self::Broken => '#',
-            })
-        }
-        res
-    }
 }
 
 impl From<char> for Cond {
