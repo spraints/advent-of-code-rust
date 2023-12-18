@@ -10,7 +10,27 @@ use std::{
 // - https://docs.rs/regex/latest/regex/struct.Regex.html
 
 pub fn part1(input: String, _vis: bool) -> Box<dyn Display> {
-    let parsed = parse(&input);
+    Box::new(solve(
+        &input,
+        Config {
+            min_run: 1,
+            max_run: 3,
+        },
+    ))
+}
+
+pub fn part2(input: String, _vis: bool) -> Box<dyn Display> {
+    Box::new(solve(
+        &input,
+        Config {
+            min_run: 4,
+            max_run: 10,
+        },
+    ))
+}
+
+fn solve(input: &str, cfg: Config) -> u64 {
+    let parsed = parse(input);
 
     // solve with Dijkstra's algorithm where nodes are the individual squares
     // and edges are sets of 1..3 blocks plus a left or right turn.
@@ -38,14 +58,14 @@ pub fn part1(input: String, _vis: bool) -> Box<dyn Display> {
     }) = to_visit.pop()
     {
         if pos == dest {
-            return Box::new(cost);
+            return cost;
         }
         match dist.get(&(pos, next_dir)) {
             Some(d) if *d < cost => continue,
             _ => (),
         };
 
-        for st in &parsed.neighbors(pos, next_dir, cost, 1, 3) {
+        for st in &parsed.neighbors(pos, next_dir, cost, &cfg) {
             let e = dist.entry((st.pos, st.next_dir)).or_insert_with(|| {
                 to_visit.push(*st);
                 st.cost
@@ -60,55 +80,9 @@ pub fn part1(input: String, _vis: bool) -> Box<dyn Display> {
     panic!("no path found!")
 }
 
-pub fn part2(input: String, _vis: bool) -> Box<dyn Display> {
-    let parsed = parse(&input);
-
-    // solve with Dijkstra's algorithm where nodes are the individual squares
-    // and edges are sets of 1..3 blocks plus a left or right turn.
-
-    let mut dist = HashMap::new(); // assume infinity.
-    let mut to_visit = BinaryHeap::new();
-    dist.insert(((0, 0), Dir::Start), 0);
-    to_visit.push(State {
-        cost: 0,
-        pos: (0, 0),
-        next_dir: Dir::Right,
-    });
-    to_visit.push(State {
-        cost: 0,
-        pos: (0, 0),
-        next_dir: Dir::Down,
-    });
-
-    let dest = (parsed.height - 1, parsed.width - 1);
-
-    while let Some(State {
-        cost,
-        pos,
-        next_dir,
-    }) = to_visit.pop()
-    {
-        if pos == dest {
-            return Box::new(cost);
-        }
-        match dist.get(&(pos, next_dir)) {
-            Some(d) if *d < cost => continue,
-            _ => (),
-        };
-
-        for st in &parsed.neighbors(pos, next_dir, cost, 4, 10) {
-            let e = dist.entry((st.pos, st.next_dir)).or_insert_with(|| {
-                to_visit.push(*st);
-                st.cost
-            });
-            if *e > st.cost {
-                *e = st.cost;
-                to_visit.push(*st);
-            }
-        }
-    }
-
-    panic!("no path found!")
+struct Config {
+    min_run: usize,
+    max_run: usize,
 }
 
 fn parse(input: &str) -> Parsed {
@@ -143,11 +117,10 @@ impl Parsed {
         pos: (usize, usize),
         dir: Dir,
         start_cost: u64,
-        min_run: usize,
-        max_run: usize,
+        cfg: &Config,
     ) -> Vec<State> {
         let mut res = Vec::new();
-        self._neighbors(pos, dir, start_cost, min_run, max_run, &mut res);
+        self._neighbors(pos, dir, start_cost, cfg.min_run, cfg.max_run, &mut res);
         res
     }
 
