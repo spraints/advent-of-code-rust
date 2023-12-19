@@ -13,8 +13,35 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     Box::new(filled)
 }
 
-pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
+pub fn part2(input: String, _vis: bool) -> Box<dyn Display> {
+    fn flip(directions: Vec<Direction>) -> Vec<Direction> {
+        directions
+            .into_iter()
+            .map(|d| {
+                // 012345678
+                // (#abcde0)
+                let dist = isize::from_str_radix(&d.color[2..7], 16).unwrap();
+                let dir = match &d.color[7..8] {
+                    "0" => Dir::Right,
+                    "1" => Dir::Down,
+                    "2" => Dir::Left,
+                    "3" => Dir::Up,
+                    _ => panic!("unrecognized final digit in {:?}", d.color),
+                };
+                Direction {
+                    dist,
+                    dir,
+                    color: d.color,
+                }
+            })
+            .collect()
+    }
+
+    let directions = parse(&input);
+    let directions = flip(directions);
+    let edges = dig(&directions, false);
+    let filled = fill(&edges, false);
+    Box::new(filled)
 }
 
 struct DigRes {
@@ -170,5 +197,5 @@ L 2 (#015232)
 U 2 (#7a21e3)";
 
     crate::test::aoc_test!(part1, TEST_INPUT, 62);
-    crate::test::aoc_test!(part2, TEST_INPUT, "todo");
+    crate::test::aoc_test!(part2, TEST_INPUT, 952408144115_isize);
 }
