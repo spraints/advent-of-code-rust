@@ -50,21 +50,44 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
 
     let mut res = Vec::new();
     try_all("in", SimulatedPart::new(), &workflows, &mut res, vis);
-    Box::new(res.into_iter().sum::<usize>())
+    if vis {
+        res.sort_by_key(|(p, _)| {
+            (
+                *p.x.start(),
+                *p.x.end(),
+                *p.m.start(),
+                *p.m.end(),
+                *p.a.start(),
+                *p.a.end(),
+                *p.s.start(),
+                *p.s.end(),
+            )
+        });
+        for (p, ok) in &res {
+            println!(" {} {p:?}", if *ok { "A" } else { "R" });
+        }
+    }
+    let sum: usize = res
+        .into_iter()
+        .filter_map(|(p, ok)| if ok { Some(p.size()) } else { None })
+        .sum();
+    Box::new(sum)
 }
+
+type Result = Vec<(SimulatedPart, bool)>;
 
 fn try_all(
     name: &str,
     mut part: SimulatedPart,
     workflows: &Workflows,
-    res: &mut Vec<usize>,
+    res: &mut Result,
     vis: bool,
 ) {
     fn recurse(
         dest: &Destination,
         part: SimulatedPart,
         workflows: &Workflows,
-        res: &mut Vec<usize>,
+        res: &mut Result,
         vis: bool,
         name: &str,
     ) {
@@ -73,12 +96,13 @@ fn try_all(
                 if vis {
                     println!("[{name}] REJECT {part:?}");
                 }
+                res.push((part, false));
             }
             Destination::Accept => {
                 if vis {
                     println!("[{name}] ACCEPT {part:?}");
                 }
-                res.push(part.size())
+                res.push((part, true));
             }
             Destination::Workflow(name) => try_all(name, part, workflows, res, vis),
         };
@@ -88,7 +112,6 @@ fn try_all(
     if vvv {
         println!("---WORKFLOW {name:?} with {part:?}---");
     }
-    let res_len = res.len();
 
     let wf = workflows.get(name).unwrap();
     for rule in &wf.rules {
@@ -106,9 +129,6 @@ fn try_all(
                     println!("[{name}]  {part:?} -> {}", rule.dest);
                 }
                 recurse(&rule.dest, part, workflows, res, vis, name);
-                if vvv {
-                    println!("[{name}]  + {}", res[res_len..].iter().sum::<usize>());
-                }
                 return;
             }
         };
@@ -120,12 +140,7 @@ fn try_all(
             recurse(&rule.dest, part, workflows, res, vis, name);
         }
         match cond_false {
-            None => {
-                if vvv {
-                    println!("[{name}]  + {}", res[res_len..].iter().sum::<usize>());
-                }
-                return;
-            }
+            None => return,
             Some(p) => part = p,
         };
     }
