@@ -197,5 +197,5 @@ L 2 (#015232)
 U 2 (#7a21e3)";
 
     crate::test::aoc_test!(part1, TEST_INPUT, 62);
-    crate::test::aoc_test!(part2, TEST_INPUT, 952408144115_isize);
+    crate::test::aoc_test!(part2, TEST_INPUT, "952408144115");
 }
