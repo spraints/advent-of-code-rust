@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::Display;
+use std::ops::RangeInclusive;
 
 // Handy references:
 // - https://doc.rust-lang.org/std/iter/trait.Iterator.html
@@ -44,11 +45,121 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     Box::new(sum)
 }
 
-pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
+pub fn part2(input: String, _vis: bool) -> Box<dyn Display> {
+    let (workflows, _) = parse(&input);
+
+    let mut res = Vec::new();
+    try_all("in", SimulatedPart::new(), &workflows, &mut res);
+    Box::new(res.into_iter().sum::<usize>())
 }
 
-fn parse(input: &str) -> (HashMap<String, Workflow>, Vec<Part>) {
+fn try_all(name: &str, mut part: SimulatedPart, workflows: &Workflows, res: &mut Vec<usize>) {
+    fn recurse(
+        dest: &Destination,
+        part: SimulatedPart,
+        workflows: &Workflows,
+        res: &mut Vec<usize>,
+    ) {
+        match dest {
+            Destination::Reject => (),
+            Destination::Accept => res.push(part.size()),
+            Destination::Workflow(name) => try_all(name, part, workflows, res),
+        };
+    }
+
+    let wf = workflows.get(name).unwrap();
+    for rule in &wf.rules {
+        let (cond_true, cond_false) = match &rule.cond {
+            Condition::Lt(f, n) => part.split_at(f, *n),
+            Condition::Gt(f, n) => {
+                let (cond_false, cond_true) = part.split_at(f, n + 1);
+                (cond_true, cond_false)
+            }
+            Condition::Always => {
+                recurse(&rule.dest, part, workflows, res);
+                return;
+            }
+        };
+        if let Some(part) = cond_true {
+            recurse(&rule.dest, part, workflows, res);
+        }
+        match cond_false {
+            None => return,
+            Some(p) => part = p,
+        };
+    }
+    unreachable!()
+}
+
+struct SimulatedPart {
+    x: RangeInclusive<Num>,
+    m: RangeInclusive<Num>,
+    a: RangeInclusive<Num>,
+    s: RangeInclusive<Num>,
+}
+
+impl SimulatedPart {
+    fn new() -> Self {
+        Self {
+            x: 0..=4000,
+            m: 0..=4000,
+            a: 0..=4000,
+            s: 0..=4000,
+        }
+    }
+
+    fn split_at(self, f: &Field, v: Num) -> (Option<Self>, Option<Self>) {
+        fn split<F>(
+            r: RangeInclusive<Num>,
+            v: Num,
+            f: F,
+        ) -> (Option<SimulatedPart>, Option<SimulatedPart>)
+        where
+            F: Fn(RangeInclusive<Num>) -> SimulatedPart,
+        {
+            if *r.start() >= v {
+                (None, Some(f(r)))
+            } else if *r.end() < v {
+                (Some(f(r.clone())), None)
+            } else {
+                (Some(f(*r.start()..=v - 1)), Some(f(v..=*r.end())))
+            }
+        }
+
+        fn mk(
+            x: &RangeInclusive<Num>,
+            m: &RangeInclusive<Num>,
+            a: &RangeInclusive<Num>,
+            s: &RangeInclusive<Num>,
+        ) -> SimulatedPart {
+            SimulatedPart {
+                x: x.clone(),
+                m: m.clone(),
+                a: a.clone(),
+                s: s.clone(),
+            }
+        }
+
+        let Self { x, m, a, s } = self;
+        match f {
+            Field::X => split(x, v, |nx| mk(&nx, &m, &a, &s)),
+            Field::M => split(m, v, |nm| mk(&x, &nm, &a, &s)),
+            Field::A => split(a, v, |na| mk(&x, &m, &na, &s)),
+            Field::S => split(s, v, |ns| mk(&x, &m, &a, &ns)),
+        }
+    }
+
+    fn size(self) -> usize {
+        fn span(r: RangeInclusive<Num>) -> usize {
+            (1 + r.end() - r.start()) as usize
+        }
+        span(self.x) * span(self.m) * span(self.a) * span(self.s)
+    }
+}
+
+type Workflows = HashMap<String, Workflow>;
+
+fn parse(input: &str) -> (Workflows, Vec<Part>) {
     let workflow_re = regex::Regex::new(r"(.+)\{(.*)\}").unwrap();
     let rule_re = regex::Regex::new(r"(.*)(<|>)(\d+):(.*)").unwrap();
 
@@ -249,5 +360,5 @@ hdj{m>838:A,pv}
 {x=2127,m=1623,a=2188,s=1013}";
 
     crate::test::aoc_test!(part1, TEST_INPUT, 19114);
-    crate::test::aoc_test!(part2, TEST_INPUT, "todo");
+    crate::test::aoc_test!(part2, TEST_INPUT, "167409079868000");
 }
