@@ -10,10 +10,7 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     let directions = parse(&input);
     let edges = dig(&directions, vis);
     let filled = fill(&edges, vis);
-    if vis {
-        println!("{}", filled);
-    }
-    Box::new("todo")
+    Box::new(filled)
 }
 
 pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
@@ -22,6 +19,7 @@ pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
 
 struct DigRes {
     vertices: Vec<(isize, isize)>,
+    perimeter: isize,
     min_row: isize,
     max_row: isize,
     min_col: isize,
@@ -32,6 +30,7 @@ fn dig(directions: &[Direction], vis: bool) -> DigRes {
     let mut pos = (0, 0);
     let mut vertices = Vec::with_capacity(directions.len() + 1);
     vertices.push(pos);
+    let mut perimeter = 1;
     let mut min_row = 0;
     let mut max_row = 0;
     let mut min_col = 0;
@@ -45,6 +44,7 @@ fn dig(directions: &[Direction], vis: bool) -> DigRes {
         };
         pos = (pos.0 + dir.0 * d.dist, pos.1 + dir.1 * d.dist);
         vertices.push(pos);
+        perimeter += d.dist;
         min_row = min(min_row, pos.0);
         max_row = max(max_row, pos.0);
         min_col = min(min_col, pos.1);
@@ -95,6 +95,7 @@ fn dig(directions: &[Direction], vis: bool) -> DigRes {
     }
     DigRes {
         vertices,
+        perimeter,
         min_row,
         max_row,
         min_col,
@@ -118,7 +119,7 @@ fn fill(edges: &DigRes, vis: bool) -> isize {
         edges.vertices.last().unwrap(),
         edges.vertices.first().unwrap(),
     );
-    a.abs() / 2
+    a.abs() / 2 + edges.perimeter / 2 + 1
 }
 
 fn parse(input: &str) -> Vec<Direction> {
