@@ -47,10 +47,6 @@ pub fn part2(input: String, _vis: bool) -> Box<dyn Display> {
 struct DigRes {
     vertices: Vec<(isize, isize)>,
     perimeter: isize,
-    min_row: isize,
-    max_row: isize,
-    min_col: isize,
-    max_col: isize,
 }
 
 fn dig(directions: &[Direction], vis: bool) -> DigRes {
@@ -123,10 +119,6 @@ fn dig(directions: &[Direction], vis: bool) -> DigRes {
     DigRes {
         vertices,
         perimeter,
-        min_row,
-        max_row,
-        min_col,
-        max_col,
     }
 }
 
