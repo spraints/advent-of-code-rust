@@ -45,30 +45,56 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     Box::new(sum)
 }
 
-pub fn part2(input: String, _vis: bool) -> Box<dyn Display> {
+pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     let (workflows, _) = parse(&input);
 
     let mut res = Vec::new();
-    try_all("in", SimulatedPart::new(), &workflows, &mut res);
+    try_all("in", SimulatedPart::new(), &workflows, &mut res, vis);
     Box::new(res.into_iter().sum::<usize>())
 }
 
-fn try_all(name: &str, mut part: SimulatedPart, workflows: &Workflows, res: &mut Vec<usize>) {
+fn try_all(
+    name: &str,
+    mut part: SimulatedPart,
+    workflows: &Workflows,
+    res: &mut Vec<usize>,
+    vis: bool,
+) {
     fn recurse(
         dest: &Destination,
         part: SimulatedPart,
         workflows: &Workflows,
         res: &mut Vec<usize>,
+        vis: bool,
+        name: &str,
     ) {
         match dest {
-            Destination::Reject => (),
-            Destination::Accept => res.push(part.size()),
-            Destination::Workflow(name) => try_all(name, part, workflows, res),
+            Destination::Reject => {
+                if vis {
+                    println!("[{name}] REJECT {part:?}");
+                }
+            }
+            Destination::Accept => {
+                if vis {
+                    println!("[{name}] ACCEPT {part:?}");
+                }
+                res.push(part.size())
+            }
+            Destination::Workflow(name) => try_all(name, part, workflows, res, vis),
         };
     }
 
+    let vvv = name == "LKSJDFLKJSDLKFJ"; //name == "in" || name == "pv";
+    if vvv {
+        println!("---WORKFLOW {name:?} with {part:?}---");
+    }
+    let res_len = res.len();
+
     let wf = workflows.get(name).unwrap();
     for rule in &wf.rules {
+        if vvv {
+            println!("[{name}] Rule {rule}:");
+        }
         let (cond_true, cond_false) = match &rule.cond {
             Condition::Lt(f, n) => part.split_at(f, *n),
             Condition::Gt(f, n) => {
@@ -76,21 +102,37 @@ fn try_all(name: &str, mut part: SimulatedPart, workflows: &Workflows, res: &mut
                 (cond_true, cond_false)
             }
             Condition::Always => {
-                recurse(&rule.dest, part, workflows, res);
+                if vvv {
+                    println!("[{name}]  {part:?} -> {}", rule.dest);
+                }
+                recurse(&rule.dest, part, workflows, res, vis, name);
+                if vvv {
+                    println!("[{name}]  + {}", res[res_len..].iter().sum::<usize>());
+                }
                 return;
             }
         };
+        if vvv {
+            println!("[{name}]   true:  {cond_true:?} -> {}", rule.dest);
+            println!("[{name}]   false: {cond_false:?}");
+        }
         if let Some(part) = cond_true {
-            recurse(&rule.dest, part, workflows, res);
+            recurse(&rule.dest, part, workflows, res, vis, name);
         }
         match cond_false {
-            None => return,
+            None => {
+                if vvv {
+                    println!("[{name}]  + {}", res[res_len..].iter().sum::<usize>());
+                }
+                return;
+            }
             Some(p) => part = p,
         };
     }
     unreachable!()
 }
 
+#[derive(Debug)]
 struct SimulatedPart {
     x: RangeInclusive<Num>,
     m: RangeInclusive<Num>,
@@ -294,6 +336,16 @@ struct Rule {
     dest: Destination,
 }
 
+impl Display for Rule {
+    fn fmt(&self, ff: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.cond {
+            Condition::Gt(f, n) => write!(ff, "{f}>{n}:{}", self.dest),
+            Condition::Lt(f, n) => write!(ff, "{f}<{n}:{}", self.dest),
+            Condition::Always => write!(ff, "{}", self.dest),
+        }
+    }
+}
+
 enum Condition {
     Gt(Field, Num),
     Lt(Field, Num),
@@ -337,6 +389,16 @@ enum Destination {
     Workflow(String),
     Reject,
     Accept,
+}
+
+impl Display for Destination {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Workflow(s) => write!(f, "{s}"),
+            Self::Reject => write!(f, "R"),
+            Self::Accept => write!(f, "A"),
+        }
+    }
 }
 
 #[cfg(test)]
