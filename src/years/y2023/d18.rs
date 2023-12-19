@@ -1,8 +1,5 @@
-use std::{
-    cmp::{max, min},
-    collections::HashSet,
-    fmt::Display,
-};
+use std::cmp::{max, min};
+use std::fmt::Display;
 
 // Handy references:
 // - https://doc.rust-lang.org/std/iter/trait.Iterator.html
@@ -14,7 +11,7 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     let edges = dig(&directions, vis);
     let filled = fill(&edges, vis);
     if vis {
-        println!("{}", filled.len());
+        println!("{}", filled);
     }
     Box::new("todo")
 }
@@ -24,7 +21,7 @@ pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
 }
 
 struct DigRes {
-    trench: HashSet<(isize, isize)>,
+    vertices: Vec<(isize, isize)>,
     min_row: isize,
     max_row: isize,
     min_col: isize,
@@ -33,41 +30,71 @@ struct DigRes {
 
 fn dig(directions: &[Direction], vis: bool) -> DigRes {
     let mut pos = (0, 0);
-    let mut trench = HashSet::new();
-    trench.insert(pos);
+    let mut vertices = Vec::with_capacity(directions.len() + 1);
+    vertices.push(pos);
     let mut min_row = 0;
     let mut max_row = 0;
     let mut min_col = 0;
     let mut max_col = 0;
     for d in directions {
-        let off = match d.dir {
+        let dir = match d.dir {
             Dir::Up => (1, 0),
             Dir::Down => (-1, 0),
             Dir::Left => (0, -1),
             Dir::Right => (0, 1),
         };
-        for _ in 0..d.dist {
-            pos = (pos.0 + off.0, pos.1 + off.1);
-            trench.insert(pos);
-        }
+        pos = (pos.0 + dir.0 * d.dist, pos.1 + dir.1 * d.dist);
+        vertices.push(pos);
         min_row = min(min_row, pos.0);
         max_row = max(max_row, pos.0);
         min_col = min(min_col, pos.1);
         max_col = max(max_col, pos.1);
     }
     if vis {
+        fn walk(from: &(isize, isize), to: &(isize, isize)) -> Vec<(isize, isize)> {
+            let (r1, r2) = if from.0 > to.0 {
+                (to.0, from.0)
+            } else {
+                (from.0, to.0)
+            };
+            let (c1, c2) = if from.1 > to.1 {
+                (to.1, from.1)
+            } else {
+                (from.1, to.1)
+            };
+            let mut res = Vec::new();
+            for r in r1..=r2 {
+                for c in c1..=c2 {
+                    res.push((r, c));
+                }
+            }
+            res
+        }
         if vis {
             println!("after digging:");
         }
-        for r in min_row..=max_row {
-            for c in min_col..=max_col {
-                print!("{}", if trench.contains(&(r, c)) { '#' } else { '.' });
+        let height = max_row - min_row + 1;
+        let width = max_col - min_col + 1;
+        //println!("rows {min_row} .. {max_row} => {height}");
+        //println!("cols {min_col} .. {max_col} => {width}");
+        let mut trenches = vec![vec!['.'; width as usize]; height as usize];
+        for pair in vertices.windows(2) {
+            let from = pair[0];
+            let to = pair[1];
+            for (r, c) in walk(&from, &to) {
+                trenches[(r - min_row) as usize][(c - min_col) as usize] = '#';
             }
-            println!();
+        }
+        for (r, c) in walk(&pos, &(0, 0)) {
+            trenches[(r - min_row) as usize][(c - min_col) as usize] = '#';
+        }
+        for row in trenches {
+            let row: String = row.into_iter().collect();
+            println!("{row}");
         }
     }
     DigRes {
-        trench,
+        vertices,
         min_row,
         max_row,
         min_col,
@@ -75,34 +102,23 @@ fn dig(directions: &[Direction], vis: bool) -> DigRes {
     }
 }
 
-fn fill(edges: &DigRes, vis: bool) -> HashSet<(isize, isize)> {
+fn fill(edges: &DigRes, vis: bool) -> isize {
     if vis {
         println!("after filling:");
     }
-    let mut filled = HashSet::new();
-    for r in edges.min_row..=edges.max_row {
-        for c in edges.min_col..=edges.max_col {
-            let pos = (r, c);
-            let included = edges.trench.contains(&pos) || surrounds(&edges, pos);
-            if included {
-                filled.insert(pos);
-            }
-            if vis {
-                print!("{}", if included { '#' } else { '.' });
-            }
-        }
-        println!();
+    // from https://www.linkedin.com/advice/1/how-do-you-calculate-area-perimeter-irregular-polygon#:~:text=To%20calculate%20the%20area%20of,is%20the%20number%20of%20vertices.
+    fn term(from: &(isize, isize), to: &(isize, isize)) -> isize {
+        from.0 * to.1 - to.0 * from.1
     }
-    filled
-}
-
-fn surrounds(edges: &DigRes, pos: (isize, isize)) -> bool {
-    let mut cross_r = 0;
-    let mut crossing_r = false;
-    for r in edges.min_row..pos.0 {
-        todo!()
+    let mut a = 0;
+    for pair in edges.vertices.windows(2) {
+        a += term(&pair[0], &pair[1]);
     }
-    pos.0 == edges.min_row // todo
+    a += term(
+        edges.vertices.last().unwrap(),
+        edges.vertices.first().unwrap(),
+    );
+    a.abs() / 2
 }
 
 fn parse(input: &str) -> Vec<Direction> {
