@@ -158,10 +158,10 @@ struct SimulatedPart {
 impl SimulatedPart {
     fn new() -> Self {
         Self {
-            x: 0..=4000,
-            m: 0..=4000,
-            a: 0..=4000,
-            s: 0..=4000,
+            x: 1..=4000,
+            m: 1..=4000,
+            a: 1..=4000,
+            s: 1..=4000,
         }
     }
 
