@@ -31,23 +31,28 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
         if vis {
             println!("---- CYCLE ----");
         }
+
         let (_, _, rx) = cycle(&mut circuit, vis);
+
         if vis {
-            println!("{i}: {rx:?}");
+            println!(
+                "after {i}: {rx:?} ff={} in={}",
+                circuit.flip_flop_states.len(),
+                circuit.input_states.len()
+            );
             for m in circuit.modules.values() {
                 match m.mod_type {
                     ModuleType::Broadcaster => (),
                     ModuleType::FlipFlop => {
-                        println!("{}: {:?}", m.name, circuit.get_flip_flop_state(m))
+                        println!("%{}: {:?}", m.name, circuit.flip_flop_states.get(&m.name))
                     }
                     ModuleType::Conjunction => {
-                        print!("{}:", m.name);
+                        print!("&{}:", m.name);
                         for input_name in &m.inputs {
                             let input = circuit
                                 .input_states
-                                .get(&(m.name.clone(), input_name.to_owned()))
-                                .unwrap_or(&false);
-                            print!(" {input_name}:{input}");
+                                .get(&(m.name.clone(), input_name.to_owned()));
+                            print!(" {input_name}:{input:?}");
                         }
                         println!();
                     }
