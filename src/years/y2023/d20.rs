@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt::Display;
 
 // Handy references:
@@ -31,7 +31,7 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
         if vis {
             println!("---- CYCLE ----");
         }
-        let (_, _, rx) = cycle(&mut circuit, true);
+        let (_, _, rx) = cycle(&mut circuit, vis);
         if vis {
             println!("{i}: {rx:?}");
             for m in circuit.modules.values() {
@@ -55,22 +55,53 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
             }
         }
     }
+
+    if vis {
+        println!("---GRAPH---");
+        let mut to_visit: VecDeque<(&str, usize)> = vec![("rx", 0)].into();
+        let mut visited = HashSet::new();
+        while let Some((name, indent)) = to_visit.pop_front() {
+            if visited.contains(name) {
+                println!("{:indent$}{name} (LOOP!)", "");
+                continue;
+            }
+            visited.insert(name);
+            println!("{:indent$}{name}", "");
+            match circuit.modules.get(name) {
+                Some(m) => {
+                    for input_name in &m.inputs {
+                        to_visit.push_back((input_name, indent + 2));
+                    }
+                }
+                None => println!("WARN! {name} is not a module!"),
+            };
+        }
+    }
+
     Box::new("todo")
 }
 
 type RxCount = (usize, usize);
 
 fn cycle(circuit: &mut Circuit, vis: bool) -> (usize, usize, RxCount) {
-    let mut pending: VecDeque<(String, String, bool)> =
-        vec![("button".to_owned(), "broadcaster".to_owned(), false)].into();
+    let mut pending: VecDeque<(String, String, bool, Vec<String>)> = vec![(
+        "button".to_owned(),
+        "broadcaster".to_owned(),
+        false,
+        Vec::new(),
+    )]
+    .into();
     let mut low_pulses = 0;
     let mut high_pulses = 0;
     let mut rx_low = 0;
     let mut rx_high = 0;
 
-    while let Some((src, dest, pulse)) = pending.pop_front() {
+    while let Some((src, dest, pulse, mut trail)) = pending.pop_front() {
         if vis {
-            println!("{src} -{}-> {dest}", if pulse { "high" } else { "low" });
+            println!(
+                "{src} -{}-> {dest} (via {trail:?})",
+                if pulse { "high" } else { "low" }
+            );
         }
 
         if pulse {
@@ -87,26 +118,42 @@ fn cycle(circuit: &mut Circuit, vis: bool) -> (usize, usize, RxCount) {
         }
 
         circuit.update(&src, &dest, pulse);
+        trail.push(src.clone());
 
         if let Some(m) = circuit.modules.get(&dest) {
             match m.mod_type {
                 ModuleType::Broadcaster => {
                     for new_dest in &m.dests {
-                        pending.push_back((dest.clone(), new_dest.to_string(), pulse));
+                        pending.push_back((
+                            dest.clone(),
+                            new_dest.to_string(),
+                            pulse,
+                            trail.clone(),
+                        ));
                     }
                 }
                 ModuleType::FlipFlop => {
                     if !pulse {
                         let new_pulse = circuit.get_flip_flop_state(m);
                         for new_dest in &m.dests {
-                            pending.push_back((dest.clone(), new_dest.to_string(), new_pulse));
+                            pending.push_back((
+                                dest.clone(),
+                                new_dest.to_string(),
+                                new_pulse,
+                                trail.clone(),
+                            ));
                         }
                     }
                 }
                 ModuleType::Conjunction => {
                     let new_pulse = circuit.resolve_conjunction(m);
                     for new_dest in &m.dests {
-                        pending.push_back((dest.clone(), new_dest.to_string(), new_pulse));
+                        pending.push_back((
+                            dest.clone(),
+                            new_dest.to_string(),
+                            new_pulse,
+                            trail.clone(),
+                        ));
                     }
                 }
             };
@@ -196,6 +243,15 @@ fn parse(input: &str) -> Circuit {
         if let Some(v) = inputs.remove(&m.name) {
             m.inputs = v;
         }
+    }
+    for (name, inputs) in inputs {
+        modules.push(Module {
+            name,
+            inputs,
+            // this makes the node a sink:
+            mod_type: ModuleType::Broadcaster,
+            dests: Vec::new(),
+        });
     }
 
     let modules = modules.into_iter().map(|m| (m.name.clone(), m)).collect();
