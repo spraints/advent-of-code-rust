@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, VecDeque};
 use std::fmt::Display;
 
 // Handy references:
@@ -53,28 +53,6 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
                     }
                 };
             }
-        }
-    }
-
-    if vis {
-        println!("---GRAPH---");
-        let mut to_visit: VecDeque<(&str, usize)> = vec![("rx", 0)].into();
-        let mut visited = HashSet::new();
-        while let Some((name, indent)) = to_visit.pop_front() {
-            if visited.contains(name) {
-                println!("{:indent$}{name} (LOOP!)", "");
-                continue;
-            }
-            visited.insert(name);
-            println!("{:indent$}{name}", "");
-            match circuit.modules.get(name) {
-                Some(m) => {
-                    for input_name in &m.inputs {
-                        to_visit.push_back((input_name, indent + 2));
-                    }
-                }
-                None => println!("WARN! {name} is not a module!"),
-            };
         }
     }
 
