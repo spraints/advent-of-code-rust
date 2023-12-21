@@ -26,30 +26,23 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
 }
 
 pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
-    let mut circuit = parse(&input);
-    let mut min_low = usize::MAX;
-    let mut min_high = usize::MAX;
-    for i in 1.. {
-        let (_, _, rx) = cycle(&mut circuit, false);
-        if rx == (1, 0) {
-            return Box::new(i);
+    fn vb(i: &[bool]) -> String {
+        let mut res = String::with_capacity(i.len());
+        for x in i {
+            res.push(if *x { '1' } else { '0' });
         }
+        res
+    }
+    let mut circuit = parse(&input);
+    for i in 1..10 {
+        let (_, _, rx) = cycle(&mut circuit, false);
         if vis {
-            let mut show = i % 100000 == 0;
-            if rx.0 < min_low {
-                min_low = rx.0;
-                show = true;
-            }
-            if rx.1 < min_high {
-                min_high = rx.1;
-                show = true;
-            }
-            if show {
-                println!("{i} ({rx:?}) ...");
-            }
+            println!("{i}: {rx:?}");
+            println!("  ff:  {}", vb(&circuit.flip_flop_states));
+            println!("  inp: {}", vb(&circuit.input_states));
         }
     }
-    unreachable!()
+    Box::new("todo")
 }
 
 type RxCount = (usize, usize);
