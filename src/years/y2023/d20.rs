@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::fmt::Display;
 
 // Handy references:
@@ -7,22 +7,72 @@ use std::fmt::Display;
 // - https://docs.rs/regex/latest/regex/struct.Regex.html
 
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
-    let circuit = parse(&input);
-    if vis {
-        println!("parsed {} modules", circuit.modules.len());
-        let mut lines = input.lines();
-        for m in &circuit.modules {
-            if let Some(line) = lines.next() {
-                println!("{line}");
-            }
-            println!("{m:?}");
+    let mut circuit = parse(&input);
+    let mut low = 0;
+    let mut high = 0;
+    for i in 0..1000 {
+        if vis && i < 4 {
+            println!("---- CYCLE ----");
         }
+        let (l, h) = cycle(&mut circuit, vis && i < 4);
+        low += l;
+        high += h;
     }
-    Box::new("todo")
+    if vis {
+        println!("low pulses: {low}");
+        println!("high pulses: {high}");
+    }
+    Box::new(low * high)
 }
 
 pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
     Box::new("todo")
+}
+
+fn cycle(circuit: &mut Circuit, vis: bool) -> (usize, usize) {
+    let mut pending: VecDeque<(String, String, bool)> =
+        vec![("button".to_owned(), "broadcaster".to_owned(), false)].into();
+    let mut low_pulses = 0;
+    let mut high_pulses = 0;
+
+    while let Some((src, dest, pulse)) = pending.pop_front() {
+        if vis {
+            println!("{src} -{}-> {dest}", if pulse { "high" } else { "low" });
+        }
+
+        if pulse {
+            high_pulses += 1;
+        } else {
+            low_pulses += 1;
+        }
+
+        circuit.update(&src, &dest, pulse);
+
+        let m = circuit.get_mod(&dest);
+        match m.mod_type {
+            ModuleType::Broadcaster => {
+                for new_dest in &m.dests {
+                    pending.push_back((dest.clone(), new_dest.to_string(), pulse));
+                }
+            }
+            ModuleType::FlipFlop => {
+                if !pulse {
+                    let new_pulse = circuit.get_flip_flop_state(m);
+                    for new_dest in &m.dests {
+                        pending.push_back((dest.clone(), new_dest.to_string(), new_pulse));
+                    }
+                }
+            }
+            ModuleType::Conjunction => {
+                let new_pulse = circuit.resolve_conjunction(m);
+                for new_dest in &m.dests {
+                    pending.push_back((dest.clone(), new_dest.to_string(), new_pulse));
+                }
+            }
+        }
+    }
+
+    (low_pulses, high_pulses)
 }
 
 struct Circuit {
@@ -37,6 +87,53 @@ struct Circuit {
     input_states: Vec<bool>,
 }
 
+impl Circuit {
+    fn update(&mut self, src: &str, dest: &str, pulse: bool) {
+        if src == "button" && dest == "broadcaster" {
+            return;
+        }
+        let src = *self
+            .module_index
+            .get(src)
+            .unwrap_or_else(|| panic!("expected to find module {src:?}"));
+        let dest = *self.module_index.get(dest).unwrap();
+        let mod_type = self.modules[dest].mod_type;
+        match mod_type {
+            ModuleType::Broadcaster => (),
+            ModuleType::FlipFlop => {
+                if !pulse {
+                    self.flip_flop_states[dest] = !self.flip_flop_states[dest];
+                }
+            }
+            ModuleType::Conjunction => {
+                let i = self.input_index.get(&(src, dest)).unwrap();
+                self.input_states[*i] = pulse;
+            }
+        };
+    }
+
+    fn get_mod(&self, name: &str) -> &Module {
+        let i = self.module_index.get(name).unwrap();
+        &self.modules[*i]
+    }
+
+    fn get_flip_flop_state(&self, m: &Module) -> bool {
+        let i = self.module_index.get(&m.name).unwrap();
+        self.flip_flop_states[*i]
+    }
+
+    fn resolve_conjunction(&self, m: &Module) -> bool {
+        let i = self.module_index.get(&m.name).unwrap();
+        // if it remembers high pulses for all inputs, it sends a low pulse;
+        // otherwise, it sends a high pulse.
+        !m.inputs.iter().all(|input| {
+            let j = self.module_index.get(input).unwrap();
+            let k = self.input_index.get(&(*j, *i)).unwrap();
+            self.input_states[*k]
+        })
+    }
+}
+
 #[derive(Debug)]
 struct Module {
     name: String,
@@ -45,7 +142,7 @@ struct Module {
     inputs: Vec<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 enum ModuleType {
     Broadcaster,
     FlipFlop,
