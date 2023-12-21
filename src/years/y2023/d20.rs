@@ -14,7 +14,7 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
         if vis && i < 4 {
             println!("---- CYCLE ----");
         }
-        let (l, h) = cycle(&mut circuit, vis && i < 4);
+        let (l, h, _) = cycle(&mut circuit, vis && i < 4);
         low += l;
         high += h;
     }
@@ -25,15 +25,42 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     Box::new(low * high)
 }
 
-pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
+pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
+    let mut circuit = parse(&input);
+    let mut min_low = usize::MAX;
+    let mut min_high = usize::MAX;
+    for i in 1.. {
+        let (_, _, rx) = cycle(&mut circuit, false);
+        if rx == (1, 0) {
+            return Box::new(i);
+        }
+        if vis {
+            let mut show = i % 100000 == 0;
+            if rx.0 < min_low {
+                min_low = rx.0;
+                show = true;
+            }
+            if rx.1 < min_high {
+                min_high = rx.1;
+                show = true;
+            }
+            if show {
+                println!("{i} ({rx:?}) ...");
+            }
+        }
+    }
+    unreachable!()
 }
 
-fn cycle(circuit: &mut Circuit, vis: bool) -> (usize, usize) {
+type RxCount = (usize, usize);
+
+fn cycle(circuit: &mut Circuit, vis: bool) -> (usize, usize, RxCount) {
     let mut pending: VecDeque<(String, String, bool)> =
         vec![("button".to_owned(), "broadcaster".to_owned(), false)].into();
     let mut low_pulses = 0;
     let mut high_pulses = 0;
+    let mut rx_low = 0;
+    let mut rx_high = 0;
 
     while let Some((src, dest, pulse)) = pending.pop_front() {
         if vis {
@@ -44,6 +71,13 @@ fn cycle(circuit: &mut Circuit, vis: bool) -> (usize, usize) {
             high_pulses += 1;
         } else {
             low_pulses += 1;
+        }
+        if dest == "rx" {
+            if pulse {
+                rx_low += 1;
+            } else {
+                rx_high += 1;
+            }
         }
 
         circuit.update(&src, &dest, pulse);
@@ -72,7 +106,7 @@ fn cycle(circuit: &mut Circuit, vis: bool) -> (usize, usize) {
         }
     }
 
-    (low_pulses, high_pulses)
+    (low_pulses, high_pulses, (rx_low, rx_high))
 }
 
 struct Circuit {
