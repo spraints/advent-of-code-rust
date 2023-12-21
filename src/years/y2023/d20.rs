@@ -26,16 +26,6 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
 }
 
 pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
-    fn vb(i: &[bool]) -> String {
-        let mut res: u128 = 0;
-        for x in i {
-            res <<= 1;
-            if *x {
-                res |= 0x01
-            }
-        }
-        format!("{res:012x}")
-    }
     let mut circuit = parse(&input);
     for i in 1..10 {
         if vis {
@@ -44,8 +34,7 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
         let (_, _, rx) = cycle(&mut circuit, true);
         if vis {
             println!("{i}: {rx:?}");
-            println!("  inp: {}", vb(&circuit.input_states));
-            for m in &circuit.modules {
+            for m in circuit.modules.values() {
                 match m.mod_type {
                     ModuleType::Broadcaster => (),
                     ModuleType::FlipFlop => {
@@ -53,11 +42,11 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
                     }
                     ModuleType::Conjunction => {
                         print!("{}:", m.name);
-                        let mi = circuit.module_index.get(&m.name).unwrap();
                         for input_name in &m.inputs {
-                            let ii = circuit.module_index.get(input_name).unwrap();
-                            let inp_i = circuit.input_index.get(&(*ii, *mi)).unwrap();
-                            let input = circuit.input_states[*inp_i];
+                            let input = circuit
+                                .input_states
+                                .get(&(m.name.clone(), input_name.to_owned()))
+                                .unwrap_or(&false);
                             print!(" {input_name}:{input}");
                         }
                         println!();
@@ -99,27 +88,28 @@ fn cycle(circuit: &mut Circuit, vis: bool) -> (usize, usize, RxCount) {
 
         circuit.update(&src, &dest, pulse);
 
-        let m = circuit.get_mod(&dest);
-        match m.mod_type {
-            ModuleType::Broadcaster => {
-                for new_dest in &m.dests {
-                    pending.push_back((dest.clone(), new_dest.to_string(), pulse));
+        if let Some(m) = circuit.modules.get(&dest) {
+            match m.mod_type {
+                ModuleType::Broadcaster => {
+                    for new_dest in &m.dests {
+                        pending.push_back((dest.clone(), new_dest.to_string(), pulse));
+                    }
                 }
-            }
-            ModuleType::FlipFlop => {
-                if !pulse {
-                    let new_pulse = circuit.get_flip_flop_state(m);
+                ModuleType::FlipFlop => {
+                    if !pulse {
+                        let new_pulse = circuit.get_flip_flop_state(m);
+                        for new_dest in &m.dests {
+                            pending.push_back((dest.clone(), new_dest.to_string(), new_pulse));
+                        }
+                    }
+                }
+                ModuleType::Conjunction => {
+                    let new_pulse = circuit.resolve_conjunction(m);
                     for new_dest in &m.dests {
                         pending.push_back((dest.clone(), new_dest.to_string(), new_pulse));
                     }
                 }
-            }
-            ModuleType::Conjunction => {
-                let new_pulse = circuit.resolve_conjunction(m);
-                for new_dest in &m.dests {
-                    pending.push_back((dest.clone(), new_dest.to_string(), new_pulse));
-                }
-            }
+            };
         }
     }
 
@@ -127,65 +117,52 @@ fn cycle(circuit: &mut Circuit, vis: bool) -> (usize, usize, RxCount) {
 }
 
 struct Circuit {
-    // name to index in modules.
-    module_index: HashMap<String, usize>,
-    modules: Vec<Module>,
-
-    flip_flop_states: HashMap<usize, bool>,
-
-    // (usize,usize) to index in inputs.
-    input_index: HashMap<(usize, usize), usize>,
-    input_states: Vec<bool>,
+    modules: HashMap<String, Module>,
+    flip_flop_states: HashMap<String, bool>,
+    input_states: HashMap<(String, String), bool>,
 }
 
 impl Circuit {
     fn update(&mut self, src: &str, dest: &str, pulse: bool) {
-        if src == "button" && dest == "broadcaster" {
-            return;
-        }
-        let src = *self
-            .module_index
-            .get(src)
-            .unwrap_or_else(|| panic!("expected to find module {src:?}"));
-        let dest = *self.module_index.get(dest).unwrap();
-        let mod_type = self.modules[dest].mod_type;
-        match mod_type {
-            ModuleType::Broadcaster => (),
-            ModuleType::FlipFlop => {
-                if !pulse {
-                    let e = self.flip_flop_states.entry(dest).or_insert(false);
-                    *e = !*e;
+        //if src == "button" && dest == "broadcaster" {
+        //    return;
+        //}
+        if let Some(m) = self.modules.get(dest) {
+            let mod_type = m.mod_type;
+            match mod_type {
+                ModuleType::Broadcaster => (),
+                ModuleType::FlipFlop => {
+                    if !pulse {
+                        let e = self
+                            .flip_flop_states
+                            .entry(dest.to_owned())
+                            .or_insert(false);
+                        *e = !*e;
+                    }
                 }
-            }
-            ModuleType::Conjunction => {
-                let i = self.input_index.get(&(src, dest)).unwrap();
-                self.input_states[*i] = pulse;
-            }
-        };
-    }
-
-    fn get_mod(&self, name: &str) -> &Module {
-        let i = self.module_index.get(name).unwrap();
-        &self.modules[*i]
+                ModuleType::Conjunction => {
+                    self.input_states
+                        .insert((src.to_owned(), dest.to_owned()), pulse);
+                }
+            };
+        }
     }
 
     fn get_flip_flop_state(&self, m: &Module) -> bool {
-        let i = self.module_index.get(&m.name).unwrap();
-        match self.flip_flop_states.get(i) {
+        match self.flip_flop_states.get(&m.name) {
             None => false,
             Some(b) => *b,
         }
     }
 
     fn resolve_conjunction(&self, m: &Module) -> bool {
-        let i = self.module_index.get(&m.name).unwrap();
-        // if it remembers high pulses for all inputs, it sends a low pulse;
-        // otherwise, it sends a high pulse.
-        !m.inputs.iter().all(|input| {
-            let j = self.module_index.get(input).unwrap();
-            let k = self.input_index.get(&(*j, *i)).unwrap();
-            self.input_states[*k]
-        })
+        let all_high = m.inputs.iter().all(|input_name| {
+            *self
+                .input_states
+                .get(&(input_name.to_owned(), m.name.clone()))
+                .unwrap_or(&false)
+        });
+        !all_high
     }
 }
 
@@ -207,55 +184,27 @@ enum ModuleType {
 fn parse(input: &str) -> Circuit {
     let mut modules: Vec<Module> = input.lines().map(parse_module).collect();
 
-    let mut module_index = HashMap::new();
     let mut inputs = HashMap::new();
-    for (i, m) in modules.iter().enumerate() {
-        module_index.insert(m.name.clone(), i);
+    for m in modules.iter() {
         for dest in &m.dests {
             let e = inputs.entry(dest.clone()).or_insert_with(|| Vec::new());
             e.push(m.name.clone());
         }
     }
 
-    let mut input_index: HashMap<(usize, usize), usize> = HashMap::new();
-    for (k, v) in inputs {
-        // some of the outputs aren't listed explicitly, make them a no-op (broadcaster with no
-        // outputs).
-        let to = {
-            let e = module_index.entry(k.to_owned()).or_insert_with(|| {
-                modules.push(Module {
-                    name: k.to_owned(),
-                    mod_type: ModuleType::Broadcaster,
-                    dests: Vec::new(),
-                    inputs: Vec::new(),
-                });
-                modules.len() - 1
-            });
-            *e
-        };
-        let m = modules.get_mut(to).unwrap();
-
-        // copy the inputs vec.
-        m.inputs = v.clone();
-
-        // if this is a conjunction, we need to store the input state.
-        if matches!(m.mod_type, ModuleType::Conjunction) {
-            for from_name in v {
-                let from = module_index.get(&from_name).unwrap();
-                let i = input_index.len();
-                input_index.insert((*from, to), i);
-            }
+    for m in modules.iter_mut() {
+        if let Some(v) = inputs.remove(&m.name) {
+            m.inputs = v;
         }
     }
 
+    let modules = modules.into_iter().map(|m| (m.name.clone(), m)).collect();
     let flip_flop_states = HashMap::new();
-    let input_states = vec![false; input_index.len()];
+    let input_states = HashMap::new();
 
     Circuit {
-        module_index,
         modules,
         flip_flop_states,
-        input_index,
         input_states,
     }
 }
