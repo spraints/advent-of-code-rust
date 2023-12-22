@@ -9,15 +9,26 @@ use std::fmt::Display;
 
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     let parsed = parse(&input);
-    let res = solve(parsed, 64, vis);
+    let res = solve(Part1, parsed, 64, vis);
     Box::new(res)
 }
 
-pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
+pub fn part2(input: String, _vis: bool) -> Box<dyn Display> {
+    let parsed = parse(&input);
+    let res = solve(Part2, parsed, 26501365, false);
+    Box::new(res)
 }
 
-fn solve(parsed: Parsed, steps: usize, vis: bool) -> usize {
+trait Part {}
+
+struct Part1;
+struct Part2;
+
+impl Part for Part1 {}
+
+impl Part for Part2 {}
+
+fn solve(part: impl Part, parsed: Parsed, steps: usize, vis: bool) -> usize {
     let mut possible = HashSet::new();
     for (pos, st) in &parsed.map {
         if matches!(st, Tile::Start) {
@@ -117,8 +128,65 @@ mod test {
 
     #[test]
     fn test_part1() {
-        assert_eq!(16, super::solve(super::parse(TEST_INPUT), 6, true));
+        assert_eq!(
+            16,
+            super::solve(super::Part1, super::parse(TEST_INPUT), 6, true)
+        );
     }
 
-    crate::test::aoc_test!(part2, TEST_INPUT, "todo");
+    #[test]
+    fn test_part2_6() {
+        assert_eq!(
+            16,
+            super::solve(super::Part2, super::parse(TEST_INPUT), 6, false)
+        );
+    }
+
+    #[test]
+    fn test_part2_10() {
+        assert_eq!(
+            50,
+            super::solve(super::Part2, super::parse(TEST_INPUT), 10, false)
+        );
+    }
+
+    #[test]
+    fn test_part2_50() {
+        assert_eq!(
+            1594,
+            super::solve(super::Part2, super::parse(TEST_INPUT), 50, false)
+        );
+    }
+
+    #[test]
+    fn test_part2_100() {
+        assert_eq!(
+            6536,
+            super::solve(super::Part2, super::parse(TEST_INPUT), 100, false)
+        );
+    }
+
+    #[test]
+    fn test_part2_500() {
+        assert_eq!(
+            167004,
+            super::solve(super::Part2, super::parse(TEST_INPUT), 500, false)
+        );
+    }
+
+    #[test]
+    fn test_part2_1000() {
+        assert_eq!(
+            668697,
+            super::solve(super::Part2, super::parse(TEST_INPUT), 1000, false)
+        );
+    }
+
+    #[test]
+    fn test_part2_5000() {
+        assert_eq!(
+            16733044,
+            super::solve(super::Part2, super::parse(TEST_INPUT), 5000, false)
+        );
+    }
 }
