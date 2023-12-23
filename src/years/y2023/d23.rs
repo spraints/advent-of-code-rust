@@ -1,7 +1,5 @@
-use std::{
-    collections::{BinaryHeap, HashMap, HashSet, VecDeque},
-    fmt::Display,
-};
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::fmt::Display;
 
 // Handy references:
 // - https://doc.rust-lang.org/std/iter/trait.Iterator.html
@@ -11,26 +9,86 @@ use std::{
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     let parsed = parse(&input);
     let longest_path = find_longest_path(&parsed, true, vis);
-    if vis {
-        for (r, row) in parsed.map.iter().enumerate() {
-            for (c, tile) in row.iter().enumerate() {
-                if longest_path.contains(&(r, c)) {
-                    print!("O");
-                } else {
-                    print!("{}", tile);
-                }
-            }
-            println!();
-        }
-    }
-    // I count the start square, but it's not supposed to be counted.
-    Box::new(longest_path.len() - 1)
+    Box::new(longest_path)
 }
 
 pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     let parsed = parse(&input);
     let longest_path = find_longest_path(&parsed, false, vis);
+    Box::new(longest_path)
+}
+
+fn find_longest_path(parsed: &Parsed, slippery: bool, vis: bool) -> usize {
+    let graph = trace(parsed, slippery);
     if vis {
+        println!(
+            "{} edges, {} nodes",
+            graph.count_edges(),
+            graph.count_nodes()
+        );
+    }
+
+    let mut to_visit: VecDeque<(Node, usize, Vec<Node>)> = VecDeque::new();
+    let src = (0, parsed.start_col);
+    to_visit.push_back((src, 0, vec![src]));
+
+    let mut maxcost: Option<(usize, Vec<Node>)> = None;
+
+    let mut count = 0;
+    while let Some((n, cost, visited)) = to_visit.pop_front() {
+        count += 1;
+        if vis {
+            println!("[{count}] visiting {n:?} from a {cost}-long path ({visited:?})");
+        }
+
+        if n.0 == parsed.rows - 1 {
+            if cost > maxcost.as_ref().map_or(0, |mc| mc.0) {
+                maxcost = Some((cost, visited.clone()));
+            }
+        }
+
+        let edges = graph.nodes.get(&n).unwrap();
+        if vis {
+            print!(" ** edges:");
+            for edge in edges {
+                print!(" {}->{:?}", edge.path.len(), edge.to);
+            }
+            println!();
+        }
+        for edge in edges {
+            if visited.contains(&edge.to) {
+                if vis {
+                    println!(" - skip {:?}, it's already in this list", edge.to);
+                }
+            } else {
+                if vis {
+                    println!(" - consider {:?} (+{})", edge.to, edge.path.len());
+                }
+                let mut extended = visited.clone();
+                extended.push(edge.to);
+                to_visit.push_back((edge.to, cost + edge.path.len(), extended));
+            }
+        }
+    }
+
+    let (maxcost, path) = maxcost.unwrap();
+
+    if vis {
+        println!("looped {count} times");
+        let mut longest_path: HashSet<Pos> = HashSet::new();
+        for w in path.windows(2) {
+            let from = &w[0];
+            let to = &w[1];
+            let edge = graph
+                .nodes
+                .get(from)
+                .unwrap()
+                .iter()
+                .find(|e| e.to == *to)
+                .unwrap();
+            longest_path.extend(edge.path.iter());
+        }
+
         for (r, row) in parsed.map.iter().enumerate() {
             for (c, tile) in row.iter().enumerate() {
                 if longest_path.contains(&(r, c)) {
@@ -42,80 +100,20 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
             println!();
         }
     }
-    Box::new(longest_path.len() - 1)
-}
 
-fn find_longest_path(parsed: &Parsed, slippery: bool, vis: bool) -> HashSet<Pos> {
-    let Graph { edges, nodes } = trace(parsed, slippery);
-    if vis {
-        println!("{} edges, {} nodes", edges.len(), nodes.len());
-    }
-
-    let mut to_visit: VecDeque<(Node, HashSet<Pos>)> = VecDeque::new();
-    let dest = (parsed.rows - 1, parsed.dest_col);
-    to_visit.push_back((dest, [dest].into()));
-
-    let mut path_to_start: Option<HashSet<Pos>> = None;
-
-    let mut count = 0;
-    while let Some((n, visited)) = to_visit.pop_front() {
-        count += 1;
-        if vis {
-            println!(
-                "[{count}] visiting {n:?} from a {}-long path",
-                visited.len()
-            );
-        }
-
-        // find all edges that lead to the current node.
-        for edge_in in edges.iter().filter(|e| e.to == n) {
-            if visited.contains(&edge_in.from) {
-                if vis {
-                    println!("- skip {:?}, it's already in the path", edge_in.from);
-                }
-                continue;
-            }
-
-            let new_path: HashSet<Pos> = visited.union(&edge_in.path).copied().collect();
-            if vis {
-                println!(
-                    "- {:?} -> {n:?} -> ... -> {dest:?} could be {}",
-                    edge_in.from,
-                    new_path.len()
-                );
-            }
-
-            if edge_in.from.0 == 0 {
-                // This is the start, save this path if it's the longest one we've seen so far.
-                if new_path.len() > path_to_start.as_ref().map_or(0, |p| p.len()) {
-                    path_to_start = Some(new_path);
-                }
-            } else {
-                // This is not the start, keep going!
-                to_visit.push_back((edge_in.from, new_path));
-            }
-        }
-    }
-
-    if vis {
-        println!("looped {count} times");
-    }
-
-    path_to_start.unwrap()
+    maxcost
 }
 
 fn trace(parsed: &Parsed, slippery: bool) -> Graph {
-    let mut nodes = HashSet::new();
-    let mut edges = Vec::new();
+    let mut nodes = HashMap::new();
     for (r, row) in parsed.map.iter().enumerate() {
         for (c, tile) in row.iter().enumerate() {
             if matches!(tile, Tile::Path(_)) {
                 let from = (r, c);
                 if r == 0 || is_fork(from, parsed) {
                     for (to, path) in walk(from, parsed, slippery) {
-                        nodes.insert(to);
+                        let edges = nodes.entry(from).or_insert_with(Vec::new);
                         edges.push(Edge {
-                            from,
                             to,
                             path: path.iter().cloned().collect(),
                         })
@@ -124,7 +122,7 @@ fn trace(parsed: &Parsed, slippery: bool) -> Graph {
             }
         }
     }
-    Graph { nodes, edges }
+    Graph { nodes }
 }
 
 // Returns all edges from 'from' like this: (to, edge)
@@ -141,20 +139,19 @@ fn walk2(
     visited: &mut Vec<Pos>,
     res: &mut Vec<(Node, HashSet<Pos>)>,
 ) {
-    visited.push(from);
     let (r, c) = from;
     if r > 0 {
         let to = (r - 1, c);
         if !visited.contains(&to)
             && can_visit(to, parsed, |d| !slippery || matches!(d, SlopeDirection::Up))
         {
+            visited.push(to);
             if is_fork(to, parsed) {
-                visited.push(to);
                 res.push((to, visited.iter().cloned().collect()));
-                visited.pop();
             } else {
                 walk2(to, parsed, slippery, visited, res);
             }
+            visited.pop();
         }
     }
     if r < parsed.rows - 1 {
@@ -164,13 +161,13 @@ fn walk2(
                 !slippery || matches!(d, SlopeDirection::Down)
             })
         {
+            visited.push(to);
             if to.0 == parsed.rows - 1 || is_fork(to, parsed) {
-                visited.push(to);
                 res.push((to, visited.iter().cloned().collect()));
-                visited.pop();
             } else {
                 walk2(to, parsed, slippery, visited, res);
             }
+            visited.pop();
         }
     }
     if c > 0 {
@@ -180,13 +177,13 @@ fn walk2(
                 !slippery || matches!(d, SlopeDirection::Left)
             })
         {
+            visited.push(to);
             if is_fork(to, parsed) {
-                visited.push(to);
                 res.push((to, visited.iter().cloned().collect()));
-                visited.pop();
             } else {
                 walk2(to, parsed, slippery, visited, res);
             }
+            visited.pop();
         }
     }
     if c < parsed.cols - 1 {
@@ -196,16 +193,15 @@ fn walk2(
                 !slippery || matches!(d, SlopeDirection::Right)
             })
         {
+            visited.push(to);
             if is_fork(to, parsed) {
-                visited.push(to);
                 res.push((to, visited.iter().cloned().collect()));
-                visited.pop();
             } else {
                 walk2(to, parsed, slippery, visited, res);
             }
+            visited.pop();
         }
     }
-    visited.pop();
 }
 
 fn can_visit<WS: Fn(&SlopeDirection) -> bool>(p: Pos, parsed: &Parsed, wont_slip: WS) -> bool {
@@ -235,23 +231,32 @@ fn is_fork(p: Pos, parsed: &Parsed) -> bool {
 }
 
 struct Graph {
-    edges: Vec<Edge>,
-    nodes: HashSet<Node>,
+    nodes: HashMap<Node, Vec<Edge>>,
+}
+
+impl Graph {
+    fn count_edges(&self) -> usize {
+        self.nodes
+            .values()
+            .fold(0, |count, edges| count + edges.len())
+    }
+
+    fn count_nodes(&self) -> usize {
+        self.nodes.len()
+    }
 }
 
 type Pos = (usize, usize);
 type Node = Pos;
 
 struct Edge {
-    from: Node,
     to: Node,
-    path: HashSet<Pos>, // includes 'from' and 'to'.
+    path: HashSet<Pos>, // does not include 'from'
 }
 
 struct Parsed {
     map: Vec<Vec<Tile>>,
     start_col: usize,
-    dest_col: usize,
     rows: usize,
     cols: usize,
 }
@@ -314,15 +319,10 @@ fn parse(input: &str) -> Parsed {
         .iter()
         .position(|t| matches!(t, Tile::Path(_)))
         .unwrap();
-    let dest_col = map[rows - 1]
-        .iter()
-        .position(|t| matches!(t, Tile::Path(_)))
-        .unwrap();
 
     Parsed {
         map,
         start_col,
-        dest_col,
         rows,
         cols,
     }
