@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{BinaryHeap, HashMap, HashSet, VecDeque},
     fmt::Display,
 };
 
@@ -51,11 +51,11 @@ fn find_longest_path(parsed: &Parsed, slippery: bool, vis: bool) -> HashSet<Pos>
     // max_paths is the longest path from 'key' to the bottom row.
     let mut max_paths: HashMap<Pos, HashSet<Pos>> = HashMap::new();
 
-    let mut to_visit = VecDeque::new();
-    to_visit.push_back((parsed.rows - 1, parsed.dest_col));
+    let mut to_visit = BinaryHeap::new();
+    to_visit.push((-1, (parsed.rows - 1, parsed.dest_col)));
 
     // does this need to sort 'to_visit'??
-    while let Some(n) = to_visit.pop_front() {
+    while let Some((_, n)) = to_visit.pop() {
         if vis {
             println!("visiting {n:?}");
         }
@@ -104,8 +104,8 @@ fn find_longest_path(parsed: &Parsed, slippery: bool, vis: bool) -> HashSet<Pos>
                 if vis {
                     println!("  updated!");
                 }
+                to_visit.push((-1 * new_path.len() as isize, edge_in.from));
                 max_paths.insert(edge_in.from, new_path);
-                to_visit.push_back(edge_in.from);
             }
         }
     }
