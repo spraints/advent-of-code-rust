@@ -46,71 +46,62 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
 }
 
 fn find_longest_path(parsed: &Parsed, slippery: bool, vis: bool) -> HashSet<Pos> {
-    let Graph { edges, nodes: _ } = trace(parsed, slippery);
+    let Graph { edges, nodes } = trace(parsed, slippery);
+    if vis {
+        println!("{} edges, {} nodes", edges.len(), nodes.len());
+    }
 
-    // max_paths is the longest path from 'key' to the bottom row.
-    let mut max_paths: HashMap<Pos, HashSet<Pos>> = HashMap::new();
+    let mut to_visit: VecDeque<(Node, HashSet<Pos>)> = VecDeque::new();
+    let dest = (parsed.rows - 1, parsed.dest_col);
+    to_visit.push_back((dest, [dest].into()));
 
-    let mut to_visit = BinaryHeap::new();
-    to_visit.push((-1, (parsed.rows - 1, parsed.dest_col)));
+    let mut path_to_start: Option<HashSet<Pos>> = None;
 
-    // does this need to sort 'to_visit'??
-    while let Some((_, n)) = to_visit.pop() {
+    let mut count = 0;
+    while let Some((n, visited)) = to_visit.pop_front() {
+        count += 1;
         if vis {
-            println!("visiting {n:?}");
+            println!(
+                "[{count}] visiting {n:?} from a {}-long path",
+                visited.len()
+            );
         }
-
-        // assume max_paths has already been populated for n.
-        // the one time it isn't is the case where n is the dest node.
-        let max_path_from_n: HashSet<Pos> =
-            max_paths.get(&n).cloned().unwrap_or_else(|| [n].into());
 
         // find all edges that lead to the current node.
         for edge_in in edges.iter().filter(|e| e.to == n) {
-            if vis {
-                println!(
-                    "- considering {:?} to {:?} (len = {})",
-                    edge_in.from,
-                    edge_in.to,
-                    edge_in.path.len()
-                );
-            }
-            if max_path_from_n.contains(&edge_in.from) {
-                // don't revisit n.
+            if visited.contains(&edge_in.from) {
                 if vis {
-                    println!(
-                        "  ! this would be a loop because {n:?} -> FIN already includes {:?}",
-                        edge_in.from
-                    );
+                    println!("- skip {:?}, it's already in the path", edge_in.from);
                 }
                 continue;
             }
 
-            // What if we add 'edge_in' -> 'n' to n's longest path?
-            let new_path: HashSet<Pos> = max_path_from_n.union(&edge_in.path).copied().collect();
-
-            // Is that longer than edge_in's longest path so far?
-            let edge_in_longest_path = max_paths.get(&edge_in.from).map_or(0, |p| p.len());
+            let new_path: HashSet<Pos> = visited.union(&edge_in.path).copied().collect();
             if vis {
                 println!(
-                    "  {:?} -> FIN was {}; {:?} -> {n:?} -> FIN is {}",
-                    edge_in.from,
-                    edge_in_longest_path,
+                    "- {:?} -> {n:?} -> ... -> {dest:?} could be {}",
                     edge_in.from,
                     new_path.len()
                 );
             }
-            if new_path.len() > edge_in_longest_path {
-                if vis {
-                    println!("  updated!");
+
+            if edge_in.from.0 == 0 {
+                // This is the start, save this path if it's the longest one we've seen so far.
+                if new_path.len() > path_to_start.as_ref().map_or(0, |p| p.len()) {
+                    path_to_start = Some(new_path);
                 }
-                to_visit.push((-1 * new_path.len() as isize, edge_in.from));
-                max_paths.insert(edge_in.from, new_path);
+            } else {
+                // This is not the start, keep going!
+                to_visit.push_back((edge_in.from, new_path));
             }
         }
     }
 
-    max_paths.remove(&(0, parsed.start_col)).unwrap()
+    if vis {
+        println!("looped {count} times");
+    }
+
+    path_to_start.unwrap()
 }
 
 fn trace(parsed: &Parsed, slippery: bool) -> Graph {
