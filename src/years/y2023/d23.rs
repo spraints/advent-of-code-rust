@@ -45,9 +45,13 @@ fn find_longest_path(parsed: &Parsed, slippery: bool, vis: bool) -> usize {
             if cost > maxcost.as_ref().map_or(0, |mc| mc.0) {
                 maxcost = Some((cost, visited.clone()));
             }
+            continue;
         }
 
-        let edges = graph.nodes.get(&n).unwrap();
+        let edges = graph
+            .nodes
+            .get(&n)
+            .unwrap_or_else(|| panic!("expected to find edges from {n:?}"));
         if vis {
             print!(" ** edges:");
             for edge in edges {
@@ -139,19 +143,20 @@ fn walk2(
     visited: &mut Vec<Pos>,
     res: &mut Vec<(Node, HashSet<Pos>)>,
 ) {
+    visited.push(from);
     let (r, c) = from;
     if r > 0 {
         let to = (r - 1, c);
         if !visited.contains(&to)
             && can_visit(to, parsed, |d| !slippery || matches!(d, SlopeDirection::Up))
         {
-            visited.push(to);
             if is_fork(to, parsed) {
-                res.push((to, visited.iter().cloned().collect()));
+                visited.push(to);
+                res.push((to, visited[1..].iter().cloned().collect()));
+                visited.pop();
             } else {
                 walk2(to, parsed, slippery, visited, res);
             }
-            visited.pop();
         }
     }
     if r < parsed.rows - 1 {
@@ -161,13 +166,13 @@ fn walk2(
                 !slippery || matches!(d, SlopeDirection::Down)
             })
         {
-            visited.push(to);
             if to.0 == parsed.rows - 1 || is_fork(to, parsed) {
-                res.push((to, visited.iter().cloned().collect()));
+                visited.push(to);
+                res.push((to, visited[1..].iter().cloned().collect()));
+                visited.pop();
             } else {
                 walk2(to, parsed, slippery, visited, res);
             }
-            visited.pop();
         }
     }
     if c > 0 {
@@ -177,13 +182,13 @@ fn walk2(
                 !slippery || matches!(d, SlopeDirection::Left)
             })
         {
-            visited.push(to);
             if is_fork(to, parsed) {
-                res.push((to, visited.iter().cloned().collect()));
+                visited.push(to);
+                res.push((to, visited[1..].iter().cloned().collect()));
+                visited.pop();
             } else {
                 walk2(to, parsed, slippery, visited, res);
             }
-            visited.pop();
         }
     }
     if c < parsed.cols - 1 {
@@ -193,15 +198,16 @@ fn walk2(
                 !slippery || matches!(d, SlopeDirection::Right)
             })
         {
-            visited.push(to);
             if is_fork(to, parsed) {
-                res.push((to, visited.iter().cloned().collect()));
+                visited.push(to);
+                res.push((to, visited[1..].iter().cloned().collect()));
+                visited.pop();
             } else {
                 walk2(to, parsed, slippery, visited, res);
             }
-            visited.pop();
         }
     }
+    visited.pop();
 }
 
 fn can_visit<WS: Fn(&SlopeDirection) -> bool>(p: Pos, parsed: &Parsed, wont_slip: WS) -> bool {
