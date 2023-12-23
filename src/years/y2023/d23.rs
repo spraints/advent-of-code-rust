@@ -74,10 +74,13 @@ fn find_longest_path(parsed: &Parsed, slippery: bool, vis: bool) -> HashSet<Pos>
                     edge_in.path.len()
                 );
             }
-            if edge_in.path.contains(&n) {
+            if max_path_from_n.contains(&edge_in.from) {
                 // don't revisit n.
                 if vis {
-                    println!("  ! this would be a loop");
+                    println!(
+                        "  ! this would be a loop because {n:?} -> FIN already includes {:?}",
+                        edge_in.from
+                    );
                 }
                 continue;
             }
@@ -116,7 +119,6 @@ fn trace(parsed: &Parsed, slippery: bool) -> Graph {
                 let from = (r, c);
                 if r == 0 || is_fork(from, parsed) {
                     for (to, path) in walk(from, parsed, slippery) {
-                        println!("WALK: {from:?} -> {to:?}");
                         nodes.insert(to);
                         edges.push(Edge {
                             from,
@@ -314,7 +316,6 @@ fn parse(input: &str) -> Parsed {
     let rows = map.len();
     let cols = map[0].len();
 
-    println!("row0: {:?}", map[0]);
     let start_col = map[0]
         .iter()
         .position(|t| matches!(t, Tile::Path(_)))
