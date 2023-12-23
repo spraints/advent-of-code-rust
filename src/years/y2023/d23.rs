@@ -6,7 +6,7 @@ use std::{collections::HashSet, fmt::Display};
 // - https://docs.rs/regex/latest/regex/struct.Regex.html
 
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
-    let parsed = parse(&input);
+    let parsed = parse(&input, true);
     let longest_path = find_longest_path(&parsed);
     if vis {
         for (r, row) in parsed.map.iter().enumerate() {
@@ -24,8 +24,23 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     Box::new(longest_path.len() - 1)
 }
 
-pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
-    Box::new("todo")
+pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
+    let parsed = parse(&input, false);
+    let longest_path = find_longest_path(&parsed);
+    if vis {
+        for (r, row) in parsed.map.iter().enumerate() {
+            for (c, tile) in row.iter().enumerate() {
+                if longest_path.contains(&(r, c)) {
+                    print!("O");
+                } else {
+                    print!("{}", tile);
+                }
+            }
+            println!();
+        }
+    }
+    // I count the start square, but it's not supposed to be counted.
+    Box::new(longest_path.len() - 1)
 }
 
 fn find_longest_path(parsed: &Parsed) -> HashSet<(usize, usize)> {
@@ -171,19 +186,19 @@ enum SlopeDirection {
     Down,
 }
 
-fn parse(input: &str) -> Parsed {
+fn parse(input: &str, slippery: bool) -> Parsed {
     let map: Vec<Vec<Tile>> = input
         .lines()
         .map(|line| {
             line.trim()
                 .chars()
-                .map(|c| match c {
-                    '.' => Tile::Path(SlopeDirection::None),
-                    '>' => Tile::Path(SlopeDirection::Right),
-                    '<' => Tile::Path(SlopeDirection::Left),
-                    '^' => Tile::Path(SlopeDirection::Up),
-                    'v' => Tile::Path(SlopeDirection::Down),
-                    '#' => Tile::Forest,
+                .map(|c| match (c, slippery) {
+                    ('#', _) => Tile::Forest,
+                    ('.', _) | (_, false) => Tile::Path(SlopeDirection::None),
+                    ('>', true) => Tile::Path(SlopeDirection::Right),
+                    ('<', true) => Tile::Path(SlopeDirection::Left),
+                    ('^', true) => Tile::Path(SlopeDirection::Up),
+                    ('v', true) => Tile::Path(SlopeDirection::Down),
                     _ => panic!("unexpected tile {c:?}"),
                 })
                 .collect()
@@ -230,5 +245,5 @@ mod test {
 #####################.#";
 
     crate::test::aoc_test!(part1, TEST_INPUT, 94);
-    crate::test::aoc_test!(part2, TEST_INPUT, "todo");
+    crate::test::aoc_test!(part2, TEST_INPUT, 154);
 }
