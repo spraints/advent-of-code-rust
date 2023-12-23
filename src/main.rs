@@ -103,10 +103,15 @@ impl Runner {
                 part,
                 label,
                 f,
+                slow,
             } = solver;
             if cli.matches(year, day, part) {
                 if is_future(&now, year, day) {
-                    println!("{}: Dec {:02}: part {}: (future)", year, day, part,);
+                    println!("{year}: Dec {day:02}: part {part}: (future)");
+                    continue;
+                }
+                if slow && !cli.run_slow_parts() {
+                    println!("{year}: Dec {day:02}: part {part}: (skipped because it's slow)");
                     continue;
                 }
                 count += 1;
@@ -154,6 +159,21 @@ impl SolutionSet for Runner {
             part,
             label,
             f: Box::new(f),
+            slow: false,
+        });
+    }
+
+    fn add_slow<F>(&mut self, year: i32, day: u32, part: u8, label: Option<&'static str>, f: F)
+    where
+        F: Fn(String, bool) -> Box<dyn std::fmt::Display> + 'static,
+    {
+        self.solvers.insert(Solver {
+            year,
+            day,
+            part,
+            label,
+            f: Box::new(f),
+            slow: true,
         });
     }
 }
@@ -209,5 +229,9 @@ impl Cli {
             (_, _, Some(p)) if p != part => false,
             _ => true,
         }
+    }
+
+    fn run_slow_parts(&self) -> bool {
+        return false; // todo
     }
 }

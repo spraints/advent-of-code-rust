@@ -6,6 +6,7 @@ pub struct Solver {
     pub part: u8,
     pub label: Option<&'static str>,
     pub f: Box<dyn Fn(String, bool) -> Box<dyn Display>>,
+    pub slow: bool,
 }
 
 impl Solver {

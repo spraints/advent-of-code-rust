@@ -52,13 +52,6 @@ fn find_longest_path(parsed: &Parsed, slippery: bool, vis: bool) -> usize {
             .nodes
             .get(&n)
             .unwrap_or_else(|| panic!("expected to find edges from {n:?}"));
-        if vis {
-            print!(" ** edges:");
-            for edge in edges {
-                print!(" {}->{:?}", edge.path.len(), edge.to);
-            }
-            println!();
-        }
         for edge in edges {
             if visited.contains(&edge.to) {
                 if vis {

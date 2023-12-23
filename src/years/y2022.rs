@@ -46,8 +46,8 @@ pub fn register<S: SolutionSet>(s: &mut S) {
     s.add(2022, 20, 1, None, d20::part1);
     s.add(2022, 20, 2, None, d20::part2);
 
-    s.add(2022, 19, 1, None, d19::part1);
-    s.add(2022, 19, 2, None, d19::part2);
+    s.add_slow(2022, 19, 1, None, d19::part1);
+    s.add_slow(2022, 19, 2, None, d19::part2);
 
     s.add(2022, 18, 1, None, d18::part1);
     s.add(2022, 18, 2, None, d18::part2);
@@ -58,7 +58,7 @@ pub fn register<S: SolutionSet>(s: &mut S) {
     s.add(2022, 16, 1, None, d16::part1);
     s.add(2022, 16, 2, None, d16::part2);
     s.add(2022, 16, 1, Some("new"), d16::part1_new);
-    s.add(2022, 16, 2, Some("new"), d16::part2_new);
+    s.add_slow(2022, 16, 2, Some("new"), d16::part2_new);
 
     s.add(2022, 15, 1, None, d15::part1);
     s.add(2022, 15, 2, None, d15::part2);
