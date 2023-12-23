@@ -312,11 +312,7 @@ struct Part {
 
 impl Display for Part {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}x={},m={},a={},s={}{}",
-            '{', self.x, self.m, self.a, self.s, '}'
-        )
+        write!(f, "{{x={},m={},a={},s={}}}", self.x, self.m, self.a, self.s)
     }
 }
 

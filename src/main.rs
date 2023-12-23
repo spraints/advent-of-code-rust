@@ -297,6 +297,6 @@ impl Cli {
     }
 
     fn run_slow_parts(&self) -> bool {
-        return self.include_slow;
+        self.include_slow
     }
 }

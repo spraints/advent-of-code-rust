@@ -217,7 +217,7 @@ fn parse(input: &str) -> Circuit {
     let mut inputs = HashMap::new();
     for m in modules.iter() {
         for dest in &m.dests {
-            let e = inputs.entry(dest.clone()).or_insert_with(|| Vec::new());
+            let e = inputs.entry(dest.clone()).or_insert_with(Vec::new);
             e.push(m.name.clone());
         }
     }

@@ -159,10 +159,10 @@ fn step(state: State, p: impl Part, parsed: &Parsed) -> State {
         max_row = max(max_row, pos.0 + 1);
         min_col = min(min_col, pos.1 - 1);
         max_col = max(max_col, pos.1 + 1);
-        p.maybe_push(&mut new_possible, &parsed, (pos.0, pos.1 + 1));
-        p.maybe_push(&mut new_possible, &parsed, (pos.0, pos.1 - 1));
-        p.maybe_push(&mut new_possible, &parsed, (pos.0 + 1, pos.1));
-        p.maybe_push(&mut new_possible, &parsed, (pos.0 - 1, pos.1));
+        p.maybe_push(&mut new_possible, parsed, (pos.0, pos.1 + 1));
+        p.maybe_push(&mut new_possible, parsed, (pos.0, pos.1 - 1));
+        p.maybe_push(&mut new_possible, parsed, (pos.0 + 1, pos.1));
+        p.maybe_push(&mut new_possible, parsed, (pos.0 - 1, pos.1));
     }
 
     State {
