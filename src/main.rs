@@ -216,10 +216,32 @@ struct Cli {
     /// Run parts that are considered 'slow'.
     #[arg(long)]
     include_slow: bool,
+
+    /// YYYY or YYYY/DD or DD to run.
+    spec: Option<String>,
 }
 
 impl Cli {
     fn set_today<D: Datelike>(&mut self, today: &D) {
+        if let Some(spec) = &self.spec {
+            if self.year.is_some() || self.day.is_some() {
+                panic!("arg conflict: SPEC may not be provided when --year or --day are used");
+            }
+            match spec.split_once('/') {
+                None => {
+                    if spec.len() >= 4 {
+                        self.year = Some(spec.parse().unwrap());
+                    } else {
+                        self.day = Some(spec.parse().unwrap());
+                    }
+                }
+                Some((y, d)) => {
+                    self.year = Some(y.parse().unwrap());
+                    self.day = Some(d.parse().unwrap());
+                }
+            };
+        }
+
         let today_year = today.year();
         let today_day = today.day();
         match (
