@@ -208,6 +208,10 @@ struct Cli {
     /// Include visualizations.
     #[arg(short, long)]
     visualize: bool,
+
+    /// Run parts that are considered 'slow'.
+    #[arg(long)]
+    include_slow: bool,
 }
 
 impl Cli {
@@ -232,6 +236,6 @@ impl Cli {
     }
 
     fn run_slow_parts(&self) -> bool {
-        return false; // todo
+        return self.include_slow;
     }
 }
