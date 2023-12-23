@@ -189,6 +189,10 @@ struct Cli {
     #[arg(long)]
     all: bool,
 
+    /// Run this year's solvers.
+    #[arg(long)]
+    this_year: bool,
+
     /// Hide solutions.
     #[arg(long)]
     no_spoilers: bool,
@@ -216,9 +220,44 @@ struct Cli {
 
 impl Cli {
     fn set_today<D: Datelike>(&mut self, today: &D) {
+        let today_year = today.year();
+        let today_day = today.day();
+        match (
+            self.year.is_some(),
+            self.day.is_some(),
+            self.this_year,
+            today.month(),
+        ) {
+            // No args, today is a day on the advent calendar => run today only.
+            // No args, today is not on the calendar => run nothing.
+            (false, false, false, _) => {
+                self.year = Some(today_year);
+                self.day = Some(today_day);
+            }
+            // --this-year, today is still December => run today's.
+            (false, false, true, 12) => {
+                self.year = Some(today_year);
+            }
+            // --this-year, today is not December => run last year's.
+            (false, false, true, _) => {
+                self.year = Some(today_year - 1);
+            }
+            // --year Y => run everything from year Y.
+            (true, _, _, _) => (),
+            // --day D, today is December => run this year's day D.
+            (false, true, _, 12) => {
+                self.year = Some(today_year);
+            }
+            // --day D, today is not December => run last year's day D.
+            (false, true, _, _) => {
+                self.year = Some(today_year - 1);
+            }
+        }
         if self.year.is_none() && self.day.is_none() && today.month() == 12 {
             self.year = Some(today.year());
-            self.day = Some(today.day());
+            if !self.this_year {
+                self.day = Some(today.day());
+            }
         }
     }
 
