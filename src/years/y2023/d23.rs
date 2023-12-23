@@ -1,4 +1,7 @@
-use std::{collections::HashSet, fmt::Display};
+use std::{
+    collections::{HashMap, HashSet, VecDeque},
+    fmt::Display,
+};
 
 // Handy references:
 // - https://doc.rust-lang.org/std/iter/trait.Iterator.html
@@ -6,8 +9,8 @@ use std::{collections::HashSet, fmt::Display};
 // - https://docs.rs/regex/latest/regex/struct.Regex.html
 
 pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
-    let parsed = parse(&input, true);
-    let longest_path = find_longest_path(&parsed);
+    let parsed = parse(&input);
+    let longest_path = find_longest_path(&parsed, true, vis);
     if vis {
         for (r, row) in parsed.map.iter().enumerate() {
             for (c, tile) in row.iter().enumerate() {
@@ -25,8 +28,8 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
 }
 
 pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
-    let parsed = parse(&input, false);
-    let longest_path = find_longest_path(&parsed);
+    let parsed = parse(&input);
+    let longest_path = find_longest_path(&parsed, false, vis);
     if vis {
         for (r, row) in parsed.map.iter().enumerate() {
             for (c, tile) in row.iter().enumerate() {
@@ -39,123 +42,225 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
             println!();
         }
     }
-    // I count the start square, but it's not supposed to be counted.
     Box::new(longest_path.len() - 1)
 }
 
-fn find_longest_path(parsed: &Parsed) -> HashSet<(usize, usize)> {
-    fn flp(
-        parsed: &Parsed,
-        progress: HashSet<(usize, usize)>,
-        pos: (usize, usize),
-    ) -> Option<HashSet<(usize, usize)>> {
-        match fill_to_fork(parsed, progress, pos) {
-            None => None,
-            Some((progress, choices)) => {
-                if choices.is_empty() {
-                    Some(progress)
-                } else {
-                    choices
-                        .into_iter()
-                        .filter_map(|choice| flp(parsed, progress.clone(), choice))
-                        .max_by_key(|path| path.len())
+fn find_longest_path(parsed: &Parsed, slippery: bool, vis: bool) -> HashSet<Pos> {
+    let Graph { edges, nodes: _ } = trace(parsed, slippery);
+
+    // max_paths is the longest path from 'key' to the bottom row.
+    let mut max_paths: HashMap<Pos, HashSet<Pos>> = HashMap::new();
+
+    let mut to_visit = VecDeque::new();
+    to_visit.push_back((parsed.rows - 1, parsed.dest_col));
+
+    while let Some(n) = to_visit.pop_front() {
+        if vis {
+            println!("visiting {n:?}");
+        }
+
+        // assume max_paths has already been populated for n.
+        // the one time it isn't is the case where n is the dest node.
+        let max_path_from_n: HashSet<Pos> =
+            max_paths.get(&n).cloned().unwrap_or_else(|| [n].into());
+
+        // find all edges that lead to the current node.
+        for edge_in in edges.iter().filter(|e| e.to == n) {
+            if vis {
+                println!(
+                    "- considering {:?} to {:?} (len = {})",
+                    edge_in.from,
+                    edge_in.to,
+                    edge_in.path.len()
+                );
+            }
+            if edge_in.path.contains(&n) {
+                // don't revisit n.
+                if vis {
+                    println!("  ! this would be a loop");
+                }
+                continue;
+            }
+
+            // What if we add 'edge_in' -> 'n' to n's longest path?
+            let new_path: HashSet<Pos> = max_path_from_n.union(&edge_in.path).copied().collect();
+
+            // Is that longer than edge_in's longest path so far?
+            let edge_in_longest_path = max_paths.get(&edge_in.from).map_or(0, |p| p.len());
+            if vis {
+                println!(
+                    "  {:?} -> FIN was {}; {:?} -> {n:?} -> FIN is {}",
+                    edge_in.from,
+                    edge_in_longest_path,
+                    edge_in.from,
+                    new_path.len()
+                );
+            }
+            if new_path.len() > edge_in_longest_path {
+                max_paths.insert(edge_in.from, new_path);
+            }
+
+            to_visit.push_back(edge_in.from);
+        }
+    }
+
+    max_paths.remove(&(0, parsed.start_col)).unwrap()
+}
+
+fn trace(parsed: &Parsed, slippery: bool) -> Graph {
+    let mut nodes = HashSet::new();
+    let mut edges = Vec::new();
+    for (r, row) in parsed.map.iter().enumerate() {
+        for (c, tile) in row.iter().enumerate() {
+            if matches!(tile, Tile::Path(_)) {
+                let from = (r, c);
+                if r == 0 || is_fork(from, parsed) {
+                    for (to, path) in walk(from, parsed, slippery) {
+                        println!("WALK: {from:?} -> {to:?}");
+                        nodes.insert(to);
+                        edges.push(Edge {
+                            from,
+                            to,
+                            path: path.iter().cloned().collect(),
+                        })
+                    }
                 }
             }
         }
     }
+    Graph { nodes, edges }
+}
 
-    fn fill_to_fork(
-        parsed: &Parsed,
-        mut progress: HashSet<(usize, usize)>,
-        mut pos: (usize, usize),
-    ) -> Option<(HashSet<(usize, usize)>, Vec<(usize, usize)>)> {
-        loop {
-            // assume pos is a legal next step.
-            progress.insert(pos);
-            if pos.0 == parsed.rows - 1 {
-                // We found the end!
-                return Some((progress, Vec::new()));
+// Returns all edges from 'from' like this: (to, edge)
+fn walk(from: Pos, parsed: &Parsed, slippery: bool) -> Vec<(Node, HashSet<Pos>)> {
+    let mut res = Vec::with_capacity(3);
+    walk2(from, parsed, slippery, &mut Vec::new(), &mut res);
+    res
+}
+
+fn walk2(
+    from: Pos,
+    parsed: &Parsed,
+    slippery: bool,
+    visited: &mut Vec<Pos>,
+    res: &mut Vec<(Node, HashSet<Pos>)>,
+) {
+    visited.push(from);
+    let (r, c) = from;
+    if r > 0 {
+        let to = (r - 1, c);
+        if !visited.contains(&to)
+            && can_visit(to, parsed, |d| !slippery || matches!(d, SlopeDirection::Up))
+        {
+            if is_fork(to, parsed) {
+                visited.push(to);
+                res.push((to, visited.iter().cloned().collect()));
+                visited.pop();
+            } else {
+                walk2(to, parsed, slippery, visited, res);
             }
-            let neighbors = neighbors(pos, &progress, parsed);
-            match neighbors.len() {
-                // Dead end.
-                0 => return None,
-                // On a path without a fork.
-                1 => pos = neighbors[0],
-                // At a fork.
-                _ => return Some((progress, neighbors)),
-            };
         }
     }
-
-    fn neighbors(
-        pos: (usize, usize),
-        progress: &HashSet<(usize, usize)>,
-        parsed: &Parsed,
-    ) -> Vec<(usize, usize)> {
-        let mut res = Vec::with_capacity(2);
-        let (r, c) = pos;
-        if r > 0 {
-            // try going up.
-            let p = (r - 1, c);
-            if !progress.contains(&p)
-                && matches!(
-                    parsed.map[p.0][p.1],
-                    Tile::Path(SlopeDirection::None | SlopeDirection::Up)
-                )
-            {
-                res.push(p);
+    if r < parsed.rows - 1 {
+        let to = (r + 1, c);
+        if !visited.contains(&to)
+            && can_visit(to, parsed, |d| {
+                !slippery || matches!(d, SlopeDirection::Down)
+            })
+        {
+            if to.0 == parsed.rows - 1 || is_fork(to, parsed) {
+                visited.push(to);
+                res.push((to, visited.iter().cloned().collect()));
+                visited.pop();
+            } else {
+                walk2(to, parsed, slippery, visited, res);
             }
         }
-        if c > 0 {
-            // try going left.
-            let p = (r, c - 1);
-            if !progress.contains(&p)
-                && matches!(
-                    parsed.map[p.0][p.1],
-                    Tile::Path(SlopeDirection::None | SlopeDirection::Left)
-                )
-            {
-                res.push(p);
-            }
-        }
-        if r < parsed.rows - 1 {
-            // try going down.
-            let p = (r + 1, c);
-            if !progress.contains(&p)
-                && matches!(
-                    parsed.map[p.0][p.1],
-                    Tile::Path(SlopeDirection::None | SlopeDirection::Down)
-                )
-            {
-                res.push(p);
-            }
-        }
-        if c < parsed.cols - 1 {
-            // try going right.
-            let p = (r, c + 1);
-            if !progress.contains(&p)
-                && matches!(
-                    parsed.map[p.0][p.1],
-                    Tile::Path(SlopeDirection::None | SlopeDirection::Right)
-                )
-            {
-                res.push(p);
-            }
-        }
-        res
     }
+    if c > 0 {
+        let to = (r, c - 1);
+        if !visited.contains(&to)
+            && can_visit(to, parsed, |d| {
+                !slippery || matches!(d, SlopeDirection::Left)
+            })
+        {
+            if is_fork(to, parsed) {
+                visited.push(to);
+                res.push((to, visited.iter().cloned().collect()));
+                visited.pop();
+            } else {
+                walk2(to, parsed, slippery, visited, res);
+            }
+        }
+    }
+    if c < parsed.cols - 1 {
+        let to = (r, c + 1);
+        if !visited.contains(&to)
+            && can_visit(to, parsed, |d| {
+                !slippery || matches!(d, SlopeDirection::Right)
+            })
+        {
+            if is_fork(to, parsed) {
+                visited.push(to);
+                res.push((to, visited.iter().cloned().collect()));
+                visited.pop();
+            } else {
+                walk2(to, parsed, slippery, visited, res);
+            }
+        }
+    }
+    visited.pop();
+}
 
-    flp(parsed, HashSet::new(), (0, parsed.start_col)).unwrap()
+fn can_visit<WS: Fn(&SlopeDirection) -> bool>(p: Pos, parsed: &Parsed, wont_slip: WS) -> bool {
+    match &parsed.map[p.0][p.1] {
+        Tile::Path(SlopeDirection::None) => true,
+        Tile::Path(d) if wont_slip(d) => true,
+        _ => false,
+    }
+}
+
+fn is_fork(p: Pos, parsed: &Parsed) -> bool {
+    let (r, c) = p;
+    let mut neighbors = 0;
+    if r > 0 && matches!(parsed.map[r - 1][c], Tile::Path(_)) {
+        neighbors += 1;
+    }
+    if c > 0 && matches!(parsed.map[r][c - 1], Tile::Path(_)) {
+        neighbors += 1;
+    }
+    if r < parsed.rows - 1 && matches!(parsed.map[r + 1][c], Tile::Path(_)) {
+        neighbors += 1;
+    }
+    if c < parsed.cols - 1 && matches!(parsed.map[r][c + 1], Tile::Path(_)) {
+        neighbors += 1;
+    }
+    neighbors == 3
+}
+
+struct Graph {
+    edges: Vec<Edge>,
+    nodes: HashSet<Node>,
+}
+
+type Pos = (usize, usize);
+type Node = Pos;
+
+struct Edge {
+    from: Node,
+    to: Node,
+    path: HashSet<Pos>, // includes 'from' and 'to'.
 }
 
 struct Parsed {
     map: Vec<Vec<Tile>>,
     start_col: usize,
+    dest_col: usize,
     rows: usize,
     cols: usize,
 }
 
+#[derive(Debug)]
 enum Tile {
     Forest,
     Path(SlopeDirection),
@@ -178,6 +283,7 @@ impl Display for Tile {
     }
 }
 
+#[derive(Debug)]
 enum SlopeDirection {
     None,
     Left,
@@ -186,33 +292,42 @@ enum SlopeDirection {
     Down,
 }
 
-fn parse(input: &str, slippery: bool) -> Parsed {
+fn parse(input: &str) -> Parsed {
     let map: Vec<Vec<Tile>> = input
         .lines()
         .map(|line| {
             line.trim()
                 .chars()
-                .map(|c| match (c, slippery) {
-                    ('#', _) => Tile::Forest,
-                    ('.', _) | (_, false) => Tile::Path(SlopeDirection::None),
-                    ('>', true) => Tile::Path(SlopeDirection::Right),
-                    ('<', true) => Tile::Path(SlopeDirection::Left),
-                    ('^', true) => Tile::Path(SlopeDirection::Up),
-                    ('v', true) => Tile::Path(SlopeDirection::Down),
+                .map(|c| match c {
+                    '#' => Tile::Forest,
+                    '.' => Tile::Path(SlopeDirection::None),
+                    '>' => Tile::Path(SlopeDirection::Right),
+                    '<' => Tile::Path(SlopeDirection::Left),
+                    '^' => Tile::Path(SlopeDirection::Up),
+                    'v' => Tile::Path(SlopeDirection::Down),
                     _ => panic!("unexpected tile {c:?}"),
                 })
                 .collect()
         })
         .collect();
+
+    let rows = map.len();
+    let cols = map[0].len();
+
+    println!("row0: {:?}", map[0]);
     let start_col = map[0]
         .iter()
         .position(|t| matches!(t, Tile::Path(_)))
         .unwrap();
-    let rows = map.len();
-    let cols = map[0].len();
+    let dest_col = map[rows - 1]
+        .iter()
+        .position(|t| matches!(t, Tile::Path(_)))
+        .unwrap();
+
     Parsed {
         map,
         start_col,
+        dest_col,
         rows,
         cols,
     }
