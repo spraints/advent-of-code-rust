@@ -2,6 +2,8 @@ use std::cmp::{max, min};
 use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 
+use num::integer::Roots;
+
 // Handy references:
 // - https://doc.rust-lang.org/std/iter/trait.Iterator.html
 // - https://docs.rs/itertools/0.8.2/itertools/trait.Itertools.html
@@ -13,8 +15,49 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     Box::new(res)
 }
 
-pub fn part2(input: String, _vis: bool) -> Box<dyn Display> {
+pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
     let parsed = parse(&input);
+    if vis {
+        // Usage: cargo run -- --year 2023 --day 21 --part 2 --visualize
+        //
+        // This shows how many types of each tile there are, the square root of the number of
+        // garden tiles (which is how long i would have guess it would take to cover all the garden
+        // tiles, but going around rocks makes it take longer), and how long it takes to cover all
+        // the tiles. sqrt is 123, repeats start at 129, though there's a false repeat earlier.
+        //
+        // I think the next step is to figure out how many steps it takes to cover the center
+        // (starting) copy of the map; then figure out where the pattern enters the left, right,
+        // top, bottom copies of the map, and how long it takes to cover those; then figure out
+        // where the pattern enters the diagonal copies of the map and how long it takes to cover
+        // those, then do the math to figure out where we end up after N iterations.
+        let by_type = parsed
+            .map
+            .values()
+            .fold(HashMap::new(), |mut counts, tile| {
+                *counts.entry(*tile).or_insert(0) += 1;
+                counts
+            });
+        println!("by type: {:?}", by_type);
+        let garden_tiles = by_type.get(&Tile::Garden).unwrap();
+        println!("  sqrt(garden) = {}", garden_tiles.sqrt());
+
+        let mut tracker = HashMap::new();
+        let mut state = initial_state(&parsed);
+        let mut matches = 0;
+        for i in 1..10000 {
+            if matches > 10 {
+                return Box::new("todo");
+            }
+            state = step(state, Part1, &parsed);
+            let possible = state.possible.len();
+            let e = tracker.entry(possible).or_insert(i);
+            if *e != i {
+                matches += 1;
+                println!("{possible} options at {e} and {i}");
+            }
+        }
+        return Box::new("unexpected");
+    }
     let res = solve(Part2, parsed, 26501365, false);
     Box::new(res)
 }
@@ -159,6 +202,7 @@ struct Parsed {
     cols: isize,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Tile {
     Start,
     Garden,
