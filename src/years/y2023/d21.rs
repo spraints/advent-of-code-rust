@@ -28,7 +28,9 @@ trait Part {
     );
 }
 
+#[derive(Clone, Copy)]
 struct Part1;
+#[derive(Clone, Copy)]
 struct Part2;
 
 impl Part for Part1 {
@@ -58,40 +60,27 @@ impl Part for Part2 {
     }
 }
 
-fn solve(p: impl Part, parsed: Parsed, steps: usize, vis: bool) -> usize {
-    let mut possible = HashSet::new();
-    for (pos, st) in &parsed.map {
-        if matches!(st, Tile::Start) {
-            possible.insert(*pos);
-        }
-    }
+struct State {
+    min_row: isize,
+    max_row: isize,
+    min_col: isize,
+    max_col: isize,
+    possible: HashSet<(isize, isize)>,
+}
 
-    let mut min_row = 0;
-    let mut max_row = parsed.rows - 1;
-    let mut min_col = 0;
-    let mut max_col = parsed.rows - 1;
+fn solve(p: impl Part + Copy, parsed: Parsed, steps: usize, vis: bool) -> usize {
+    let mut state = initial_state(&parsed);
 
     for i in 1..=steps {
-        let mut new_possible = HashSet::new();
-        for pos in possible {
-            min_row = min(min_row, pos.0 - 1);
-            max_row = max(max_row, pos.0 + 1);
-            min_col = min(min_col, pos.1 - 1);
-            max_col = max(max_col, pos.1 + 1);
-            p.maybe_push(&mut new_possible, &parsed, (pos.0, pos.1 + 1));
-            p.maybe_push(&mut new_possible, &parsed, (pos.0, pos.1 - 1));
-            p.maybe_push(&mut new_possible, &parsed, (pos.0 + 1, pos.1));
-            p.maybe_push(&mut new_possible, &parsed, (pos.0 - 1, pos.1));
-        }
-        possible = new_possible;
+        state = step(state, p, &parsed);
         if vis {
             println!("---AFTER STEP {i}---");
-            for r in min_row..=max_row {
-                for c in min_col..=max_col {
+            for r in state.min_row..=state.max_row {
+                for c in state.min_col..=state.max_col {
                     print!(
                         "{}",
                         match (
-                            possible.contains(&(r, c)),
+                            state.possible.contains(&(r, c)),
                             parsed
                                 .map
                                 .get(&(modwrap(r, parsed.rows), modwrap(c, parsed.cols)))
@@ -109,7 +98,59 @@ fn solve(p: impl Part, parsed: Parsed, steps: usize, vis: bool) -> usize {
         }
     }
 
-    possible.len()
+    state.possible.len()
+}
+
+fn step(state: State, p: impl Part, parsed: &Parsed) -> State {
+    let State {
+        mut min_row,
+        mut max_row,
+        mut min_col,
+        mut max_col,
+        possible,
+    } = state;
+
+    let mut new_possible = HashSet::new();
+    for pos in possible {
+        min_row = min(min_row, pos.0 - 1);
+        max_row = max(max_row, pos.0 + 1);
+        min_col = min(min_col, pos.1 - 1);
+        max_col = max(max_col, pos.1 + 1);
+        p.maybe_push(&mut new_possible, &parsed, (pos.0, pos.1 + 1));
+        p.maybe_push(&mut new_possible, &parsed, (pos.0, pos.1 - 1));
+        p.maybe_push(&mut new_possible, &parsed, (pos.0 + 1, pos.1));
+        p.maybe_push(&mut new_possible, &parsed, (pos.0 - 1, pos.1));
+    }
+
+    State {
+        min_row,
+        max_row,
+        min_col,
+        max_col,
+        possible: new_possible,
+    }
+}
+
+fn initial_state(parsed: &Parsed) -> State {
+    let mut possible = HashSet::new();
+    for (pos, st) in &parsed.map {
+        if matches!(st, Tile::Start) {
+            possible.insert(*pos);
+        }
+    }
+
+    let min_row = 0;
+    let max_row = parsed.rows - 1;
+    let min_col = 0;
+    let max_col = parsed.rows - 1;
+
+    State {
+        min_row,
+        max_row,
+        min_col,
+        max_col,
+        possible,
+    }
 }
 
 struct Parsed {
