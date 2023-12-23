@@ -54,6 +54,7 @@ fn find_longest_path(parsed: &Parsed, slippery: bool, vis: bool) -> HashSet<Pos>
     let mut to_visit = VecDeque::new();
     to_visit.push_back((parsed.rows - 1, parsed.dest_col));
 
+    // does this need to sort 'to_visit'??
     while let Some(n) = to_visit.pop_front() {
         if vis {
             println!("visiting {n:?}");
@@ -100,10 +101,12 @@ fn find_longest_path(parsed: &Parsed, slippery: bool, vis: bool) -> HashSet<Pos>
                 );
             }
             if new_path.len() > edge_in_longest_path {
+                if vis {
+                    println!("  updated!");
+                }
                 max_paths.insert(edge_in.from, new_path);
+                to_visit.push_back(edge_in.from);
             }
-
-            to_visit.push_back(edge_in.from);
         }
     }
 
@@ -237,7 +240,7 @@ fn is_fork(p: Pos, parsed: &Parsed) -> bool {
     if c < parsed.cols - 1 && matches!(parsed.map[r][c + 1], Tile::Path(_)) {
         neighbors += 1;
     }
-    neighbors == 3
+    neighbors > 2
 }
 
 struct Graph {
