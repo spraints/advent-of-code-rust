@@ -20,6 +20,7 @@ mod d20;
 mod d21;
 mod d23;
 mod d24;
+mod d25;
 
 use crate::registry::aoc_part;
 use crate::registry::slow_aoc_part;
@@ -77,4 +78,6 @@ pub fn register<S: SolutionSet>(s: &mut S) {
     slow_aoc_part!(s, 2023, 23, 2, d23::part2);
     aoc_part!(s, 2023, 24, 1, d24::part1);
     aoc_part!(s, 2023, 24, 2, d24::part2);
+    aoc_part!(s, 2023, 25, 1, d25::part1);
+    aoc_part!(s, 2023, 25, 2, d25::part2);
 }
