@@ -16,7 +16,56 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     ))
 }
 
-pub fn part2(_input: String, _vis: bool) -> Box<dyn Display> {
+pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
+    let stones = parse(&input);
+    if vis {
+        println!("{stones:?}");
+    }
+    // Looking for (xS,yS,zS) @ (dxS,dyS,dzS).
+    // t0 where (xS+t0*dxS, yS+t0*dyS, zS+t0*dzS) == (x0+t0*dx0, y0+t0*dy0, z0+t0*dz0)
+    // t1 where (xS+t1*dxS, yS+t1*dyS, zS+t1*dzS) == (x1+t1*dx1, y1+t1*dy1, z1+t1*dz1)
+    // ...
+    // tN where (xS+tN*dxS, yS+tN*dyS, zS+tN*dzS) == (xN+tN*dxN, yN+tN*dyN, zN+tN*dzN)
+    //
+    // 3*N equations, 6+N unknowns.
+    // xS+t0*dxS = x0+t0*dx0 => xS - x0 + t0*(dxS - dx0) = 0
+    // xS+t0*dxS = x0+t0*dx0 => xS + t0*dxS - t0*dx0 = x0
+    // I want to put this into a matrix, but would need coefficients of unknowns, and t0*dxS
+    // doesn't help me here.
+    //
+    // Maybe I can solve for the first three lines and then that will be the solution for all?
+    // 0: xS + t0*dxS = x0 + t0*dx0 (1 eq [xS, t0, dxS] 3 unk)
+    // 1: yS + t0*dyS = y0 + t0*dy0 (2 eq [xS, t0, dxS, yS, dyS] 5 unk)
+    // 2: zS + t0*dzS = z0 + t0*dz0 (3 eq [xS, t0, dxS, yS, dyS, zS, dzS] 7 unk)
+    // 3: xS + t1*dxS = x1 + t1*dx1 (4 eq [xS, t0, dxS, yS, dyS, zS, dzS, t1] 8 unk)
+    // 4: yS + t1*dyS = y1 + t1*dy1 (5 eq [xS, t0, dxS, yS, dyS, zS, dzS, t1] 8 unk)
+    // 5: zS + t1*dzS = z1 + t1*dz1 (6 eq [xS, t0, dxS, yS, dyS, zS, dzS, t1] 8 unk)
+    // 6: xS + t2*dxS = x2 + t2*dx2 (7 eq [xS, t0, dxS, yS, dyS, zS, dzS, t1, t2] 9 unk)
+    // 7: yS + t2*dyS = y2 + t2*dy2 (8 eq [xS, t0, dxS, yS, dyS, zS, dzS, t1, t2] 9 unk)
+    // 8: zS + t2*dzS = z2 + t2*dz2 (9 eq [xS, t0, dxS, yS, dyS, zS, dzS, t1, t2] 9 unk)
+    // !! 9 eq, 9 unk !!
+    // 0:
+    // t0*dxS - t0*dx0 = x0 - xS
+    // t0*(dxS - dx0) = x0 - xS
+    // t0 = (x0 - xS) / (dxS - dx0)
+    // 1:
+    // yS + t0*dyS = y0 + t0*dy0
+    // yS + dyS * (x0 - xS) / (dxS - dx0) = y0 + dy0 * (x0 - xS) / (dxS - dx0)
+    // :puke:
+    //
+    // Let's try adding a new var (dxSN = dxS * tN)
+    // 0: xS + dxS0 = x0 + dx0 * t0 => 3 new unknowns [xS, dxS0, t0]
+    // 1: yS + dyS0 = y0 + dy0 * t0 => 2 new unknowns [yS, dyS0]
+    // 2: zS + dzS0 = z0 + dz0 * t0 => 2 new unknowns [zS, dzS0]
+    //
+    // 3: xS + dxS1 = x1 + dx1 * t1 => 2 new unknowns [dxS1, t1]
+    // 4: yS + dyS1 = y1 + dy1 * t1 => 1 new unknowns [dyS1]
+    // 5: zS + dzS1 = z1 + dz1 * t1 => 1 new unknowns [dzS1]
+    // ... (3 + 4N vars, 3N equations)
+    // 3N+0: dxS0 = dxS * t0
+    // 3N+1: dyS0 = dyS * t0
+    // 3N+2: dzS0 = dzS * t0
+    // ... (3N more equations)
     Box::new("todo")
 }
 
@@ -88,7 +137,7 @@ fn is_past(stone: &Hailstone, point: (Ratio<N>, Ratio<N>)) -> bool {
     let xp = point.0;
     let t = (xp - x0) / dx;
     //println!("TODO: {stone} => ({},{}) AT t={t}", point.0, point.1);
-    (xp - x0) / dx < 0.into()
+    t < 0.into()
 }
 
 fn intersection(a: SlopeIntercept, b: SlopeIntercept) -> Option<(Ratio<N>, Ratio<N>)> {
@@ -184,4 +233,6 @@ mod test {
     fn part1() {
         assert_eq!(2, super::solve1(TEST_INPUT, (7, 7), (27, 27), true));
     }
+
+    //crate::test::aoc_test!(part2, TEST_INPUT, 47);
 }
