@@ -30,8 +30,8 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
     }
     assert_eq!(2, g.nodes.len());
     assert_eq!(3, g.edges.len());
-    let a = g.nodes[0].len() / NODE_LABEL_LEN;
-    let b = g.nodes[1].len() / NODE_LABEL_LEN;
+    let (_, a) = node_size(&g.nodes[0]);
+    let (_, b) = node_size(&g.nodes[1]);
     Box::new(a * b)
 }
 
@@ -65,7 +65,10 @@ fn contract(g: Graph, t: usize, rng: &mut ThreadRng) -> Graph {
         let (from, to) = edges.choose(rng).unwrap();
         let from = from.to_string();
         let to = to.to_string();
-        let combined = format!("{from}{to}");
+        let (prefix, from_size) = node_size(&from);
+        let (_, to_size) = node_size(&to);
+        let combined = format!("{prefix}-{}", from_size + to_size);
+        //println!("DELETEME: {from} + {to} => {combined}");
         nodes = nodes
             .into_iter()
             .filter_map(|node| match node {
@@ -84,11 +87,20 @@ fn contract(g: Graph, t: usize, rng: &mut ThreadRng) -> Graph {
                 (a, b) => Some((a, b)),
             })
             .collect();
-        //println!("DELETEME: --------");
+        //println!("DELETEME: -------- t={t}");
         //println!("DELETEME: nodes = {nodes:?}");
         //println!("DELETEME: edges = {edges:?}");
     }
     Graph { nodes, edges }
+}
+
+fn node_size(node: &str) -> (&str, usize) {
+    if node.len() == NODE_LABEL_LEN {
+        (node, 1)
+    } else {
+        let (node, num) = node.split_once('-').unwrap();
+        (node, num.parse().unwrap())
+    }
 }
 
 #[derive(Clone)]
