@@ -14,5 +14,6 @@ hex = "*"
 itertools = "*"
 num = "*"
 platform-dirs = "*"
+rand = "*"
 regex = "*"
 reqwest = { version = "*", features = ["blocking"] }
