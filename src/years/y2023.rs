@@ -78,6 +78,6 @@ pub fn register<S: SolutionSet>(s: &mut S) {
     slow_aoc_part!(s, 2023, 23, 2, d23::part2);
     aoc_part!(s, 2023, 24, 1, d24::part1);
     aoc_part!(s, 2023, 24, 2, d24::part2);
-    aoc_part!(s, 2023, 25, 1, d25::part1);
+    slow_aoc_part!(s, 2023, 25, 1, d25::part1);
     aoc_part!(s, 2023, 25, 2, d25::part2);
 }

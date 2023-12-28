@@ -72,7 +72,7 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
 type N = i128;
 
 fn solve1(input: &str, min: (N, N), max: (N, N), vis: bool) -> usize {
-    let stones = parse(&input);
+    let stones = parse(input);
     let mut res = 0;
     for (i, a) in stones.iter().enumerate() {
         for b in &stones[i + 1..] {
