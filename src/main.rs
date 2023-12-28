@@ -25,6 +25,7 @@ mod test;
 
 use std::{collections::BTreeSet, fmt::Display};
 
+use anyhow::bail;
 use chrono::Datelike;
 use clap::Parser;
 use curday::aoc_now;
@@ -217,17 +218,17 @@ struct Cli {
     #[arg(long)]
     include_slow: bool,
 
-    /// YYYY or YYYY/DD or DD to run.
+    /// YYYY or [YYYY/]DD[/PART] to run.
     filter: Option<String>,
 }
 
 impl Cli {
     fn set_today<D: Datelike>(&mut self, today: &D) {
         if let Some(filter) = &self.filter {
-            if self.year.is_some() || self.day.is_some() {
-                panic!("arg conflict: FILTER may not be provided when --year or --day are used");
+            if self.year.is_some() || self.day.is_some() || self.part.is_some() {
+                panic!("arg conflict: SPEC may not be provided when --year or --day or --part are used");
             }
-            let (y, d, p) = parse_filter(filter).unwrap();
+            let (y, d, p) = parse_filter(filter, false).unwrap();
             self.year = y;
             self.day = d;
             self.part = p;
@@ -292,16 +293,57 @@ impl Cli {
     }
 }
 
-fn parse_filter(filter: &str) -> anyhow::Result<(Option<i32>, Option<u32>, Option<u8>)> {
-    match filter.split_once('/') {
-        None => {
-            if filter.len() >= 4 {
-                Ok((Some(filter.parse()?), None, None))
-            } else {
-                Ok((None, Some(filter.parse()?), None))
-            }
+fn parse_filter(
+    filter: &str,
+    verbose: bool,
+) -> anyhow::Result<(Option<i32>, Option<u32>, Option<u8>)> {
+    #[derive(Debug)]
+    enum State {
+        YearOrDay,
+        DayOrFin,
+        Part,
+        PartOrFin,
+        Fin,
+    }
+    let mut state = State::YearOrDay;
+    let mut year = None;
+    let mut day = None;
+    let mut part = None;
+    for filter_part in filter.split('/') {
+        if verbose {
+            println!("{filter}: {state:?} {filter_part:?}");
         }
-        Some((y, d)) => Ok((Some(y.parse()?), Some(d.parse()?), None)),
+        state = match (state, filter_part) {
+            (State::YearOrDay, "") => State::Part,
+            (State::YearOrDay, d) if d.len() < 3 => {
+                day = Some(d.parse()?);
+                State::PartOrFin
+            }
+            (State::YearOrDay, y) if y.len() == 4 => {
+                year = Some(y.parse()?);
+                State::DayOrFin
+            }
+            (State::YearOrDay, x) => bail!("expected YYYY or DD but got {x:?}"),
+
+            (State::DayOrFin, d) if d.len() < 3 => {
+                day = Some(d.parse()?);
+                State::PartOrFin
+            }
+            (State::DayOrFin, x) => bail!("expected DD but got {x:?}"),
+
+            (State::Part | State::PartOrFin, p) if p.len() == 1 => {
+                part = Some(p.parse()?);
+                State::Fin
+            }
+            (State::Part | State::PartOrFin, x) => bail!("expected PART but got {x:?}"),
+
+            (State::Fin, _) => bail!("invalid filter {filter:?}: too many components"),
+        };
+    }
+    match state {
+        State::DayOrFin | State::PartOrFin | State::Fin => Ok((year, day, part)),
+        State::YearOrDay => unreachable!(),
+        State::Part => bail!("invalid filter {filter:?}: needs a part number after the /"),
     }
 }
 
@@ -311,19 +353,43 @@ mod tests {
 
     #[test]
     fn parse_year_only() {
-        assert_eq!((Some(2023), None, None), parse_filter("2023").unwrap());
+        assert_eq!(
+            (Some(2023), None, None),
+            parse_filter("2023", true).unwrap()
+        );
     }
 
     #[test]
     fn parse_day_only() {
-        assert_eq!((None, Some(23), None), parse_filter("23").unwrap());
+        assert_eq!((None, Some(23), None), parse_filter("23", true).unwrap());
+    }
+
+    #[test]
+    fn parse_part_only() {
+        assert_eq!((None, None, Some(1)), parse_filter("/1", true).unwrap());
     }
 
     #[test]
     fn parse_year_and_day() {
         assert_eq!(
             (Some(2023), Some(23), None),
-            parse_filter("2023/23").unwrap()
+            parse_filter("2023/23", true).unwrap()
+        );
+    }
+
+    #[test]
+    fn parse_day_and_part() {
+        assert_eq!(
+            (None, Some(23), Some(1)),
+            parse_filter("23/1", true).unwrap()
+        );
+    }
+
+    #[test]
+    fn parse_year_and_day_and_part() {
+        assert_eq!(
+            (Some(2023), Some(23), Some(1)),
+            parse_filter("2023/23/1", true).unwrap()
         );
     }
 }
