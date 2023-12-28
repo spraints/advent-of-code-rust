@@ -11,7 +11,7 @@ pub fn part1(input: String, _vis: bool) -> Box<dyn Display> {
     let mut visited: HashMap<(isize, isize), Vec<Dir>> = HashMap::new();
     let mut cur = vec![(Dir::Right, (0, 0))];
     while let Some((dir, pos)) = cur.pop() {
-        let e = visited.entry(pos).or_insert_with(Vec::new);
+        let e = visited.entry(pos).or_default();
         if !e.contains(&dir) {
             e.push(dir);
             for (new_dir, new_pos) in parsed.step(pos, dir) {
