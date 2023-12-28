@@ -13,6 +13,7 @@ mod d12;
 mod d13;
 mod d14;
 mod d15;
+mod d16;
 mod d17;
 mod d18;
 mod d19;
@@ -80,4 +81,6 @@ pub fn register<S: SolutionSet>(s: &mut S) {
     aoc_part!(s, 2023, 24, 2, d24::part2);
     slow_aoc_part!(s, 2023, 25, 1, d25::part1);
     aoc_part!(s, 2023, 25, 2, d25::part2);
+    aoc_part!(s, 2023, 16, 1, d16::part1);
+    aoc_part!(s, 2023, 16, 2, d16::part2);
 }
