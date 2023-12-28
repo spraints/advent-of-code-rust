@@ -218,28 +218,19 @@ struct Cli {
     include_slow: bool,
 
     /// YYYY or YYYY/DD or DD to run.
-    spec: Option<String>,
+    filter: Option<String>,
 }
 
 impl Cli {
     fn set_today<D: Datelike>(&mut self, today: &D) {
-        if let Some(spec) = &self.spec {
+        if let Some(filter) = &self.filter {
             if self.year.is_some() || self.day.is_some() {
-                panic!("arg conflict: SPEC may not be provided when --year or --day are used");
+                panic!("arg conflict: FILTER may not be provided when --year or --day are used");
             }
-            match spec.split_once('/') {
-                None => {
-                    if spec.len() >= 4 {
-                        self.year = Some(spec.parse().unwrap());
-                    } else {
-                        self.day = Some(spec.parse().unwrap());
-                    }
-                }
-                Some((y, d)) => {
-                    self.year = Some(y.parse().unwrap());
-                    self.day = Some(d.parse().unwrap());
-                }
-            };
+            let (y, d, p) = parse_filter(filter).unwrap();
+            self.year = y;
+            self.day = d;
+            self.part = p;
         }
 
         let today_year = today.year();
@@ -298,5 +289,41 @@ impl Cli {
 
     fn run_slow_parts(&self) -> bool {
         self.include_slow
+    }
+}
+
+fn parse_filter(filter: &str) -> anyhow::Result<(Option<i32>, Option<u32>, Option<u8>)> {
+    match filter.split_once('/') {
+        None => {
+            if filter.len() >= 4 {
+                Ok((Some(filter.parse()?), None, None))
+            } else {
+                Ok((None, Some(filter.parse()?), None))
+            }
+        }
+        Some((y, d)) => Ok((Some(y.parse()?), Some(d.parse()?), None)),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_filter;
+
+    #[test]
+    fn parse_year_only() {
+        assert_eq!((Some(2023), None, None), parse_filter("2023").unwrap());
+    }
+
+    #[test]
+    fn parse_day_only() {
+        assert_eq!((None, Some(23), None), parse_filter("23").unwrap());
+    }
+
+    #[test]
+    fn parse_year_and_day() {
+        assert_eq!(
+            (Some(2023), Some(23), None),
+            parse_filter("2023/23").unwrap()
+        );
     }
 }
