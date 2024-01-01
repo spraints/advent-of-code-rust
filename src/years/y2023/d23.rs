@@ -13,6 +13,8 @@ pub fn part1(input: String, vis: bool) -> Box<dyn Display> {
 }
 
 pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
+    // Hint: Maybe a simple Dijkstra would be faster?
+    // https://www.reddit.com/r/adventofcode/comments/18ufl0o/algorithms_for_each_day/
     let parsed = parse(&input);
     let longest_path = find_longest_path(&parsed, false, vis);
     Box::new(longest_path)

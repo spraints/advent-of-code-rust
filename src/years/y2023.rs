@@ -27,6 +27,24 @@ use crate::registry::aoc_part;
 use crate::registry::slow_aoc_part;
 use crate::solutionset::SolutionSet;
 
+/* Hints
+ * Day 6: abc formula (quadratic equation solving)
+ * Day 10: flood fill/BFS. Jordan curve Theorem (basically: crossing a simple curve means swapping between inside/outside)
+ * Day 12: dynamic programming (with recursion + memoization as a special top-down implementation of DP)
+ * Day 14: cycle detection using solution hashes
+ * Day 17: path finding in a graph (Dijkstra)
+ * Day 18: Shoelace Theorem (and many other techniques - see above)
+ * Day 19: hypercuboid intersections
+ * Day 20: least common multiple (lcm)
+ * Day 21: quadratic formula extrapolation (see Day 9 for a simple example).
+ * Day 22: "shaving" a directed graph (iteratively removing leaves - with the proper data structures this can be done in linear time).
+ * Day 23: BFS, recursive pseudo DFS
+ * Day 24: linear equation solving (Gaussian elimination), 2D / 3D vector math (dot product, cross product, normal vectors)
+ * Day 25: Min-Cut Max-Flow (e.g. Ford-Fulkerson)
+ * from https://www.reddit.com/r/adventofcode/comments/18ufl0o/algorithms_for_each_day/
+ * https://www.reddit.com/r/adventofcode/comments/18ufl0o/comment/kfkkxjj/?utm_source=reddit&utm_medium=web2x&context=3
+ */
+
 pub fn register<S: SolutionSet>(s: &mut S) {
     s.add(2023, 1, 1, None, d01::part1);
     s.add(2023, 1, 1, Some("orig"), d01::orig_part1);
@@ -75,6 +93,7 @@ pub fn register<S: SolutionSet>(s: &mut S) {
     aoc_part!(s, 2023, 20, 2, d20::part2);
     aoc_part!(s, 2023, 21, 1, d21::part1);
     slow_aoc_part!(s, 2023, 21, 2, d21::part2);
+    // day 22:
     aoc_part!(s, 2023, 23, 1, d23::part1);
     slow_aoc_part!(s, 2023, 23, 2, d23::part2);
     aoc_part!(s, 2023, 24, 1, d24::part1);

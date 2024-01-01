@@ -30,6 +30,9 @@ pub fn part2(input: String, vis: bool) -> Box<dyn Display> {
         // top, bottom copies of the map, and how long it takes to cover those; then figure out
         // where the pattern enters the diagonal copies of the map and how long it takes to cover
         // those, then do the math to figure out where we end up after N iterations.
+        //
+        // Hint: Use Lagrange Interpolating Polynomial
+        // https://www.reddit.com/r/adventofcode/comments/18ufl0o/algorithms_for_each_day/
         let by_type = parsed
             .map
             .values()

@@ -2,6 +2,9 @@ use std::fmt::Display;
 
 use num::rational::Ratio;
 
+// Hint: Gaussian elimination? Except I'm not sure how to make the equations into linear ones.
+// https://www.reddit.com/r/adventofcode/comments/18ufl0o/algorithms_for_each_day/
+
 // Handy references:
 // - https://doc.rust-lang.org/std/iter/trait.Iterator.html
 // - https://docs.rs/itertools/0.8.2/itertools/trait.Itertools.html
